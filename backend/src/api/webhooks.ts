@@ -16,7 +16,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
 
     console.log('Mensaje:', messageBody, 'De:', fromPhone, 'A:', toPhone);
 
-    const businessId = 'test-business-123';
+    const businessId = '550e8400-e29b-41d4-a716-446655440001';
 
     const { conversationId } = await getOrCreateConversation(businessId, fromPhone);
     console.log('Conversación:', conversationId);
