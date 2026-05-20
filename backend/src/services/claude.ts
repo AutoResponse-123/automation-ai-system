@@ -1,11 +1,12 @@
-﻿import Anthropic from '@anthropic-ai/sdk';
+export {};
+const Anthropic = require('@anthropic-ai/sdk').default;
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-export async function callClaude(
-  messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+async function callClaude(
+  messages: any[],
   systemPrompt: string
 ) {
   const response = await client.messages.create({
@@ -22,3 +23,5 @@ export async function callClaude(
 
   throw new Error('Unexpected response type from Claude');
 }
+
+module.exports = { callClaude };

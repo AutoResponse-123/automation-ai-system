@@ -1,10 +1,10 @@
-import { supabase } from '../config/supabase';
+export {};
+const { supabase } = require('../config/supabase');
 
-export async function getOrCreateConversation(
+async function getOrCreateConversation(
   businessId: string,
   contactPhone: string
 ) {
-  // Busca o crea contacto
   const { data: contact, error: contactError } = await supabase
     .from('contacts')
     .select('id')
@@ -15,7 +15,6 @@ export async function getOrCreateConversation(
   let contactId: string;
 
   if (contactError || !contact) {
-    // Crear contacto nuevo
     const { data: newContact, error: createError } = await supabase
       .from('contacts')
       .insert([
@@ -34,7 +33,6 @@ export async function getOrCreateConversation(
     contactId = contact.id;
   }
 
-  // Busca conversación activa
   const { data: conversation, error: convError } = await supabase
     .from('conversations')
     .select('id')
@@ -46,7 +44,6 @@ export async function getOrCreateConversation(
   let conversationId: string;
 
   if (convError || !conversation) {
-    // Crear conversación nueva
     const { data: newConv, error: createConvError } = await supabase
       .from('conversations')
       .insert([
@@ -68,9 +65,9 @@ export async function getOrCreateConversation(
   return { contactId, conversationId };
 }
 
-export async function saveMessage(
+async function saveMessage(
   conversationId: string,
-  sender: 'user' | 'assistant',
+  sender: string,
   content: string,
   tokensUsed?: number
 ) {
@@ -91,7 +88,7 @@ export async function saveMessage(
   return data;
 }
 
-export async function getConversationHistory(conversationId: string) {
+async function getConversationHistory(conversationId: string) {
   const { data, error } = await supabase
     .from('messages')
     .select('*')
@@ -102,7 +99,7 @@ export async function getConversationHistory(conversationId: string) {
   return data || [];
 }
 
-export async function getBusiness(businessId: string) {
+async function getBusiness(businessId: string) {
   const { data, error } = await supabase
     .from('businesses')
     .select('*')
@@ -112,3 +109,10 @@ export async function getBusiness(businessId: string) {
   if (error) throw error;
   return data;
 }
+
+module.exports = {
+  getOrCreateConversation,
+  saveMessage,
+  getConversationHistory,
+  getBusiness,
+};

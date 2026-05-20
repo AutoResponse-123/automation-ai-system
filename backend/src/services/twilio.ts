@@ -1,6 +1,7 @@
-import twilio from 'twilio';
+export {};
+const twilio = require('twilio');
 
-export function validateTwilioRequest(
+function validateTwilioRequest(
   request: any,
   authToken: string
 ): boolean {
@@ -18,7 +19,7 @@ export function validateTwilioRequest(
   return computed;
 }
 
-export async function sendWhatsAppMessage(
+async function sendWhatsAppMessage(
   to: string,
   message: string,
   accountSid: string,
@@ -34,3 +35,8 @@ export async function sendWhatsAppMessage(
 
   return result;
 }
+
+module.exports = {
+  validateTwilioRequest,
+  sendWhatsAppMessage,
+};

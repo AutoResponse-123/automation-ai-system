@@ -1,20 +1,16 @@
-import express, { Request, Response } from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import webhookRouter from './api/webhooks';
-
-dotenv.config();
+const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
+const webhookRouter = require('./api/webhooks');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (req: any, res: any) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -22,10 +18,8 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// Webhooks
 app.use('/api/webhooks', webhookRouter);
 
-// Start server
 app.listen(PORT, () => {
   console.log('Server running on http://localhost:' + PORT);
   console.log('Health check: http://localhost:' + PORT + '/health');
