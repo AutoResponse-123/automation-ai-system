@@ -10,7 +10,7 @@ async function callClaude(
   systemPrompt: string
 ) {
   const response = await client.messages.create({
-    model: 'claude-opus-4-1',
+    model: 'claude-sonnet-4-5',
     max_tokens: 300,
     system: systemPrompt,
     messages: messages,
