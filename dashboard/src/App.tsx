@@ -1,6 +1,7 @@
 import './App.css'
 import { useEffect, useState, useRef } from 'react'
 import { createClient, RealtimeChannel } from '@supabase/supabase-js'
+import Analytics from './Analytics'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -398,13 +399,14 @@ export default function App() {
         )}
 
         {/* Placeholder tabs */}
-        {(tab === 'analytics' || tab === 'contacts' || tab === 'activity') && (
+        {tab === 'analytics' && <Analytics />}
+
+        {(tab === 'contacts' || tab === 'activity') && (
           <div style={s.emptyPane}>
             <i className="ti ti-tools" style={{ fontSize: 32, color: '#2e2e4e' }} aria-hidden="true" />
             <p style={{ color: '#4a4a6a', fontSize: 13, marginTop: 12 }}>
-              {tab === 'analytics' && 'Analytics — Fase 2'}
               {tab === 'contacts' && 'CRM Contactos — Fase 3'}
-              {tab === 'activity' && 'Actividad en vivo — Fase 2'}
+              {tab === 'activity' && 'Actividad en vivo — Fase 3'}
             </p>
           </div>
         )}
