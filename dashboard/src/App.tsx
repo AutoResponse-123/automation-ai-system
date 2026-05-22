@@ -2,6 +2,8 @@ import './App.css'
 import { useEffect, useState, useRef } from 'react'
 import { createClient, RealtimeChannel } from '@supabase/supabase-js'
 import Analytics from './Analytics'
+import Contacts from './Contacts'
+import Activity from './Activity'
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -401,15 +403,14 @@ export default function App() {
         {/* Placeholder tabs */}
         {tab === 'analytics' && <Analytics />}
 
-        {(tab === 'contacts' || tab === 'activity') && (
-          <div style={s.emptyPane}>
-            <i className="ti ti-tools" style={{ fontSize: 32, color: '#2e2e4e' }} aria-hidden="true" />
-            <p style={{ color: '#4a4a6a', fontSize: 13, marginTop: 12 }}>
-              {tab === 'contacts' && 'CRM Contactos — Fase 3'}
-              {tab === 'activity' && 'Actividad en vivo — Fase 3'}
-            </p>
-          </div>
+        {tab === 'contacts' && (
+          <Contacts onOpenChat={(contactId) => {
+            const conv = conversations.find(c => c.contact_id === contactId)
+            if (conv) { setSelectedConv(conv); setTab('inbox') }
+          }} />
         )}
+
+        {tab === 'activity' && <Activity />}
       </div>
     </div>
   )
