@@ -366,11 +366,13 @@ export default function App() {
                     </div>
                   </div>
                   <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-                    <button onClick={() => toggleAI(selectedConv)}
-                      style={{ ...s.chip, ...(selectedConv.ai_enabled ? {} : { color: '#4a4a6a', borderColor: '#1e1e2e' }) }}>
-                      <i className="ti ti-robot" style={{ fontSize: 11 }} aria-hidden="true" />
-                      {selectedConv.ai_enabled ? ' IA activa' : ' IA pausada'}
-                    </button>
+                    <div style={s.toggleWrapper} onClick={() => toggleAI(selectedConv)} title={selectedConv.ai_enabled ? 'Pausar IA' : 'Activar IA'}>
+                      <i className="ti ti-robot" style={{ fontSize: 12, color: selectedConv.ai_enabled ? '#a78bfa' : '#4a4a6a' }} aria-hidden="true" />
+                      <span style={{ ...s.toggleLabel, color: selectedConv.ai_enabled ? '#a78bfa' : '#4a4a6a' }}>IA</span>
+                      <div style={{ ...s.toggleTrack, ...(selectedConv.ai_enabled ? s.toggleTrackOn : {}) }}>
+                        <div style={{ ...s.toggleThumb, ...(selectedConv.ai_enabled ? s.toggleThumbOn : {}) }} />
+                      </div>
+                    </div>
                     {selectedConv.status !== 'resolved' && (
                       <button onClick={() => closeConversation(selectedConv)}
                         style={{ ...s.chip, color: '#22c55e', borderColor: '#1a2e1e' }}>
@@ -556,7 +558,12 @@ const s: Record<string, React.CSSProperties> = {
   textarea: { flex: 1, background: '#111122', border: '0.5px solid #2e2e4e', borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'system-ui, sans-serif', resize: 'none', outline: 'none' },
   sendBtn: { background: '#a78bfa', border: 'none', borderRadius: 8, padding: '10px 14px', color: '#fff', fontSize: 14, cursor: 'pointer', flexShrink: 0 },
   emptyPane: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, height: '100%' },
-  toastContainer: { position: 'fixed', bottom: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 9999 },
+  toggleWrapper: { display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '4px 8px', borderRadius: 8, background: '#1a1a2e', border: '0.5px solid #2e2e4e', userSelect: 'none' as const },
+  toggleLabel: { fontSize: 11, fontWeight: 500, transition: 'color 0.2s' },
+  toggleTrack: { width: 32, height: 18, borderRadius: 9, background: '#2e2e4e', position: 'relative' as const, transition: 'background 0.25s', flexShrink: 0 },
+  toggleTrackOn: { background: '#7c3aed' },
+  toggleThumb: { position: 'absolute' as const, top: 2, left: 2, width: 14, height: 14, borderRadius: '50%', background: '#6a6a8a', transition: 'left 0.25s, background 0.25s' },
+  toggleThumbOn: { left: 16, background: '#fff' }, { position: 'fixed', bottom: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 9999 },
   toast: { padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 500, backdropFilter: 'blur(8px)', animation: 'fadeIn 0.2s ease', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' },
   toastInfo:    { background: '#1a1a2e', border: '0.5px solid #2e2e4e', color: '#c4c4d4' },
   toastSuccess: { background: '#0a1a0e', border: '0.5px solid #1a3e1e', color: '#22c55e' },
