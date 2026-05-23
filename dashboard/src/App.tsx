@@ -1,6 +1,7 @@
 import './App.css'
 import { useEffect, useState, useRef } from 'react'
-import { RealtimeChannel, Session } from '@supabase/supabase-js'
+import { RealtimeChannel } from '@supabase/supabase-js'
+import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import Analytics from './Analytics'
 import Contacts from './Contacts'
