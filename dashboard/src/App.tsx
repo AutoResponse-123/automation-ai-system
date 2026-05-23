@@ -126,13 +126,14 @@ export default function App() {
   }, [session])
 
   useEffect(() => {
+    const selectedConvId = selectedConv?.id
     const channel = supabase
       .channel('realtime-dashboard')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' },
         (payload) => {
           const msg = payload.new as Message
-          if (selectedConv?.id === msg.conversation_id) {
-            setMessages(prev => [...prev, msg])
+          if (selectedConvId && msg.conversation_id === selectedConvId) {
+            loadMessages(selectedConvId)
           } else {
             setUnreadCount(p => p + 1)
             showToast(msg.sender === 'user' ? '💬 Nuevo mensaje recibido' : '🤖 Claude respondió', 'info')
@@ -237,16 +238,18 @@ export default function App() {
   }
 
   async function sendManualReply() {
-    if (!replyText.trim() || !selectedConv || sending) return
+    const text = textareaRef.current?.value?.trim()
+    if (!text || !selectedConv || sending) return
     setSending(true)
     await supabase.from('messages').insert([{
       conversation_id: selectedConv.id,
       sender: 'assistant',
-      content: replyText.trim()
+      content: text
     }])
-    setReplyText('')
+    if (textareaRef.current) textareaRef.current.value = ''
     setSending(false)
     textareaRef.current?.focus()
+    loadMessages(selectedConv.id)
   }
 
   async function toggleAI(conv: Conversation) {
@@ -437,11 +440,10 @@ export default function App() {
                   <div style={s.inputRow}>
                     <textarea ref={textareaRef} style={s.textarea}
                       placeholder="Responder manualmente... (Enter para enviar)"
-                      value={replyText}
-                      onChange={e => setReplyText(e.target.value)}
+                      defaultValue=""
                       onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendManualReply() } }}
                       rows={2} />
-                    <button onClick={sendManualReply} disabled={sending || !replyText.trim()} style={s.sendBtn}>
+                    <button onClick={sendManualReply} disabled={sending} style={s.sendBtn}>
                       <i className="ti ti-send" style={{ fontSize: 14 }} aria-hidden="true" />
                     </button>
                   </div>
