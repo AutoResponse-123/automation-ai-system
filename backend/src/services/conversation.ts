@@ -110,9 +110,19 @@ async function getBusiness(businessId: string) {
   return data;
 }
 
+
+async function updateConversationStatus(conversationId: string, status: string) {
+  const { error } = await supabase
+    .from('conversations')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', conversationId);
+  if (error) throw error;
+}
+
 module.exports = {
   getOrCreateConversation,
   saveMessage,
   getConversationHistory,
   getBusiness,
+  updateConversationStatus,
 };

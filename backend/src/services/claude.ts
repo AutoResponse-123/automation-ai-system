@@ -7,18 +7,19 @@ const client = new Anthropic({
 
 async function callClaude(
   messages: any[],
-  systemPrompt: string
+  systemPrompt: string,
+  maxTokens: number = 300
 ) {
   const response = await client.messages.create({
     model: 'claude-sonnet-4-5',
-    max_tokens: 300,
+    max_tokens: maxTokens,
     system: systemPrompt,
     messages: messages,
   });
 
   const content = response.content[0];
   if (content.type === 'text') {
-    return content.text;
+    return { text: content.text, tokens: response.usage?.output_tokens ?? 0 };
   }
 
   throw new Error('Unexpected response type from Claude');
