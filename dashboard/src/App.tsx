@@ -1,10 +1,12 @@
 import './App.css'
 import { useEffect, useState, useRef } from 'react'
-import { RealtimeChannel } from '@supabase/supabase-js'
+import { RealtimeChannel, Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import Analytics from './Analytics'
 import Contacts from './Contacts'
 import Activity from './Activity'
+import Settings from './Settings'
+import Login from './Login'
 
 
 interface Message {
@@ -81,10 +83,12 @@ function avatarColor(id: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
-type Tab = 'dashboard' | 'inbox' | 'analytics' | 'contacts' | 'activity'
+type Tab = 'dashboard' | 'inbox' | 'analytics' | 'contacts' | 'activity' | 'settings'
 
 export default function App() {
   const [tab, setTab] = useState<Tab>('dashboard')
+  const [session, setSession] = useState<Session | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -106,7 +110,21 @@ export default function App() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
-    loadAll()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setAuthLoading(false)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    if (session) loadAll()
+  }, [session])
+
+  useEffect(() => {
     const channel = supabase
       .channel('realtime-dashboard')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' },
@@ -255,6 +273,7 @@ export default function App() {
     { id: 'analytics', icon: 'ti-chart-bar',         label: 'Analytics' },
     { id: 'contacts',  icon: 'ti-users',             label: 'Contactos' },
     { id: 'activity',  icon: 'ti-activity',          label: 'Actividad' },
+    { id: 'settings',  icon: 'ti-settings',          label: 'Configuración' },
   ]
 
   const filteredConvs = conversations
@@ -264,6 +283,14 @@ export default function App() {
       const q = convSearch.toLowerCase()
       return c.contact?.phone?.includes(q) || (c.contact?.name ?? '').toLowerCase().includes(q)
     })
+
+  if (authLoading) return (
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f', color: '#4a4a6a', fontSize: 13 }}>
+      Cargando...
+    </div>
+  )
+
+  if (!session) return <Login />
 
   return (
     <div style={s.shell}>
@@ -280,10 +307,14 @@ export default function App() {
           </button>
         ))}
         <div style={{ flex: 1 }} />
-        <button style={s.sIcon} title="Configuración">
+        <button key="settings" onClick={() => setTab('settings')} title="Configuración"
+          style={{ ...s.sIcon, ...(tab === 'settings' ? s.sIconActive : {}) }}>
           <i className="ti ti-settings" aria-hidden="true" />
         </button>
-        <div style={s.userAvatar}>Z</div>
+        <div style={{ ...s.userAvatar, cursor: 'pointer' }} title="Cerrar sesión"
+          onClick={() => supabase.auth.signOut()}>
+          {session?.user?.email?.slice(0,1).toUpperCase() ?? 'U'}
+        </div>
       </nav>
 
       {/* Main */}
@@ -434,6 +465,8 @@ export default function App() {
         )}
 
         {tab === 'activity' && <Activity />}
+
+        {tab === 'settings' && <Settings />}
       </div>
 
       {/* Toasts */}
