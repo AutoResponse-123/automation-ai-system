@@ -50,7 +50,7 @@ export default function Activity() {
           addEvent({
             type: isAI ? 'ai_response' : 'new_message',
             title: isAI ? 'Claude respondió' : 'Nuevo mensaje',
-            detail: (msg.content || '').slice(0, 60) + ((msg.content || '').length > 60 ? '...' : ''),
+            detail: (msg.content?.slice(0, 60) ?? '') + ((msg.content?.length ?? 0) > 60 ? '...' : ''),
             timestamp: msg.created_at,
           })
         }

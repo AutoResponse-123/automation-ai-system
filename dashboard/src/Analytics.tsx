@@ -25,29 +25,56 @@ function maxOf(stats: DayStat[], key: keyof DayStat): number {
   return Math.max(...stats.map(s => s[key] as number), 1)
 }
 
-// ── Bar chart ─────────────────────────────────────────────────────────────────
+// ── Bar chart with hover tooltips ─────────────────────────────────────────────
 
-function BarChart({ stats, valueKey, color, label }: {
+function BarChart({ stats, valueKey, color, label, format }: {
   stats: DayStat[]
   valueKey: keyof DayStat
   color: string
   label: string
+  format?: (v: number) => string
 }) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
   const max = maxOf(stats, valueKey)
+  const fmt = format ?? ((v: number) => String(v))
+
   return (
     <div style={s.chartCard}>
       <div style={s.chartTitle}>{label}</div>
       <div style={s.barsArea}>
-        {stats.map(d => {
+        {stats.map((d, i) => {
           const val = d[valueKey] as number
           const pct = Math.round((val / max) * 100)
+          const isHovered = hoveredIdx === i
           return (
-            <div key={d.date} style={s.barCol}>
-              <div style={s.barTooltip}>{valueKey === 'automationRate' ? `${val}%` : val}</div>
-              <div style={s.barTrack}>
-                <div style={{ ...s.barFill, height: `${pct}%`, background: color }} />
+            <div key={d.date} style={s.barCol}
+              onMouseEnter={() => setHoveredIdx(i)}
+              onMouseLeave={() => setHoveredIdx(null)}>
+              {/* Tooltip */}
+              <div style={{
+                ...s.barTooltip,
+                color: isHovered ? '#e2e8f0' : '#4a4a6a',
+                fontWeight: isHovered ? 500 : 400,
+                transition: 'color 0.15s',
+              }}>
+                {fmt(val)}
               </div>
-              <div style={s.barLabel}>{formatDate(d.date)}</div>
+              <div style={s.barTrack}>
+                <div style={{
+                  ...s.barFill,
+                  height: `${pct}%`,
+                  background: isHovered ? color : color + '99',
+                  boxShadow: isHovered ? `0 0 8px ${color}66` : 'none',
+                  transition: 'background 0.15s, box-shadow 0.15s, height 0.3s',
+                }} />
+              </div>
+              <div style={{
+                ...s.barLabel,
+                color: isHovered ? '#8b8baa' : '#3a3a5a',
+                transition: 'color 0.15s',
+              }}>
+                {formatDate(d.date)}
+              </div>
             </div>
           )
         })}
@@ -59,7 +86,9 @@ function BarChart({ stats, valueKey, color, label }: {
 // ── Stacked bar chart ─────────────────────────────────────────────────────────
 
 function StackedChart({ stats }: { stats: DayStat[] }) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
   const max = maxOf(stats, 'total')
+
   return (
     <div style={s.chartCard}>
       <div style={s.chartTitle}>Mensajes por día</div>
@@ -68,19 +97,26 @@ function StackedChart({ stats }: { stats: DayStat[] }) {
         <div style={s.legendItem}><div style={{ ...s.legendDot, background: '#22c55e' }} />IA</div>
       </div>
       <div style={s.barsArea}>
-        {stats.map(d => {
-          const userPct = Math.round((d.user / max) * 100)
-          const botPct = Math.round((d.assistant / max) * 100)
+        {stats.map((d, i) => {
+          const userPct  = Math.round((d.user      / max) * 100)
+          const botPct   = Math.round((d.assistant / max) * 100)
+          const isHovered = hoveredIdx === i
           return (
-            <div key={d.date} style={s.barCol}>
-              <div style={s.barTooltip}>{d.total}</div>
+            <div key={d.date} style={s.barCol}
+              onMouseEnter={() => setHoveredIdx(i)}
+              onMouseLeave={() => setHoveredIdx(null)}>
+              <div style={{ ...s.barTooltip, color: isHovered ? '#e2e8f0' : '#4a4a6a', fontWeight: isHovered ? 500 : 400, transition: 'color 0.15s' }}>
+                {d.total}
+              </div>
               <div style={s.barTrack}>
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', flexDirection: 'column', height: `${userPct + botPct}%` }}>
-                  <div style={{ flex: botPct, background: '#22c55e', borderRadius: '3px 3px 0 0' }} />
-                  <div style={{ flex: userPct, background: '#a78bfa' }} />
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', flexDirection: 'column', height: `${userPct + botPct}%`, transition: 'height 0.3s' }}>
+                  <div style={{ flex: botPct, background: isHovered ? '#22c55e' : '#22c55e99', borderRadius: '3px 3px 0 0', transition: 'background 0.15s' }} />
+                  <div style={{ flex: userPct, background: isHovered ? '#a78bfa' : '#a78bfa99', transition: 'background 0.15s' }} />
                 </div>
               </div>
-              <div style={s.barLabel}>{formatDate(d.date)}</div>
+              <div style={{ ...s.barLabel, color: isHovered ? '#8b8baa' : '#3a3a5a', transition: 'color 0.15s' }}>
+                {formatDate(d.date)}
+              </div>
             </div>
           )
         })}
@@ -96,13 +132,10 @@ export default function Analytics() {
   const [range, setRange] = useState<Range>('7d')
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadStats()
-  }, [range])
+  useEffect(() => { loadStats() }, [range])
 
   async function loadStats() {
     setLoading(true)
-
     const days = range === '7d' ? 7 : range === '14d' ? 14 : 30
     const from = new Date()
     from.setDate(from.getDate() - days)
@@ -116,10 +149,7 @@ export default function Analytics() {
 
     if (!data) { setLoading(false); return }
 
-    // Group by day
     const byDay: Record<string, { user: number; assistant: number; tokens: number }> = {}
-
-    // Pre-fill all days so empty days show as 0
     for (let i = 0; i < days; i++) {
       const d = new Date()
       d.setDate(d.getDate() - (days - 1 - i))
@@ -150,13 +180,14 @@ export default function Analytics() {
     setLoading(false)
   }
 
-  // Summary cards
-  const totalMsgs = stats.reduce((s, d) => s + d.total, 0)
-  const totalTokens = stats.reduce((s, d) => s + d.tokens, 0)
-  const avgAutomation = stats.length > 0
-    ? Math.round(stats.reduce((s, d) => s + d.automationRate, 0) / stats.filter(d => d.total > 0).length || 0)
+  const totalMsgs     = stats.reduce((s, d) => s + d.total, 0)
+  const totalTokens   = stats.reduce((s, d) => s + d.tokens, 0)
+  const activeDays    = stats.filter(d => d.total > 0)
+  const avgAutomation = activeDays.length > 0
+    ? Math.round(activeDays.reduce((s, d) => s + d.automationRate, 0) / activeDays.length)
     : 0
-  const estimatedCost = totalTokens * 0.000003
+  const estimatedCost  = totalTokens * 0.000003
+  const peakDay        = stats.reduce((a, b) => b.total > a.total ? b : a, stats[0] ?? { date: '', total: 0 })
 
   return (
     <div style={s.container}>
@@ -165,11 +196,8 @@ export default function Analytics() {
         <span style={s.headerTitle}>Analytics</span>
         <div style={s.rangeGroup}>
           {(['7d', '14d', '30d'] as Range[]).map(r => (
-            <button
-              key={r}
-              onClick={() => setRange(r)}
-              style={{ ...s.rangeBtn, ...(range === r ? s.rangeBtnActive : {}) }}
-            >
+            <button key={r} onClick={() => setRange(r)}
+              style={{ ...s.rangeBtn, ...(range === r ? s.rangeBtnActive : {}) }}>
               {r === '7d' ? '7 días' : r === '14d' ? '14 días' : '30 días'}
             </button>
           ))}
@@ -177,38 +205,51 @@ export default function Analytics() {
       </div>
 
       {loading ? (
-        <div style={s.loading}>Cargando...</div>
+        <div style={s.loading}>
+          {Array(4).fill(0).map((_, i) => (
+            <div key={i} style={{ ...s.summaryCard, display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
+              <div className="skeleton" style={{ height: 10, width: '60%', borderRadius: 4 }} />
+              <div className="skeleton" style={{ height: 26, width: '40%', borderRadius: 4 }} />
+            </div>
+          ))}
+        </div>
       ) : (
         <>
           {/* Summary */}
           <div style={s.summaryGrid}>
-            <div style={s.summaryCard}>
-              <div style={s.summaryLabel}>Mensajes en período</div>
-              <div style={s.summaryValue}>{totalMsgs.toLocaleString()}</div>
-            </div>
-            <div style={s.summaryCard}>
-              <div style={s.summaryLabel}>Automatización promedio</div>
-              <div style={{ ...s.summaryValue, color: '#22c55e' }}>{avgAutomation}%</div>
-            </div>
-            <div style={s.summaryCard}>
-              <div style={s.summaryLabel}>Tokens consumidos</div>
-              <div style={s.summaryValue}>{(totalTokens / 1000).toFixed(1)}k</div>
-            </div>
-            <div style={s.summaryCard}>
-              <div style={s.summaryLabel}>Costo estimado</div>
-              <div style={{ ...s.summaryValue, color: '#f59e0b' }}>${estimatedCost.toFixed(2)}</div>
-            </div>
+            <SummaryCard label="Mensajes en período" value={totalMsgs.toLocaleString()} />
+            <SummaryCard label="Automatización promedio" value={`${avgAutomation}%`} color="#22c55e" />
+            <SummaryCard label="Tokens consumidos" value={`${(totalTokens / 1000).toFixed(1)}k`} />
+            <SummaryCard label="Costo estimado" value={`$${estimatedCost.toFixed(2)}`} color="#f59e0b" />
+            <SummaryCard label="Días activos" value={`${activeDays.length}/${stats.length}`} />
+            <SummaryCard label="Pico del período"
+              value={peakDay?.total > 0 ? `${peakDay.total} msgs` : '—'}
+              sub={peakDay?.total > 0 ? formatDate(peakDay.date) : ''} />
           </div>
 
           {/* Charts */}
           <div style={s.chartsGrid}>
             <StackedChart stats={stats} />
-            <BarChart stats={stats} valueKey="automationRate" color="#22c55e" label="Tasa de automatización (%)" />
-            <BarChart stats={stats} valueKey="tokens" color="#a78bfa" label="Tokens consumidos por día" />
+            <BarChart stats={stats} valueKey="automationRate" color="#22c55e" label="Tasa de automatización (%)"
+              format={v => `${v}%`} />
+            <BarChart stats={stats} valueKey="tokens" color="#a78bfa" label="Tokens por día"
+              format={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v)} />
             <BarChart stats={stats} valueKey="assistant" color="#38bdf8" label="Respuestas de IA por día" />
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function SummaryCard({ label, value, color, sub }: { label: string; value: string; color?: string; sub?: string }) {
+  return (
+    <div className="metric-card" style={s.summaryCard}>
+      <div style={s.summaryLabel}>{label}</div>
+      <div style={{ ...s.summaryValue, ...(color ? { color } : {}) }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 2 }}>{sub}</div>}
     </div>
   )
 }
@@ -220,22 +261,22 @@ const s: Record<string, React.CSSProperties> = {
   header: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 },
   headerTitle: { fontSize: 13, fontWeight: 500, color: '#e2e8f0' },
   rangeGroup: { display: 'flex', gap: 4, marginLeft: 'auto' },
-  rangeBtn: { background: 'transparent', border: '0.5px solid #1e1e2e', borderRadius: 6, padding: '4px 10px', fontSize: 11, color: '#4a4a6a', cursor: 'pointer' },
+  rangeBtn: { background: 'transparent', border: '0.5px solid #1e1e2e', borderRadius: 6, padding: '4px 10px', fontSize: 11, color: '#4a4a6a', cursor: 'pointer', transition: 'all 0.15s' },
   rangeBtnActive: { background: '#1a1a2e', borderColor: '#2e2e4e', color: '#a78bfa' },
-  loading: { color: '#4a4a6a', fontSize: 13, padding: 32, textAlign: 'center' },
-  summaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 },
+  loading: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, padding: '8px 0' },
+  summaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, marginBottom: 16 },
   summaryCard: { background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 10, padding: '10px 12px' },
   summaryLabel: { fontSize: 11, color: '#4a4a6a', marginBottom: 4 },
-  summaryValue: { fontSize: 22, fontWeight: 500, color: '#e2e8f0', lineHeight: 1 },
+  summaryValue: { fontSize: 20, fontWeight: 500, color: '#e2e8f0', lineHeight: 1 },
   chartsGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 },
   chartCard: { background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 10, padding: '12px 14px' },
   chartTitle: { fontSize: 12, color: '#8b8baa', marginBottom: 12, fontWeight: 500 },
-  barsArea: { display: 'flex', alignItems: 'flex-end', gap: 4, height: 120 },
-  barCol: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: '100%' },
-  barTooltip: { fontSize: 10, color: '#4a4a6a', height: 14, lineHeight: '14px' },
+  barsArea: { display: 'flex', alignItems: 'flex-end', gap: 4, height: 130 },
+  barCol: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: '100%', cursor: 'default' },
+  barTooltip: { fontSize: 10, height: 14, lineHeight: '14px' },
   barTrack: { flex: 1, width: '100%', position: 'relative', background: '#1a1a2e', borderRadius: 3 },
-  barFill: { position: 'absolute', bottom: 0, left: 0, right: 0, borderRadius: 3, transition: 'height .3s' },
-  barLabel: { fontSize: 10, color: '#4a4a6a', whiteSpace: 'nowrap' },
+  barFill: { position: 'absolute', bottom: 0, left: 0, right: 0, borderRadius: 3 },
+  barLabel: { fontSize: 9, whiteSpace: 'nowrap' },
   legendItem: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#4a4a6a' },
   legendDot: { width: 8, height: 8, borderRadius: '50%' },
 }

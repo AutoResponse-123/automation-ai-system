@@ -42,7 +42,13 @@ function buildSystemPrompt(business: any): string {
   }
 
   if (business.google_refresh_token) {
-    parts.push(`\nTenés acceso al calendario del negocio. Cuando el cliente quiera agendar un turno: 1) preguntá qué fecha prefiere, 2) consultá disponibilidad con get_available_slots, 3) confirmá hora y nombre, 4) creá el turno con create_appointment.`);
+    parts.push(`\nTenés acceso al calendario del negocio. SIEMPRE seguí este flujo para agendar turnos:
+1) Preguntá qué fecha prefiere el cliente
+2) OBLIGATORIO: llamá get_available_slots para esa fecha ANTES de confirmar cualquier hora
+3) Mostrá SOLO los horarios que devuelve la herramienta — no inventes ni sugieras horas
+4) Si el cliente pide una hora que NO está en la lista, decile "ese horario no está disponible" y mostrá las opciones disponibles
+5) Cuando el cliente elija una hora disponible, pedí su nombre y llamá create_appointment
+6) NUNCA confirmes un turno sin haber llamado create_appointment primero. Si no llamaste al tool, NO digas que el turno está agendado.`);
   }
 
   parts.push(`\nSi no sabés algo, decilo honestamente y ofrecé derivar al equipo humano.`);
@@ -158,7 +164,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
     }));
 
     console.log('Llamando a Claude...');
-    const { text: assistantMessage, tokens } = await callClaude(messages, systemPrompt, business.max_tokens || 300, business, fromPhone);
+    const { text: assistantMessage, tokens } = await callClaude(messages, systemPrompt, business.max_tokens || 600, business, fromPhone);
     console.log('Respuesta Claude:', assistantMessage, `(${tokens} tokens)`);
 
     await saveMessage(conversationId, 'assistant', assistantMessage, tokens);
@@ -176,6 +182,57 @@ router.post('/whatsapp', async (req: any, res: any) => {
 });
 
 // ── Google Calendar OAuth ────────────────────────────────────────────────────
+
+// ── Resumen IA de conversación ──────────────────────────────────────────────
+router.post('/conversations/:id/summary', async (req: any, res: any) => {
+  const { id: conversationId } = req.params;
+  const { supabase } = require('../config/supabase');
+
+  try {
+    // Traer mensajes de la conversación (máx 60)
+    const { data: messages } = await supabase
+      .from('messages')
+      .select('sender, content, created_at')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true })
+      .limit(60);
+
+    if (!messages || messages.length === 0) {
+      return res.json({ summary: 'Esta conversación no tiene mensajes todavía.' });
+    }
+
+    // Traer info del negocio
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('business_id, contacts(name, phone)')
+      .eq('id', conversationId)
+      .single();
+
+    const contact = (conv as any)?.contacts;
+    const clientLabel = contact?.name || contact?.phone || 'el cliente';
+
+    // Formatear historial
+    const transcript = messages.map((m: any) => {
+      const who = m.sender === 'user' ? clientLabel : 'Bot';
+      return `${who}: ${m.content}`;
+    }).join('\n');
+
+    const systemPrompt = `Sos un asistente que resume conversaciones de atención al cliente de forma concisa y útil para el equipo de soporte. Respondé siempre en español.`;
+
+    const userPrompt = `Resumí esta conversación en 3-5 puntos clave. Indicá: el motivo de contacto, lo que se acordó o resolvió, y si hay alguna acción pendiente. Sé conciso.\n\nConversación:\n${transcript}`;
+
+    const response = await callClaude(
+      [{ role: 'user', content: userPrompt }],
+      systemPrompt,
+      400
+    );
+
+    res.json({ summary: response.text });
+  } catch (err: any) {
+    console.error('[summary] Error:', err.message);
+    res.status(500).json({ error: 'No se pudo generar el resumen.' });
+  }
+});
 
 router.get('/calendar/connect/:businessId', (req: any, res: any) => {
   const url = getAuthUrl(req.params.businessId);

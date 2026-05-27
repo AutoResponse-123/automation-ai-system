@@ -17,11 +17,7 @@ interface Contact {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('es-AR', {
-    day: '2-digit', month: '2-digit', year: '2-digit'
-  })
-}
+
 
 function timeAgo(dateStr?: string): string {
   if (!dateStr) return '—'

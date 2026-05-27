@@ -58,7 +58,11 @@ const LANGUAGES = [
 
 type Section = 'personalidad' | 'negocio' | 'escalacion' | 'horarios' | 'notificaciones' | 'apariencia' | 'integraciones'
 
-export default function Settings({ onSave, businessId }: { onSave?: () => void; businessId: string | null }) {
+export default function Settings({ onSave, businessId, onThemeChange }: {
+  onSave?: () => void
+  businessId: string | null
+  onThemeChange?: (accent?: string, bg?: string) => void
+}) {
   const [config, setConfig] = useState<BusinessConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -67,6 +71,7 @@ export default function Settings({ onSave, businessId }: { onSave?: () => void; 
   const [newKeyword, setNewKeyword] = useState('')
   const [newForbidden, setNewForbidden] = useState('')
   const [newClosing, setNewClosing] = useState('')
+  const [bgColor, setBgColor] = useState<string>(() => localStorage.getItem('ar_bg_color') ?? '#07070d')
 
   useEffect(() => { if (businessId) loadConfig() }, [businessId])
 
@@ -133,9 +138,11 @@ export default function Settings({ onSave, businessId }: { onSave?: () => void; 
       schedule: config.schedule,
       updated_at: new Date().toISOString(),
     }).eq('id', businessId!)
+    localStorage.setItem('ar_bg_color', bgColor)
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
+    onThemeChange?.(config.accent_color, bgColor)
     onSave?.()
   }
 
@@ -438,25 +445,63 @@ export default function Settings({ onSave, businessId }: { onSave?: () => void; 
           {/* ── Apariencia ── */}
           {activeSection === 'apariencia' && (
             <div style={s.section}>
-              <SectionHeader icon="ti-palette" title="Apariencia" subtitle="Personalizá los colores de tu dashboard" />
+              <SectionHeader icon="ti-palette" title="Apariencia" subtitle="Personalizá los colores de tu dashboard — los cambios se aplican en vivo" />
 
-              <Field label="Color de acento">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {/* Color de acento */}
+              <Field label="Color de acento" hint="Afecta botones, íconos activos, badges y acentos en todo el dashboard">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' as const }}>
                   <input type="color" value={config.accent_color}
-                    onChange={e => update('accent_color', e.target.value)}
-                    style={{ width: 40, height: 40, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 8 }} />
-                  <input style={{ ...s.input, width: 120, fontFamily: 'monospace' }}
+                    onChange={e => { update('accent_color', e.target.value); onThemeChange?.(e.target.value, bgColor) }}
+                    style={{ width: 44, height: 44, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 10, padding: 2 }} />
+                  <input style={{ ...s.input, width: 110, fontFamily: 'monospace', fontSize: 12 }}
                     value={config.accent_color}
-                    onChange={e => update('accent_color', e.target.value)} />
+                    onChange={e => { update('accent_color', e.target.value); onThemeChange?.(e.target.value, bgColor) }} />
                   <div style={{ display: 'flex', gap: 6 }}>
-                    {['#a78bfa','#22c55e','#38bdf8','#f59e0b','#f87171','#e879f9'].map(c => (
-                      <div key={c} onClick={() => update('accent_color', c)}
-                        style={{ width: 20, height: 20, borderRadius: '50%', background: c, cursor: 'pointer',
-                          border: config.accent_color === c ? '2px solid #fff' : '2px solid transparent' }} />
+                    {['#a78bfa','#22c55e','#38bdf8','#f59e0b','#f87171','#e879f9','#fb923c','#34d399'].map(c => (
+                      <div key={c} onClick={() => { update('accent_color', c); onThemeChange?.(c, bgColor) }}
+                        style={{ width: 22, height: 22, borderRadius: '50%', background: c, cursor: 'pointer',
+                          border: config.accent_color === c ? '2px solid #fff' : '2px solid transparent',
+                          boxShadow: config.accent_color === c ? `0 0 8px ${c}88` : 'none',
+                          transition: 'all 0.15s' }} />
                     ))}
                   </div>
                 </div>
               </Field>
+
+              {/* Color de fondo */}
+              <Field label="Color de fondo" hint="Cambia el tono base del dashboard — usá colores muy oscuros para mejores resultados">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' as const }}>
+                  <input type="color" value={bgColor}
+                    onChange={e => { setBgColor(e.target.value); onThemeChange?.(config.accent_color, e.target.value) }}
+                    style={{ width: 44, height: 44, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 10, padding: 2 }} />
+                  <input style={{ ...s.input, width: 110, fontFamily: 'monospace', fontSize: 12 }}
+                    value={bgColor}
+                    onChange={e => { setBgColor(e.target.value); onThemeChange?.(config.accent_color, e.target.value) }} />
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {['#07070d','#0a0a0f','#060610','#070d07','#0d0709','#07090d','#0a0808','#08080a'].map(c => (
+                      <div key={c} onClick={() => { setBgColor(c); onThemeChange?.(config.accent_color, c) }}
+                        style={{ width: 22, height: 22, borderRadius: '50%', background: c, cursor: 'pointer',
+                          border: bgColor === c ? '2px solid #fff' : '1px solid #333',
+                          transition: 'all 0.15s' }} />
+                    ))}
+                  </div>
+                </div>
+              </Field>
+
+              {/* Preview */}
+              <div style={{ marginTop: 8, padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-card)' }}>
+                <div style={{ fontSize: 11, color: '#5a5a7a', marginBottom: 10, fontWeight: 500, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Preview</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const }}>
+                  <div style={{ background: 'linear-gradient(135deg, var(--accent-dark), var(--accent))', borderRadius: 8, padding: '6px 14px', fontSize: 12, color: '#fff', fontWeight: 500 }}>Botón principal</div>
+                  <div style={{ background: 'var(--accent-dim)', border: '1px solid var(--border-mid)', borderRadius: 8, padding: '6px 14px', fontSize: 12, color: 'var(--accent)' }}>Badge acento</div>
+                  <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 14px', fontSize: 12, color: '#e2e8f0' }}>Fondo panel</div>
+                </div>
+              </div>
+
+              <div style={{ marginTop: 14, padding: '10px 14px', background: '#1a1200', border: '1px solid #3a2500', borderRadius: 8, fontSize: 12, color: '#fde68a' }}>
+                <i className="ti ti-info-circle" style={{ marginRight: 6 }} />
+                Los cambios de color se aplican en vivo. Guardá para que persistan al recargar.
+              </div>
             </div>
           )}
 
@@ -489,7 +534,15 @@ export default function Settings({ onSave, businessId }: { onSave?: () => void; 
                     </button>
                   ) : (
                     <button
-                      onClick={() => window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/calendar/connect/${businessId}`, '_blank', 'width=600,height=700')}
+                      onClick={() => {
+                        const popup = window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/calendar/connect/${businessId}`, '_blank', 'width=600,height=700')
+                        const timer = setInterval(() => {
+                          if (popup?.closed) {
+                            clearInterval(timer)
+                            loadConfig()
+                          }
+                        }, 1000)
+                      }}
                       style={s.saveBtn}>
                       Conectar
                     </button>

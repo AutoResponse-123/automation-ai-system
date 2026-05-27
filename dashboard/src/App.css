@@ -1,3 +1,17 @@
+/* ── Tema dinámico ── */
+:root {
+  --accent:      #a78bfa;
+  --accent-dark: #7c3aed;
+  --accent-glow: rgba(124, 58, 237, 0.27);
+  --accent-dim:  rgba(167, 139, 250, 0.12);
+  --bg-base:     #07070d;
+  --bg-panel:    #0a0a12;
+  --bg-card:     #0d0d18;
+  --bg-input:    #0f0f1e;
+  --border:      #16162a;
+  --border-mid:  #1e1e3a;
+}
+
 /* Scrollbar global */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -15,8 +29,48 @@
   50%       { opacity: 0.4; }
 }
 
-/* Hover en filas */
-.conv-row:hover { background: #0f0f1a; }
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Skeleton loader */
+.skeleton {
+  background: linear-gradient(90deg, #14142a 25%, #1e1e3a 50%, #14142a 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* Metric card */
+.metric-card {
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.metric-card:hover {
+  border-color: #2a2a4a !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.55);
+}
+
+/* Quick reply items */
+.quick-reply-item:hover {
+  background: #13132a !important;
+  color: #e2e8f0 !important;
+}
+
+/* Conv row hover */
+.conv-row:hover { background: #0c0c1a; }
+
+/* Contact panel & popover animations */
+.contact-panel { animation: slideDown 0.15s ease forwards; }
+.popover-enter  { animation: slideDown 0.15s ease forwards; }
+
+/* Toast animation */
+.toast-enter { animation: fadeIn 0.2s ease forwards; }
 
 /* Selección de texto */
 ::selection { background: #a78bfa33; color: #e2e8f0; }
@@ -26,3 +80,7 @@ button:focus-visible { outline: 2px solid #a78bfa; outline-offset: 2px; }
 
 /* Input placeholder */
 input::placeholder, textarea::placeholder { color: #4a4a6a; }
+
+/* Input / textarea focus */
+input, textarea, select { transition: border-color 0.15s; }
+input:focus, textarea:focus, select:focus { border-color: #4a4a8a !important; }
