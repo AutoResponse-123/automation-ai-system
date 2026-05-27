@@ -90,6 +90,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('dashboard')
   const [session, setSession] = useState<Session | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
+  const [businessId, setBusinessId] = useState<string | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -122,8 +123,23 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (session) loadAll()
+    if (session) loadBusiness()
   }, [session])
+
+  async function loadBusiness() {
+    const { data } = await supabase
+      .from('businesses')
+      .select('id')
+      .eq('user_id', session!.user.id)
+      .single()
+    if (data) {
+      setBusinessId(data.id)
+    }
+  }
+
+  useEffect(() => {
+    if (businessId) loadAll()
+  }, [businessId])
 
   useEffect(() => {
     const selectedConvId = selectedConv?.id
@@ -168,9 +184,11 @@ export default function App() {
   }
 
   async function loadConversations() {
+    if (!businessId) return
     const { data: convs } = await supabase
       .from('conversations')
       .select('*')
+      .eq('business_id', businessId)
       .order('updated_at', { ascending: false })
       .limit(50)
     if (!convs) return
@@ -196,7 +214,16 @@ export default function App() {
   }
 
   async function loadMetrics() {
+    if (!businessId) return
     const today = new Date(); today.setHours(0,0,0,0)
+
+    // Obtener conversation_ids del negocio
+    const { data: bizConvs } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('business_id', businessId)
+    const convIds = bizConvs?.map(c => c.id) ?? []
+
     const [
       { count: totalMessages },
       { count: todayMessages },
@@ -206,13 +233,13 @@ export default function App() {
       { data: tokenData },
       { data: allMessages }
     ] = await Promise.all([
-      supabase.from('messages').select('*', { count: 'exact', head: true }),
-      supabase.from('messages').select('*', { count: 'exact', head: true }).gte('created_at', today.toISOString()),
-      supabase.from('contacts').select('*', { count: 'exact', head: true }),
-      supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-      supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('messages').select('tokens_used').eq('sender', 'assistant').not('tokens_used', 'is', null),
-      supabase.from('messages').select('sender').limit(1000),
+      convIds.length ? supabase.from('messages').select('*', { count: 'exact', head: true }).in('conversation_id', convIds) : Promise.resolve({ count: 0 }),
+      convIds.length ? supabase.from('messages').select('*', { count: 'exact', head: true }).in('conversation_id', convIds).gte('created_at', today.toISOString()) : Promise.resolve({ count: 0 }),
+      supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('business_id', businessId),
+      supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('business_id', businessId).eq('status', 'active'),
+      supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('business_id', businessId).eq('status', 'pending'),
+      convIds.length ? supabase.from('messages').select('tokens_used').eq('sender', 'assistant').in('conversation_id', convIds).not('tokens_used', 'is', null) : Promise.resolve({ data: [] }),
+      convIds.length ? supabase.from('messages').select('sender').in('conversation_id', convIds).limit(1000) : Promise.resolve({ data: [] }),
     ])
     const totalTokens = tokenData?.reduce((s, m) => s + (m.tokens_used || 0), 0) ?? 0
     const assistantCount = allMessages?.filter(m => m.sender === 'assistant').length ?? 0
@@ -469,7 +496,7 @@ export default function App() {
 
         {tab === 'activity' && <Activity />}
 
-        {tab === 'settings' && <Settings />}
+        {tab === 'settings' && <Settings businessId={businessId} />}
       </div>
 
       {/* Toasts */}

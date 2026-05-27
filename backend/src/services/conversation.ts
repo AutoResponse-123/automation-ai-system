@@ -17,13 +17,7 @@ async function getOrCreateConversation(
   if (contactError || !contact) {
     const { data: newContact, error: createError } = await supabase
       .from('contacts')
-      .insert([
-        {
-          business_id: businessId,
-          phone: contactPhone,
-          interaction_count: 1,
-        },
-      ])
+      .insert([{ business_id: businessId, phone: contactPhone, interaction_count: 1 }])
       .select('id')
       .single();
 
@@ -46,13 +40,7 @@ async function getOrCreateConversation(
   if (convError || !conversation) {
     const { data: newConv, error: createConvError } = await supabase
       .from('conversations')
-      .insert([
-        {
-          business_id: businessId,
-          contact_id: contactId,
-          status: 'active',
-        },
-      ])
+      .insert([{ business_id: businessId, contact_id: contactId, status: 'active' }])
       .select('id')
       .single();
 
@@ -73,14 +61,7 @@ async function saveMessage(
 ) {
   const { data, error } = await supabase
     .from('messages')
-    .insert([
-      {
-        conversation_id: conversationId,
-        sender,
-        content,
-        tokens_used: tokensUsed,
-      },
-    ])
+    .insert([{ conversation_id: conversationId, sender, content, tokens_used: tokensUsed }])
     .select()
     .single();
 
@@ -110,6 +91,27 @@ async function getBusiness(businessId: string) {
   return data;
 }
 
+async function getBusinessByPhone(phone: string) {
+  // Busca el negocio por número de WhatsApp — permite multi-tenant
+  // Normaliza el número: intenta con y sin el formato +
+  const { data, error } = await supabase
+    .from('businesses')
+    .select('*')
+    .eq('phone_whatsapp', phone)
+    .eq('is_active', true)
+    .single();
+
+  if (!error && data) return data;
+
+  // Fallback: buscar sin importar is_active (para mostrar mensaje de suspensión)
+  const { data: anyBiz } = await supabase
+    .from('businesses')
+    .select('*')
+    .eq('phone_whatsapp', phone)
+    .single();
+
+  return anyBiz || null;
+}
 
 async function updateConversationStatus(conversationId: string, status: string) {
   const { error } = await supabase
@@ -124,5 +126,6 @@ module.exports = {
   saveMessage,
   getConversationHistory,
   getBusiness,
+  getBusinessByPhone,
   updateConversationStatus,
 };

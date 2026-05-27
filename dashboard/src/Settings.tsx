@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
-const BUSINESS_ID = '550e8400-e29b-41d4-a716-446655440001'
 
 interface BusinessConfig {
   id: string
@@ -27,6 +26,8 @@ interface BusinessConfig {
   daily_summary: boolean
   max_messages_before_escalation: number
   accent_color: string
+  google_calendar_id: string | null
+  google_refresh_token: string | null
   schedule: {
     enabled: boolean
     timezone: string
@@ -55,9 +56,9 @@ const LANGUAGES = [
   { code: 'pt', label: 'Português' },
 ]
 
-type Section = 'personalidad' | 'negocio' | 'escalacion' | 'horarios' | 'notificaciones' | 'apariencia'
+type Section = 'personalidad' | 'negocio' | 'escalacion' | 'horarios' | 'notificaciones' | 'apariencia' | 'integraciones'
 
-export default function Settings({ onSave }: { onSave?: () => void }) {
+export default function Settings({ onSave, businessId }: { onSave?: () => void; businessId: string | null }) {
   const [config, setConfig] = useState<BusinessConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -67,11 +68,12 @@ export default function Settings({ onSave }: { onSave?: () => void }) {
   const [newForbidden, setNewForbidden] = useState('')
   const [newClosing, setNewClosing] = useState('')
 
-  useEffect(() => { loadConfig() }, [])
+  useEffect(() => { if (businessId) loadConfig() }, [businessId])
 
   async function loadConfig() {
+    if (!businessId) return
     setLoading(true)
-    const { data } = await supabase.from('businesses').select('*').eq('id', BUSINESS_ID).single()
+    const { data } = await supabase.from('businesses').select('*').eq('id', businessId).single()
     if (data) {
       setConfig({
         ...data,
@@ -95,6 +97,8 @@ export default function Settings({ onSave }: { onSave?: () => void }) {
         daily_summary: data.daily_summary ?? false,
         max_messages_before_escalation: data.max_messages_before_escalation ?? 10,
         accent_color: data.accent_color ?? '#a78bfa',
+        google_calendar_id: data.google_calendar_id ?? null,
+        google_refresh_token: data.google_refresh_token ?? null,
         schedule: data.schedule ?? DEFAULT_SCHEDULE,
       })
     }
@@ -102,7 +106,7 @@ export default function Settings({ onSave }: { onSave?: () => void }) {
   }
 
   async function saveConfig() {
-    if (!config) return
+    if (!config || !businessId) return
     setSaving(true)
     await supabase.from('businesses').update({
       name: config.name,
@@ -128,7 +132,7 @@ export default function Settings({ onSave }: { onSave?: () => void }) {
       accent_color: config.accent_color,
       schedule: config.schedule,
       updated_at: new Date().toISOString(),
-    }).eq('id', BUSINESS_ID)
+    }).eq('id', businessId!)
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
@@ -153,7 +157,7 @@ export default function Settings({ onSave }: { onSave?: () => void }) {
     update(key, (config[key] as string[]).filter((_, i) => i !== index))
   }
 
-  if (loading) return <div style={s.loading}>Cargando configuración...</div>
+  if (!businessId || loading) return <div style={s.loading}>Cargando configuración...</div>
   if (!config) return <div style={s.loading}>No se encontró la configuración</div>
 
   const sections: { id: Section; icon: string; label: string }[] = [
@@ -163,6 +167,7 @@ export default function Settings({ onSave }: { onSave?: () => void }) {
     { id: 'horarios',       icon: 'ti-clock',        label: 'Horarios' },
     { id: 'notificaciones', icon: 'ti-bell',         label: 'Notificaciones' },
     { id: 'apariencia',     icon: 'ti-palette',      label: 'Apariencia' },
+    { id: 'integraciones',  icon: 'ti-plug',         label: 'Integraciones' },
   ]
 
   return (
@@ -452,6 +457,45 @@ export default function Settings({ onSave }: { onSave?: () => void }) {
                   </div>
                 </div>
               </Field>
+            </div>
+          )}
+
+          {/* ── Integraciones ── */}
+          {activeSection === 'integraciones' && (
+            <div style={s.section}>
+              <SectionHeader icon="ti-plug" title="Integraciones" subtitle="Conectá servicios externos a tu bot" />
+              <div style={{ background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 10, padding: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <i className="ti ti-calendar" style={{ fontSize: 18, color: '#4285f4' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>Google Calendar</div>
+                      <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 2 }}>
+                        {config.google_refresh_token ? '✅ Conectado — el bot puede agendar turnos' : 'No conectado — el bot no puede agendar turnos'}
+                      </div>
+                    </div>
+                  </div>
+                  {config.google_refresh_token ? (
+                    <button
+                      onClick={async () => {
+                        await supabase.from('businesses').update({ google_refresh_token: null, google_calendar_id: null }).eq('id', businessId!)
+                        update('google_refresh_token', null)
+                        update('google_calendar_id', null)
+                      }}
+                      style={{ ...s.addBtn, color: '#f87171', borderColor: '#3e1a1a' }}>
+                      Desconectar
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/calendar/connect/${businessId}`, '_blank', 'width=600,height=700')}
+                      style={s.saveBtn}>
+                      Conectar
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 

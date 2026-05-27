@@ -1,11 +1,10 @@
 export {};
 const express = require('express');
-const { getOrCreateConversation, saveMessage, getConversationHistory, getBusiness, updateConversationStatus } = require('../services/conversation');
+const { getOrCreateConversation, saveMessage, getConversationHistory, getBusinessByPhone, updateConversationStatus } = require('../services/conversation');
 const { callClaude } = require('../services/claude');
+const { getAuthUrl, saveTokens } = require('../services/calendar');
 
 const router = express.Router();
-
-const BUSINESS_ID = '550e8400-e29b-41d4-a716-446655440001';
 
 function buildSystemPrompt(business: any): string {
   const parts: string[] = [];
@@ -19,29 +18,12 @@ function buildSystemPrompt(business: any): string {
   parts.push(`Tu tono de comunicación es ${tone}. Respondé siempre en ${language === 'es' ? 'español' : language === 'en' ? 'inglés' : 'portugués'}.`);
   parts.push(`Respondé de manera breve y clara. Máximo 2-3 oraciones por respuesta salvo que sea necesario más detalle.`);
 
-  if (business.business_description) {
-    parts.push(`\nSobre el negocio: ${business.business_description}`);
-  }
-
-  if (business.services) {
-    parts.push(`\nServicios que ofrecemos: ${business.services}`);
-  }
-
-  if (business.prices) {
-    parts.push(`\nPrecios: ${business.prices}`);
-  }
-
-  if (business.address) {
-    parts.push(`\nDirección: ${business.address}`);
-  }
-
-  if (business.website) {
-    parts.push(`\nSitio web: ${business.website}`);
-  }
-
-  if (business.instagram) {
-    parts.push(`\nInstagram: ${business.instagram}`);
-  }
+  if (business.business_description) parts.push(`\nSobre el negocio: ${business.business_description}`);
+  if (business.services) parts.push(`\nServicios que ofrecemos: ${business.services}`);
+  if (business.prices) parts.push(`\nPrecios: ${business.prices}`);
+  if (business.address) parts.push(`\nDirección: ${business.address}`);
+  if (business.website) parts.push(`\nSitio web: ${business.website}`);
+  if (business.instagram) parts.push(`\nInstagram: ${business.instagram}`);
 
   if (business.schedule?.enabled) {
     const schedule = business.schedule;
@@ -51,17 +33,16 @@ function buildSystemPrompt(business: any): string {
     parts.push(`Ahora es: ${now}`);
   }
 
-  if (business.prompt_template) {
-    parts.push(`\nInstrucciones adicionales: ${business.prompt_template}`);
-  }
-
-  if (business.forbidden_words?.length > 0) {
-    parts.push(`\nNUNCA uses estas palabras: ${business.forbidden_words.join(', ')}`);
-  }
+  if (business.prompt_template) parts.push(`\nInstrucciones adicionales: ${business.prompt_template}`);
+  if (business.forbidden_words?.length > 0) parts.push(`\nNUNCA uses estas palabras: ${business.forbidden_words.join(', ')}`);
 
   if (business.closing_phrases?.length > 0) {
     const randomClosing = business.closing_phrases[Math.floor(Math.random() * business.closing_phrases.length)];
     parts.push(`\nAl cerrar una conversación, usá esta frase: "${randomClosing}"`);
+  }
+
+  if (business.google_refresh_token) {
+    parts.push(`\nTenés acceso al calendario del negocio. Cuando el cliente quiera agendar un turno: 1) preguntá qué fecha prefiere, 2) consultá disponibilidad con get_available_slots, 3) confirmá hora y nombre, 4) creá el turno con create_appointment.`);
   }
 
   parts.push(`\nSi no sabés algo, decilo honestamente y ofrecé derivar al equipo humano.`);
@@ -102,13 +83,31 @@ router.post('/whatsapp', async (req: any, res: any) => {
 
     const messageBody = req.body.Body || '';
     const fromPhone = req.body.From?.replace('whatsapp:', '') || '';
+    const toPhone = req.body.To?.replace('whatsapp:', '') || '';
 
-    console.log('Mensaje:', messageBody, 'De:', fromPhone);
+    console.log('Mensaje:', messageBody, 'De:', fromPhone, 'A:', toPhone);
 
-    const business = await getBusiness(BUSINESS_ID);
-    if (!business) throw new Error('Business not found');
+    // Multi-tenant: buscar negocio por número de teléfono destino
+    const business = await getBusinessByPhone(toPhone);
+    if (!business) {
+      console.error('No se encontró negocio para el número:', toPhone);
+      res.status(404).json({ error: 'Business not found' });
+      return;
+    }
 
-    const { conversationId, contactId } = await getOrCreateConversation(BUSINESS_ID, fromPhone);
+    console.log('Negocio encontrado:', business.name, '(', business.id, ')');
+
+    // Verificar si el servicio está activo
+    if (!business.is_active) {
+      console.log('Servicio suspendido para:', business.id);
+      const suspendedMsg = `Lo sentimos, el servicio está temporalmente suspendido. Por favor contactanos directamente para más información.`;
+      const twiml = new (require('twilio').twiml.MessagingResponse)();
+      twiml.message(suspendedMsg);
+      res.type('text/xml');
+      return res.send(twiml.toString());
+    }
+
+    const { conversationId } = await getOrCreateConversation(business.id, fromPhone);
     console.log('Conversación:', conversationId);
 
     await saveMessage(conversationId, 'user', messageBody);
@@ -159,7 +158,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
     }));
 
     console.log('Llamando a Claude...');
-    const { text: assistantMessage, tokens } = await callClaude(messages, systemPrompt, business.max_tokens || 300);
+    const { text: assistantMessage, tokens } = await callClaude(messages, systemPrompt, business.max_tokens || 300, business, fromPhone);
     console.log('Respuesta Claude:', assistantMessage, `(${tokens} tokens)`);
 
     await saveMessage(conversationId, 'assistant', assistantMessage, tokens);
@@ -173,6 +172,30 @@ router.post('/whatsapp', async (req: any, res: any) => {
   } catch (error) {
     console.error('Error en webhook:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ── Google Calendar OAuth ────────────────────────────────────────────────────
+
+router.get('/calendar/connect/:businessId', (req: any, res: any) => {
+  const url = getAuthUrl(req.params.businessId);
+  res.redirect(url);
+});
+
+router.get('/calendar/callback', async (req: any, res: any) => {
+  const { code, state: businessId } = req.query;
+  const { google } = require('googleapis');
+  const oauth2 = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+  );
+  try {
+    const { tokens } = await oauth2.getToken(code);
+    await saveTokens(businessId, tokens);
+    res.send('<script>window.close()</script><p>✅ Calendario conectado. Podés cerrar esta ventana.</p>');
+  } catch (err) {
+    res.status(500).send('Error conectando calendario');
   }
 });
 
