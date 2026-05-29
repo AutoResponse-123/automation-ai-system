@@ -4,6 +4,7 @@ const { getOrCreateConversation, saveMessage, getConversationHistory, getBusines
 const { callClaude } = require('../services/claude');
 const { getAuthUrl, saveTokens } = require('../services/calendar');
 const { getSheetsAuthUrl, saveSheetsTokens, exportToSheets } = require('../services/sheets');
+const { sendEscalationEmail } = require('../services/email');
 
 const router = express.Router();
 
@@ -133,6 +134,8 @@ router.post('/whatsapp', async (req: any, res: any) => {
     if (checkEscalation(messageBody, business.escalation_keywords)) {
       console.log('Escalación detectada');
       await updateConversationStatus(conversationId, 'pending');
+      const matchedKw = business.escalation_keywords?.find((kw: string) => messageBody.toLowerCase().includes(kw.toLowerCase()));
+      sendEscalationEmail({ to: business.escalation_email, businessName: business.name, botName: business.bot_name, clientPhone: from, reason: 'keyword', keyword: matchedKw }).catch(console.error);
       const escalMsg = `Entendido! Te voy a comunicar con un miembro de nuestro equipo lo antes posible. Por favor esperá unos momentos.`;
       await saveMessage(conversationId, 'assistant', escalMsg);
       const twiml = new (require('twilio').twiml.MessagingResponse)();
@@ -149,6 +152,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
     if (msgCount >= maxMsgs) {
       console.log('Límite de mensajes alcanzado, escalando');
       await updateConversationStatus(conversationId, 'pending');
+      sendEscalationEmail({ to: business.escalation_email, businessName: business.name, botName: business.bot_name, clientPhone: from, reason: 'limit' }).catch(console.error);
       const limitMsg = `Gracias por tu paciencia! Para darte una mejor atención, voy a derivarte con uno de nuestros agentes.`;
       await saveMessage(conversationId, 'assistant', limitMsg);
       const twiml = new (require('twilio').twiml.MessagingResponse)();
