@@ -6,6 +6,7 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   async function handleLogin() {
     if (!email || !password) return
@@ -63,18 +64,30 @@ export default function AdminLogin() {
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 6 }}>Contraseña</label>
-              <input
-                type="password" value={password} onChange={e => setPassword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                placeholder="••••••••"
-                style={{
-                  width: '100%', background: 'var(--bg-raised)', border: '1px solid var(--border)',
-                  borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--text-1)',
-                  outline: 'none', transition: 'border-color 0.15s'
-                }}
-                onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
-                onBlur={e => (e.target.style.borderColor = 'var(--border)')}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                  placeholder="••••••••"
+                  style={{
+                    width: '100%', background: 'var(--bg-raised)', border: '1px solid var(--border)',
+                    borderRadius: 8, padding: '10px 36px 10px 12px', fontSize: 13, color: 'var(--text-1)',
+                    outline: 'none', transition: 'border-color 0.15s', boxSizing: 'border-box'
+                  }}
+                  onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
+                  onBlur={e => (e.target.style.borderColor = 'var(--border)')}
+                />
+                <button
+                  type="button" onClick={() => setShowPassword(v => !v)}
+                  style={{
+                    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)',
+                    padding: 2, display: 'flex', alignItems: 'center'
+                  }}
+                >
+                  <i className={`ti ${showPassword ? 'ti-eye-off' : 'ti-eye'}`} style={{ fontSize: 16 }} />
+                </button>
+              </div>
             </div>
           </div>
 
