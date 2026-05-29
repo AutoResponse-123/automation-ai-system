@@ -12,44 +12,104 @@ export default function AdminLogin() {
     setLoading(true)
     setError('')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) setError('Email o contraseña incorrectos')
+    if (error) setError('Credenciales inválidas')
     setLoading(false)
   }
 
   return (
-    <div className="h-screen flex items-center justify-center bg-[#0a0a0f]">
-      <div className="bg-[#0d0d14] border border-[#1e1e2e] rounded-2xl p-10 w-[360px] flex flex-col items-center gap-0">
-        <div className="w-11 h-11 rounded-xl bg-[#7c3aed] flex items-center justify-center text-sm font-semibold text-white mb-4">AR</div>
-        <div className="text-xl font-medium text-[#e2e8f0] mb-1.5">AutoResponse</div>
-        <div className="text-[13px] text-[#4a4a6a] mb-7">Panel de administración</div>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Grid background */}
+      <div style={{
+        position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
+        backgroundImage: 'linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)',
+        backgroundSize: '40px 40px', opacity: 0.25
+      }} />
 
-        <div className="w-full flex flex-col gap-3.5 mb-2">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-[#8b8baa]">Email</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              placeholder="admin@email.com" autoFocus
-              className="bg-[#111122] border border-[#2e2e4e] rounded-lg px-3 py-2.5 text-[13px] text-[#e2e8f0] outline-none w-full" />
+      <div className="fade-in" style={{ position: 'relative', zIndex: 1, width: 380 }}>
+        {/* Card */}
+        <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 16, padding: '40px 36px' }}>
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 10,
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: 'JetBrains Mono, monospace'
+            }}>A</div>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-1)' }}>AutoResponse</div>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Admin Console</div>
+            </div>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-[#8b8baa]">Contraseña</label>
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              placeholder="••••••••"
-              className="bg-[#111122] border border-[#2e2e4e] rounded-lg px-3 py-2.5 text-[13px] text-[#e2e8f0] outline-none w-full" />
+
+          <div style={{ fontSize: 22, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>Bienvenido</div>
+          <div style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 28 }}>Ingresá con tu cuenta de administrador</div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 6 }}>Email</label>
+              <input
+                type="email" value={email} onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                placeholder="admin@autoresponse.app" autoFocus
+                style={{
+                  width: '100%', background: 'var(--bg-raised)', border: '1px solid var(--border)',
+                  borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--text-1)',
+                  outline: 'none', transition: 'border-color 0.15s'
+                }}
+                onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
+                onBlur={e => (e.target.style.borderColor = 'var(--border)')}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', display: 'block', marginBottom: 6 }}>Contraseña</label>
+              <input
+                type="password" value={password} onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                placeholder="••••••••"
+                style={{
+                  width: '100%', background: 'var(--bg-raised)', border: '1px solid var(--border)',
+                  borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--text-1)',
+                  outline: 'none', transition: 'border-color 0.15s'
+                }}
+                onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
+                onBlur={e => (e.target.style.borderColor = 'var(--border)')}
+              />
+            </div>
           </div>
+
+          {error && (
+            <div style={{
+              marginTop: 14, display: 'flex', alignItems: 'center', gap: 8,
+              background: '#ef444418', border: '1px solid #ef444440',
+              borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#ef4444'
+            }}>
+              <i className="ti ti-alert-circle" style={{ fontSize: 14 }} />
+              {error}
+            </div>
+          )}
+
+          <button
+            onClick={handleLogin}
+            disabled={loading || !email || !password}
+            style={{
+              marginTop: 24, width: '100%',
+              background: loading || !email || !password ? 'var(--bg-hover)' : 'var(--accent)',
+              border: 'none', borderRadius: 8, padding: '11px 0',
+              fontSize: 13, fontWeight: 600,
+              color: loading || !email || !password ? 'var(--text-3)' : '#fff',
+              cursor: loading || !email || !password ? 'not-allowed' : 'pointer',
+              transition: 'all 0.15s', fontFamily: 'inherit'
+            }}
+          >
+            {loading ? 'Verificando...' : 'Ingresar al panel'}
+          </button>
         </div>
 
-        {error && (
-          <div className="w-full flex items-center gap-1.5 bg-[#2e0e0e] border border-red-500/30 rounded-lg px-3 py-2 text-xs text-red-400 mt-2">
-            <i className="ti ti-alert-circle text-sm" /> {error}
-          </div>
-        )}
-
-        <button onClick={handleLogin} disabled={loading || !email || !password}
-          className="mt-5 w-full bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-50 border-none rounded-lg py-2.5 text-[13px] font-medium text-white cursor-pointer transition-colors">
-          {loading ? 'Ingresando...' : 'Ingresar'}
-        </button>
+        {/* Footer */}
+        <div style={{ textAlign: 'center', marginTop: 20, fontSize: 11, color: 'var(--text-3)' }}>
+          Acceso restringido · AutoResponse SaaS
+        </div>
       </div>
     </div>
   )

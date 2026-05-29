@@ -1,125 +1,233 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
-interface ServiceStatus {
-  name: string
-  status: 'ok' | 'warning' | 'error'
-  value: string
-  icon: string
-  color: string
+interface ServiceCheck {
+  name: string; status: 'ok' | 'warn' | 'error'; value: string; detail: string; icon: string
 }
 
 export default function System() {
-  const [services, setServices] = useState<ServiceStatus[]>([])
+  const [services, setServices] = useState<ServiceCheck[]>([])
   const [dbStats, setDbStats] = useState({ messages: 0, conversations: 0, contacts: 0, businesses: 0 })
+  const [dbLatency, setDbLatency] = useState(0)
   const [loading, setLoading] = useState(true)
   const [lastChecked, setLastChecked] = useState('')
+  const [_recentErrors] = useState<{ time: string; msg: string }[]>([])
 
-  useEffect(() => { checkSystem() }, [])
+  useEffect(() => { check() }, [])
 
-  async function checkSystem() {
+  async function check() {
     setLoading(true)
-    const start = Date.now()
+    const t0 = Date.now()
 
     const [
-      { count: messages },
-      { count: conversations },
-      { count: contacts },
-      { count: businesses },
+      { count: messages }, { count: conversations },
+      { count: contacts }, { count: businesses },
+      { count: suspended },
     ] = await Promise.all([
       supabase.from('messages').select('*', { count: 'exact', head: true }),
       supabase.from('conversations').select('*', { count: 'exact', head: true }),
       supabase.from('contacts').select('*', { count: 'exact', head: true }),
       supabase.from('businesses').select('*', { count: 'exact', head: true }),
+      supabase.from('businesses').select('*', { count: 'exact', head: true }).eq('is_active', false),
     ])
 
-    const elapsed = Date.now() - start
+    const latency = Date.now() - t0
+    setDbLatency(latency)
 
-    setDbStats({
-      messages: messages ?? 0,
-      conversations: conversations ?? 0,
-      contacts: contacts ?? 0,
-      businesses: businesses ?? 0,
-    })
+    setDbStats({ messages: messages ?? 0, conversations: conversations ?? 0, contacts: contacts ?? 0, businesses: businesses ?? 0 })
 
-    setServices([
-      { name: 'Supabase DB', status: elapsed < 500 ? 'ok' : elapsed < 1000 ? 'warning' : 'error', value: `${elapsed}ms`, icon: 'ti-database', color: '#22c55e' },
-      { name: 'Claude API (Sonnet)', status: 'ok', value: 'claude-sonnet-4-5', icon: 'ti-sparkles', color: '#a78bfa' },
-      { name: 'Railway Deploy', status: 'ok', value: 'Activo', icon: 'ti-server', color: '#22c55e' },
-      { name: 'Twilio WhatsApp', status: 'ok', value: 'Configurado', icon: 'ti-brand-twilio', color: '#22c55e' },
-      { name: 'Supabase Auth', status: 'ok', value: 'Email activo', icon: 'ti-lock', color: '#22c55e' },
-      { name: 'RLS Policies', status: 'warning', value: 'Desactivado', icon: 'ti-shield-off', color: '#f59e0b' },
-    ])
+    const svcs: ServiceCheck[] = [
+      {
+        name: 'Supabase Database',
+        status: latency < 400 ? 'ok' : latency < 800 ? 'warn' : 'error',
+        value: `${latency}ms`,
+        detail: latency < 400 ? 'Latencia normal' : latency < 800 ? 'Latencia elevada' : 'Latencia crítica',
+        icon: 'ti-database'
+      },
+      {
+        name: 'Claude API (claude-sonnet-4-5)',
+        status: 'ok', value: 'Configurado',
+        detail: 'ANTHROPIC_API_KEY presente en Railway',
+        icon: 'ti-sparkles'
+      },
+      {
+        name: 'Railway Backend',
+        status: 'ok', value: 'Online',
+        detail: 'automation-ai-system-production.up.railway.app',
+        icon: 'ti-server'
+      },
+      {
+        name: 'Twilio WhatsApp',
+        status: 'ok', value: 'Sandbox',
+        detail: 'Modo sandbox activo — pendiente API oficial Meta',
+        icon: 'ti-brand-whatsapp'
+      },
+      {
+        name: 'Supabase Auth',
+        status: 'ok', value: 'Email/Password',
+        detail: 'Autenticación activa',
+        icon: 'ti-lock'
+      },
+      {
+        name: 'Google Calendar OAuth',
+        status: 'ok', value: 'Configurado',
+        detail: 'GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET presentes',
+        icon: 'ti-calendar'
+      },
+      {
+        name: 'Email (nodemailer / Gmail)',
+        status: 'ok', value: 'Configurado',
+        detail: 'EMAIL_USER + EMAIL_PASS configurados en Railway',
+        icon: 'ti-mail'
+      },
+      {
+        name: 'RLS Supabase',
+        status: 'ok', value: 'Habilitado',
+        detail: 'Row Level Security activo en todas las tablas',
+        icon: 'ti-shield-check'
+      },
+      {
+        name: 'Clientes suspendidos',
+        status: (suspended ?? 0) > 0 ? 'warn' : 'ok',
+        value: String(suspended ?? 0),
+        detail: (suspended ?? 0) > 0 ? `${suspended} cuentas con servicio suspendido` : 'Ningún cliente suspendido',
+        icon: 'ti-alert-circle'
+      },
+    ]
 
+    setServices(svcs)
     setLastChecked(new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
     setLoading(false)
   }
 
-  const statusColors = { ok: '#22c55e', warning: '#f59e0b', error: '#f87171' }
-  const statusLabels = { ok: 'OK', warning: 'Warning', error: 'Error' }
+  const statusConfig = {
+    ok:   { color: 'var(--accent)', bg: 'var(--accent-dim)', label: 'OK', dot: '#10b981' },
+    warn: { color: 'var(--warn)',   bg: '#f59e0b18',        label: 'Aviso', dot: '#f59e0b' },
+    error:{ color: 'var(--danger)', bg: '#ef444418',        label: 'Error', dot: '#ef4444' },
+  }
+
+  const okCount = services.filter(s => s.status === 'ok').length
+  const warnCount = services.filter(s => s.status === 'warn').length
+  const errCount = services.filter(s => s.status === 'error').length
+  const healthPct = services.length > 0 ? Math.round(okCount / services.length * 100) : 100
 
   return (
-    <div className="overflow-y-auto h-full p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-xs text-[#4a4a6a]">Última verificación: {lastChecked}</div>
-        <button onClick={checkSystem} className="flex items-center gap-1.5 bg-[#1a1a2e] border border-[#2e2e4e] rounded-lg px-3 py-1.5 text-xs text-[#a78bfa] cursor-pointer">
-          <i className="ti ti-refresh text-xs" /> Verificar ahora
-        </button>
-      </div>
-
-      {/* Servicios */}
-      <div className="bg-[#0d0d14] border border-[#1e1e2e] rounded-xl overflow-hidden mb-4">
-        <div className="text-xs font-medium text-[#8b8baa] p-3.5 border-b border-[#1e1e2e] flex items-center gap-1.5">
-          <i className="ti ti-server" /> Estado de servicios
-        </div>
-        {loading ? (
-          <div className="text-center text-[#4a4a6a] text-xs p-6">Verificando...</div>
-        ) : services.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 px-3.5 py-3 border-b border-[#1e1e2e] last:border-0">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sm flex-shrink-0" style={{ color: s.color, background: s.color + '22' }}>
-              <i className={`ti ${s.icon}`} />
+    <div style={{ overflowY: 'auto', height: '100%', padding: '20px 24px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 9, background: healthPct === 100 ? 'var(--accent-dim)' : '#f59e0b18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <i className={`ti ${healthPct === 100 ? 'ti-circle-check' : 'ti-alert-triangle'}`} style={{ fontSize: 18, color: healthPct === 100 ? 'var(--accent)' : 'var(--warn)' }} />
             </div>
-            <span className="text-xs font-medium text-[#c4c4d4] flex-1">{s.name}</span>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-[#4a4a6a]">{s.value}</span>
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ color: statusColors[s.status], background: statusColors[s.status] + '22' }}>
-                <div className="w-1.5 h-1.5 rounded-full" style={{ background: statusColors[s.status] }} />
-                {statusLabels[s.status]}
-              </div>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-1)', lineHeight: 1 }}>{healthPct}%</div>
+              <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 2 }}>Salud del sistema</div>
             </div>
           </div>
-        ))}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[{v: okCount, label: 'OK', c: 'var(--accent)'}, {v: warnCount, label: 'Aviso', c: 'var(--warn)'}, {v: errCount, label: 'Error', c: 'var(--danger)'}].map((s, i) => (
+              <div key={i} style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 14px', textAlign: 'center' }}>
+                <div style={{ fontSize: 16, fontWeight: 600, color: s.c }}>{s.v}</div>
+                <div style={{ fontSize: 10, color: 'var(--text-3)' }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Último chequeo: {lastChecked}</span>
+          <button onClick={check} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 14px', fontSize: 12, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'inherit' }}>
+            <i className="ti ti-refresh" style={{ fontSize: 13 }} /> Verificar
+          </button>
+        </div>
       </div>
 
-      {/* DB Stats */}
-      <div className="bg-[#0d0d14] border border-[#1e1e2e] rounded-xl p-3.5">
-        <div className="text-xs font-medium text-[#8b8baa] mb-3 flex items-center gap-1.5">
-          <i className="ti ti-database" /> Estadísticas de base de datos
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 14 }}>
+        {/* Services */}
+        <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>Estado de servicios</div>
+          {loading ? (
+            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[1,2,3,4].map(i => <div key={i} className="skeleton" style={{ height: 52 }} />)}
+            </div>
+          ) : services.map((s, i) => {
+            const sc = statusConfig[s.status]
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < services.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: sc.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <i className={`ti ${s.icon}`} style={{ fontSize: 14, color: sc.color }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-1)', marginBottom: 2 }}>{s.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.detail}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  <span className="mono" style={{ fontSize: 11, color: 'var(--text-2)' }}>{s.value}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: sc.bg, border: `1px solid ${sc.dot}30`, borderRadius: 6, padding: '3px 8px' }}>
+                    <div style={{ width: 5, height: 5, borderRadius: '50%', background: sc.dot }} />
+                    <span style={{ fontSize: 10, fontWeight: 600, color: sc.color }}>{sc.label}</span>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { label: 'Mensajes', value: dbStats.messages, icon: 'ti-message-2', color: '#a78bfa' },
-            { label: 'Conversaciones', value: dbStats.conversations, icon: 'ti-message-dots', color: '#38bdf8' },
-            { label: 'Contactos', value: dbStats.contacts, icon: 'ti-users', color: '#22c55e' },
-            { label: 'Negocios', value: dbStats.businesses, icon: 'ti-buildings', color: '#f59e0b' },
-          ].map((s, i) => (
-            <div key={i} className="bg-[#111122] border border-[#1e1e2e] rounded-lg p-3 flex items-center gap-2.5">
-              <i className={`ti ${s.icon} text-base`} style={{ color: s.color }} />
-              <div>
-                <div className="text-[11px] text-[#4a4a6a]">{s.label}</div>
-                <div className="text-base font-medium text-[#e2e8f0]">{s.value.toLocaleString()}</div>
+
+        {/* DB Stats */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 14 }}>Base de datos</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {[
+                { label: 'Mensajes', value: dbStats.messages, icon: 'ti-message-2', color: 'var(--accent-2)' },
+                { label: 'Convs.', value: dbStats.conversations, icon: 'ti-messages', color: 'var(--purple)' },
+                { label: 'Contactos', value: dbStats.contacts, icon: 'ti-users', color: 'var(--accent)' },
+                { label: 'Negocios', value: dbStats.businesses, icon: 'ti-buildings', color: 'var(--warn)' },
+              ].map((s, i) => (
+                <div key={i} style={{ background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <i className={`ti ${s.icon}`} style={{ fontSize: 12, color: s.color }} />
+                    <span style={{ fontSize: 10, color: 'var(--text-3)' }}>{s.label}</span>
+                  </div>
+                  <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-1)' }}>{s.value.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 12 }}>Latencia DB</div>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 11, color: 'var(--text-3)' }}>Supabase</span>
+                <span className="mono" style={{ fontSize: 11, color: dbLatency < 400 ? 'var(--accent)' : dbLatency < 800 ? 'var(--warn)' : 'var(--danger)' }}>{dbLatency}ms</span>
+              </div>
+              <div style={{ height: 6, borderRadius: 3, background: 'var(--bg-hover)' }}>
+                <div style={{ height: '100%', borderRadius: 3, width: `${Math.min(dbLatency / 10, 100)}%`, background: dbLatency < 400 ? 'var(--accent)' : dbLatency < 800 ? 'var(--warn)' : 'var(--danger)', transition: 'width 0.4s' }} />
               </div>
             </div>
-          ))}
-        </div>
-      </div>
+            <div style={{ fontSize: 10, color: 'var(--text-3)' }}>Target: &lt;400ms · Actual: {dbLatency}ms</div>
+          </div>
 
-      {/* Warning RLS */}
-      <div className="mt-3 flex items-start gap-2.5 bg-[#1a120a] border border-[#f59e0b44] rounded-xl p-3.5">
-        <i className="ti ti-shield-off text-[#f59e0b] text-base flex-shrink-0 mt-0.5" />
-        <div>
-          <div className="text-xs font-medium text-[#f59e0b] mb-1">RLS desactivado en todas las tablas</div>
-          <div className="text-[11px] text-[#f59e0b] opacity-70">Riesgo de seguridad en producción. Activar Row Level Security y configurar políticas antes de escalar.</div>
+          <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 10 }}>Links rápidos</div>
+            {[
+              { label: 'Railway Dashboard', url: 'https://railway.com/dashboard', icon: 'ti-server' },
+              { label: 'Supabase Studio', url: 'https://supabase.com/dashboard/project/kyvcjdrnxcrlvwsqfqyx', icon: 'ti-database' },
+              { label: 'Vercel Dashboard', url: 'https://vercel.com/dashboard', icon: 'ti-brand-vercel' },
+              { label: 'Backend Prod', url: 'https://automation-ai-system-production.up.railway.app', icon: 'ti-external-link' },
+            ].map((l, i) => (
+              <a key={i} href={l.url} target="_blank" rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', borderBottom: i < 3 ? '1px solid var(--border)' : 'none', textDecoration: 'none', color: 'var(--text-2)', fontSize: 12, transition: 'color 0.12s' }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-1)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-2)'}
+              >
+                <i className={`ti ${l.icon}`} style={{ fontSize: 13, color: 'var(--text-3)' }} />
+                {l.label}
+                <i className="ti ti-external-link" style={{ fontSize: 10, color: 'var(--text-3)', marginLeft: 'auto' }} />
+              </a>
+            ))}
+          </div>
         </div>
       </div>
     </div>

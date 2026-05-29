@@ -2,46 +2,50 @@ import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
 interface Business {
-  id: string
-  name: string
-  type: string
-  is_active: boolean
-  plan: string
-  trial_ends_at: string | null
-  suspended_at: string | null
-  suspension_reason: string | null
-  created_at: string
-  user_id: string
-  msg_count?: number
-  contact_count?: number
-  token_count?: number
-  conv_count?: number
+  id: string; name: string; type: string; is_active: boolean; plan: string
+  trial_ends_at: string | null; suspended_at: string | null; suspension_reason: string | null
+  created_at: string; user_id: string; phone_whatsapp: string; escalation_email: string
+  msg_count?: number; contact_count?: number; token_count?: number; conv_count?: number
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`
-  return `${Math.floor(diff / 86400)}d`
+function timeAgo(d: string) {
+  const s = (Date.now() - new Date(d).getTime()) / 1000
+  if (s < 3600) return `${Math.floor(s / 60)}m`
+  if (s < 86400) return `${Math.floor(s / 3600)}h`
+  return `${Math.floor(s / 86400)}d`
 }
 
-const AVATAR_COLORS = ['#a78bfa','#f59e0b','#22c55e','#f87171','#38bdf8','#e879f9']
-function avatarColor(id: string): string {
-  let hash = 0
-  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash)
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+const PLAN_COLORS: Record<string, string> = {
+  trial: 'var(--warn)', starter: 'var(--accent-2)', pro: 'var(--accent)', enterprise: 'var(--purple)'
+}
+const PLANS = ['trial', 'starter', 'pro', 'enterprise']
+
+const SEED_COLORS = ['#10b981','#f59e0b','#3b82f6','#8b5cf6','#ef4444','#ec4899']
+function seedColor(id: string) {
+  let h = 0; for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h)
+  return SEED_COLORS[Math.abs(h) % SEED_COLORS.length]
 }
 
-const PLANS = ['starter', 'pro', 'enterprise', 'trial']
+function Badge({ label, color }: { label: string; color: string }) {
+  return (
+    <span style={{ fontSize: 10, fontWeight: 600, color, background: color + '18', borderRadius: 4, padding: '2px 6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      {label}
+    </span>
+  )
+}
 
 export default function Clients() {
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Business | null>(null)
+  const [search, setSearch] = useState('')
+  const [filterPlan, _setFilterPlan] = useState<string>('all')
+  const [filterStatus, setFilterStatus] = useState<string>('all')
   const [suspendReason, setSuspendReason] = useState('')
-  const [showSuspendModal, setShowSuspendModal] = useState(false)
+  const [showSuspend, setShowSuspend] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [newForm, setNewForm] = useState({ name: '', email: '', plan: 'trial' })
 
   useEffect(() => { loadBusinesses() }, [])
 
@@ -50,20 +54,14 @@ export default function Clients() {
     const { data } = await supabase.from('businesses').select('*').order('created_at', { ascending: false })
     if (!data) { setLoading(false); return }
 
-    const enriched = await Promise.all(data.map(async (b) => {
-      const [
-        { count: msg_count },
-        { count: contact_count },
-        { count: conv_count },
-        { data: tokens }
-      ] = await Promise.all([
+    const enriched = await Promise.all(data.map(async b => {
+      const [{ count: msg_count }, { count: contact_count }, { count: conv_count }, { data: tokens }] = await Promise.all([
         supabase.from('messages').select('*', { count: 'exact', head: true }),
         supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('business_id', b.id),
         supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('business_id', b.id),
         supabase.from('messages').select('tokens_used').eq('sender', 'assistant').not('tokens_used', 'is', null)
       ])
-      const token_count = tokens?.reduce((s, m) => s + (m.tokens_used || 0), 0) ?? 0
-      return { ...b, msg_count: msg_count ?? 0, contact_count: contact_count ?? 0, conv_count: conv_count ?? 0, token_count }
+      return { ...b, msg_count: msg_count ?? 0, contact_count: contact_count ?? 0, conv_count: conv_count ?? 0, token_count: tokens?.reduce((s, r) => s + (r.tokens_used || 0), 0) ?? 0 }
     }))
 
     setBusinesses(enriched)
@@ -73,15 +71,11 @@ export default function Clients() {
 
   async function toggleActive(b: Business) {
     if (!b.is_active) {
-      // Reactivar
       setSaving(true)
       await supabase.from('businesses').update({ is_active: true, suspended_at: null, suspension_reason: null }).eq('id', b.id)
-      await loadBusinesses()
-      setSaving(false)
+      await loadBusinesses(); setSaving(false)
     } else {
-      // Mostrar modal para suspender
-      setSuspendReason('')
-      setShowSuspendModal(true)
+      setSuspendReason(''); setShowSuspend(true)
     }
   }
 
@@ -89,13 +83,10 @@ export default function Clients() {
     if (!selected) return
     setSaving(true)
     await supabase.from('businesses').update({
-      is_active: false,
-      suspended_at: new Date().toISOString(),
+      is_active: false, suspended_at: new Date().toISOString(),
       suspension_reason: suspendReason || 'Suspendido por administrador'
     }).eq('id', selected.id)
-    setShowSuspendModal(false)
-    await loadBusinesses()
-    setSaving(false)
+    setShowSuspend(false); await loadBusinesses(); setSaving(false)
   }
 
   async function updatePlan(b: Business, plan: string) {
@@ -103,149 +94,222 @@ export default function Clients() {
     await loadBusinesses()
   }
 
-  const filtered = businesses.filter(b =>
-    b.name.toLowerCase().includes(search.toLowerCase()) ||
-    (b.type ?? '').toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = businesses.filter(b => {
+    const matchSearch = b.name?.toLowerCase().includes(search.toLowerCase()) || (b.phone_whatsapp || '').includes(search)
+    const matchPlan = filterPlan === 'all' || b.plan === filterPlan
+    const matchStatus = filterStatus === 'all' || (filterStatus === 'active' ? b.is_active : !b.is_active)
+    return matchSearch && matchPlan && matchStatus
+  })
 
   return (
-    <div className="flex h-full overflow-hidden relative">
-      {/* Lista */}
-      <div className="w-72 border-r border-[#1e1e2e] flex flex-col bg-[#0d0d14]">
-        <div className="p-3 border-b border-[#1e1e2e]">
-          <div className="flex items-center gap-2 bg-[#111122] border border-[#2e2e4e] rounded-lg px-2.5 py-1.5">
-            <i className="ti ti-search text-[#4a4a6a] text-xs" />
+    <div style={{ display: 'flex', height: '100%', overflow: 'hidden', position: 'relative' }}>
+      {/* List panel */}
+      <div style={{ width: 280, flexShrink: 0, borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', background: 'var(--bg-panel)' }}>
+        {/* Search + filters */}
+        <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 10px', marginBottom: 8 }}>
+            <i className="ti ti-search" style={{ fontSize: 13, color: 'var(--text-3)' }} />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Buscar cliente..."
-              className="bg-transparent border-none text-xs text-[#e2e8f0] outline-none flex-1" />
+              style={{ background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-1)', flex: 1, fontFamily: 'inherit' }} />
+          </div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {['all','active','suspended'].map(s => (
+              <button key={s} onClick={() => setFilterStatus(s)}
+                style={{ flex: 1, padding: '4px 0', borderRadius: 6, border: '1px solid ' + (filterStatus === s ? 'var(--accent)' : 'var(--border)'), background: filterStatus === s ? 'var(--accent-dim)' : 'transparent', fontSize: 10, color: filterStatus === s ? 'var(--accent)' : 'var(--text-3)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                {s === 'all' ? 'Todos' : s === 'active' ? 'Activos' : 'Suspendidos'}
+              </button>
+            ))}
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
+
+        {/* List */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
           {loading ? (
-            <div className="text-center text-[#4a4a6a] text-xs p-6">Cargando...</div>
+            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[1,2,3,4].map(i => <div key={i} className="skeleton" style={{ height: 52 }} />)}
+            </div>
           ) : filtered.map(b => {
-            const color = avatarColor(b.id)
+            const color = seedColor(b.id)
+            const active = selected?.id === b.id
             return (
               <div key={b.id} onClick={() => setSelected(b)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 cursor-pointer border-l-2 transition-all ${selected?.id === b.id ? 'bg-[#111122] border-l-[#a78bfa]' : 'border-l-transparent hover:bg-[#0f0f1a]'}`}>
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium flex-shrink-0 relative" style={{ color, background: color + '22' }}>
-                  {b.name.slice(0,2).toUpperCase()}
-                  {!b.is_active && <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border border-[#0d0d14]" />}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '10px 14px', cursor: 'pointer',
+                  borderLeft: `3px solid ${active ? 'var(--accent)' : 'transparent'}`,
+                  background: active ? 'var(--bg-hover)' : 'transparent',
+                  transition: 'all 0.1s', borderBottom: '1px solid var(--border)'
+                }}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--bg-raised)' }}
+                onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
+              >
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: color + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color, flexShrink: 0, position: 'relative' }}>
+                  {b.name?.slice(0,2).toUpperCase() || '??'}
+                  {!b.is_active && <div style={{ position: 'absolute', top: -2, right: -2, width: 8, height: 8, borderRadius: '50%', background: 'var(--danger)', border: '2px solid var(--bg-panel)' }} />}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-medium text-[#c4c4d4] truncate">{b.name}</div>
-                  <div className="text-[10px] text-[#4a4a6a]">{b.plan ?? 'starter'} · {b.type}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.name}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>{b.plan || 'trial'} · {b.msg_count || 0} msgs</div>
                 </div>
-                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${b.is_active ? 'bg-green-500' : 'bg-red-500'}`} />
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: b.is_active ? 'var(--accent)' : 'var(--danger)', flexShrink: 0 }} />
               </div>
             )
           })}
         </div>
-        <div className="p-2 border-t border-[#1e1e2e] text-[10px] text-[#4a4a6a] text-center">
-          {filtered.length} clientes · {filtered.filter(b => b.is_active).length} activos
+
+        {/* Footer */}
+        <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 10, color: 'var(--text-3)' }}>{filtered.length} clientes · {filtered.filter(b => b.is_active).length} activos</span>
+          <button onClick={() => setShowCreate(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--accent)', border: 'none', borderRadius: 6, padding: '5px 9px', fontSize: 11, fontWeight: 600, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
+            <i className="ti ti-plus" style={{ fontSize: 12 }} /> Nuevo
+          </button>
         </div>
       </div>
 
-      {/* Detalle */}
+      {/* Detail panel */}
       {selected ? (
-        <div className="flex-1 overflow-y-auto p-5">
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }} className="fade-in">
           {/* Header */}
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium" style={{ color: avatarColor(selected.id), background: avatarColor(selected.id) + '22' }}>
-              {selected.name.slice(0,2).toUpperCase()}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 20 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: seedColor(selected.id) + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: seedColor(selected.id), flexShrink: 0 }}>
+              {selected.name?.slice(0,2).toUpperCase() || '??'}
             </div>
-            <div>
-              <div className="text-base font-medium text-[#e2e8f0]">{selected.name}</div>
-              <div className="text-xs text-[#4a4a6a]">{selected.type} · creado hace {timeAgo(selected.created_at)}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>{selected.name}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Badge label={selected.plan || 'trial'} color={PLAN_COLORS[selected.plan] || 'var(--text-2)'} />
+                <Badge label={selected.is_active ? 'activo' : 'suspendido'} color={selected.is_active ? 'var(--accent)' : 'var(--danger)'} />
+                {selected.type && <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{selected.type}</span>}
+              </div>
             </div>
-            <div className="ml-auto flex items-center gap-2">
-              {/* Plan selector */}
-              <select value={selected.plan ?? 'starter'} onChange={e => updatePlan(selected, e.target.value)}
-                className="bg-[#1a1a2e] border border-[#2e2e4e] rounded-lg px-2 py-1 text-xs text-[#a78bfa] outline-none cursor-pointer">
+            <div style={{ display: 'flex', gap: 8 }}>
+              <select value={selected.plan || 'trial'} onChange={e => updatePlan(selected, e.target.value)}
+                style={{ background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 7, padding: '6px 10px', fontSize: 12, color: 'var(--text-1)', cursor: 'pointer', outline: 'none', fontFamily: 'inherit' }}>
                 {PLANS.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
               </select>
-              {/* Toggle activo/suspendido */}
               <button onClick={() => toggleActive(selected)} disabled={saving}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border cursor-pointer transition-all disabled:opacity-50 ${selected.is_active ? 'bg-[#2e0e0e] border-red-500/30 text-red-400 hover:bg-red-500/20' : 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/20'}`}>
-                <i className={`ti ${selected.is_active ? 'ti-player-pause' : 'ti-player-play'} text-xs`} />
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px',
+                  borderRadius: 7, border: `1px solid ${selected.is_active ? '#ef444440' : '#10b98140'}`,
+                  background: selected.is_active ? '#ef444412' : '#10b98112',
+                  color: selected.is_active ? 'var(--danger)' : 'var(--accent)',
+                  fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit'
+                }}>
+                <i className={`ti ${selected.is_active ? 'ti-player-pause' : 'ti-player-play'}`} style={{ fontSize: 12 }} />
                 {selected.is_active ? 'Suspender' : 'Reactivar'}
               </button>
             </div>
           </div>
 
-          {/* Alerta suspendido */}
+          {/* Suspension alert */}
           {!selected.is_active && (
-            <div className="flex items-start gap-2.5 bg-[#2e0e0e] border border-red-500/30 rounded-xl p-3.5 mb-4">
-              <i className="ti ti-alert-circle text-red-400 text-base flex-shrink-0 mt-0.5" />
+            <div style={{ display: 'flex', gap: 12, background: '#ef444410', border: '1px solid #ef444430', borderRadius: 10, padding: '12px 16px', marginBottom: 16 }}>
+              <i className="ti ti-alert-circle" style={{ fontSize: 16, color: 'var(--danger)', flexShrink: 0, marginTop: 1 }} />
               <div>
-                <div className="text-xs font-medium text-red-400 mb-1">Servicio suspendido</div>
-                <div className="text-[11px] text-red-400 opacity-80">{selected.suspension_reason ?? 'Sin motivo especificado'}</div>
-                {selected.suspended_at && <div className="text-[10px] text-red-400 opacity-60 mt-1">Desde hace {timeAgo(selected.suspended_at)}</div>}
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--danger)', marginBottom: 3 }}>Servicio suspendido</div>
+                <div style={{ fontSize: 11, color: 'var(--danger)', opacity: 0.75 }}>{selected.suspension_reason || 'Sin motivo'}</div>
+                {selected.suspended_at && <div style={{ fontSize: 10, color: 'var(--danger)', opacity: 0.5, marginTop: 3 }}>Desde hace {timeAgo(selected.suspended_at)}</div>}
               </div>
             </div>
           )}
 
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
             {[
-              { label: 'Mensajes totales', value: (selected.msg_count ?? 0).toLocaleString(), icon: 'ti-message-2', color: '#a78bfa' },
-              { label: 'Contactos', value: (selected.contact_count ?? 0).toLocaleString(), icon: 'ti-users', color: '#22c55e' },
-              { label: 'Conversaciones', value: (selected.conv_count ?? 0).toLocaleString(), icon: 'ti-message-dots', color: '#38bdf8' },
-              { label: 'Costo estimado', value: `$${((selected.token_count ?? 0) * 0.000003).toFixed(4)}`, icon: 'ti-currency-dollar', color: '#f59e0b' },
+              { label: 'Mensajes', value: (selected.msg_count || 0).toLocaleString(), icon: 'ti-message-2', color: 'var(--accent-2)' },
+              { label: 'Contactos', value: (selected.contact_count || 0).toLocaleString(), icon: 'ti-users', color: 'var(--accent)' },
+              { label: 'Conversaciones', value: (selected.conv_count || 0).toLocaleString(), icon: 'ti-messages', color: 'var(--purple)' },
+              { label: 'Costo API', value: `$${((selected.token_count || 0) * 0.000003).toFixed(4)}`, icon: 'ti-currency-dollar', color: 'var(--warn)' },
             ].map((s, i) => (
-              <div key={i} className="bg-[#0d0d14] border border-[#1e1e2e] rounded-xl p-3.5 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base flex-shrink-0" style={{ color: s.color, background: s.color + '22' }}>
-                  <i className={`ti ${s.icon}`} />
+              <div key={i} style={{ background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <i className={`ti ${s.icon}`} style={{ fontSize: 14, color: s.color }} />
+                  <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{s.label}</span>
                 </div>
-                <div>
-                  <div className="text-[11px] text-[#4a4a6a]">{s.label}</div>
-                  <div className="text-lg font-medium text-[#e2e8f0]">{s.value}</div>
-                </div>
+                <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-1)' }}>{s.value}</div>
               </div>
             ))}
           </div>
 
-          {/* Info técnica */}
-          <div className="bg-[#0d0d14] border border-[#1e1e2e] rounded-xl p-3.5">
-            <div className="text-xs font-medium text-[#8b8baa] mb-3">Info técnica</div>
+          {/* Info */}
+          <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--text-2)' }}>Información técnica</div>
             {[
-              { label: 'Business ID', value: selected.id },
-              { label: 'User ID', value: selected.user_id ?? 'Sin vincular' },
-              { label: 'Plan', value: selected.plan ?? 'starter' },
+              { label: 'Business ID', value: selected.id, mono: true },
+              { label: 'User ID', value: selected.user_id || '—', mono: true },
+              { label: 'WhatsApp', value: selected.phone_whatsapp || '—', mono: true },
+              { label: 'Email escalación', value: selected.escalation_email || '—' },
               { label: 'Trial vence', value: selected.trial_ends_at ? new Date(selected.trial_ends_at).toLocaleDateString('es-AR') : '—' },
-            ].map((row, i) => (
-              <div key={i} className="flex items-center justify-between py-2 border-b border-[#1e1e2e] last:border-0">
-                <span className="text-xs text-[#4a4a6a]">{row.label}</span>
-                <span className="text-xs text-[#8b8baa] font-mono truncate max-w-[220px]">{row.value}</span>
+              { label: 'Creado hace', value: timeAgo(selected.created_at) },
+            ].map((r, i, arr) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-3)', width: 140, flexShrink: 0 }}>{r.label}</span>
+                <span className={r.mono ? 'mono' : ''} style={{ fontSize: 11, color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.value}</span>
               </div>
             ))}
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-[#4a4a6a]">
-          <i className="ti ti-buildings text-3xl mb-3" />
-          <p className="text-xs">Seleccioná un cliente</p>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}>
+          <i className="ti ti-buildings" style={{ fontSize: 36, marginBottom: 10 }} />
+          <p style={{ fontSize: 13, margin: 0 }}>Seleccioná un cliente</p>
         </div>
       )}
 
-      {/* Modal suspender */}
-      {showSuspendModal && (
-        <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#0d0d14] border border-[#2e2e4e] rounded-2xl p-6 w-96">
-            <div className="text-sm font-medium text-[#e2e8f0] mb-1">Suspender servicio</div>
-            <div className="text-xs text-[#4a4a6a] mb-4">El bot dejará de responder mensajes de este cliente.</div>
-            <label className="text-xs font-medium text-[#8b8baa] block mb-2">Motivo (opcional)</label>
+      {/* Modal: Suspender */}
+      {showSuspend && (
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 14, padding: '28px 28px', width: 380 }} className="fade-in">
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-1)', marginBottom: 6 }}>Suspender servicio</div>
+            <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 20 }}>El bot dejará de responder mensajes de {selected?.name}.</div>
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: 6 }}>Motivo</label>
             <input value={suspendReason} onChange={e => setSuspendReason(e.target.value)}
-              placeholder="Ej: Pago pendiente, cuenta vencida..."
-              className="w-full bg-[#111122] border border-[#2e2e4e] rounded-lg px-3 py-2.5 text-xs text-[#e2e8f0] outline-none mb-4" />
-            <div className="flex gap-2">
-              <button onClick={() => setShowSuspendModal(false)}
-                className="flex-1 bg-transparent border border-[#2e2e4e] rounded-lg py-2 text-xs text-[#4a4a6a] cursor-pointer">
-                Cancelar
+              placeholder="Pago pendiente, cuenta vencida..."
+              style={{ width: '100%', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: 'var(--text-1)', outline: 'none', fontFamily: 'inherit', marginBottom: 20 }} />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setShowSuspend(false)} style={{ flex: 1, background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '9px', fontSize: 12, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+              <button onClick={confirmSuspend} disabled={saving} style={{ flex: 1, background: '#ef444418', border: '1px solid #ef444440', borderRadius: 8, padding: '9px', fontSize: 12, fontWeight: 600, color: 'var(--danger)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                {saving ? 'Suspendiendo...' : 'Confirmar'}
               </button>
-              <button onClick={confirmSuspend} disabled={saving}
-                className="flex-1 bg-red-500/20 border border-red-500/30 rounded-lg py-2 text-xs text-red-400 font-medium cursor-pointer disabled:opacity-50">
-                {saving ? 'Suspendiendo...' : 'Confirmar suspensión'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Nuevo cliente */}
+      {showCreate && (
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
+          <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 14, padding: '28px 28px', width: 400 }} className="fade-in">
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>Nuevo cliente</div>
+            <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 22 }}>Crea una cuenta manualmente.</div>
+            {[
+              { label: 'Nombre del negocio', key: 'name', placeholder: 'Ej: Peluquería Ana' },
+              { label: 'Email del dueño', key: 'email', placeholder: 'cliente@email.com' },
+            ].map(f => (
+              <div key={f.key} style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: 5 }}>{f.label}</label>
+                <input value={(newForm as any)[f.key]} onChange={e => setNewForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                  placeholder={f.placeholder}
+                  style={{ width: '100%', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: 'var(--text-1)', outline: 'none', fontFamily: 'inherit' }} />
+              </div>
+            ))}
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: 5 }}>Plan inicial</label>
+              <select value={newForm.plan} onChange={e => setNewForm(prev => ({ ...prev, plan: e.target.value }))}
+                style={{ width: '100%', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: 'var(--text-1)', cursor: 'pointer', outline: 'none', fontFamily: 'inherit' }}>
+                {PLANS.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+              </select>
+            </div>
+            <div style={{ background: 'var(--warn)18', border: '1px solid var(--warn)40', borderRadius: 8, padding: '10px 12px', fontSize: 11, color: 'var(--warn)', marginBottom: 20 }}>
+              <i className="ti ti-info-circle" style={{ marginRight: 6 }} />
+              El cliente deberá completar la configuración desde su dashboard después de que crees su cuenta en Supabase Auth.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setShowCreate(false)} style={{ flex: 1, background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '9px', fontSize: 12, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+              <button onClick={() => setShowCreate(false)} style={{ flex: 1, background: 'var(--accent)', border: 'none', borderRadius: 8, padding: '9px', fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
+                Crear en Supabase →
               </button>
             </div>
           </div>
