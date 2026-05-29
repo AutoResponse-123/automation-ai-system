@@ -4,6 +4,7 @@ import { supabase } from './supabase'
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPwd, setShowPwd] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -38,14 +39,23 @@ export default function Login() {
           </div>
           <div style={s.field}>
             <label style={s.label}>Contraseña</label>
-            <input
-              style={s.input}
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                style={{ ...s.input, paddingRight: 40 }}
+                type={showPwd ? 'text' : 'password'}
+                placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPwd(p => !p)}
+                style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: showPwd ? '#a78bfa' : '#4a4a6a', padding: 0, display: 'flex', alignItems: 'center' }}
+              >
+                <i className={`ti ${showPwd ? 'ti-eye' : 'ti-eye-off'}`} style={{ fontSize: 16 }} />
+              </button>
+            </div>
           </div>
         </div>
 

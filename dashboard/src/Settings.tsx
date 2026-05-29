@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import { useNotifications } from './hooks/useNotifications'
+import { useIsMobile } from './hooks/useIsMobile'
 
 
 interface BusinessConfig {
@@ -28,6 +30,10 @@ interface BusinessConfig {
   accent_color: string
   google_calendar_id: string | null
   google_refresh_token: string | null
+  reminders_enabled: boolean
+  mp_access_token: string | null
+  sheets_refresh_token: string | null
+  sheets_spreadsheet_id: string | null
   schedule: {
     enabled: boolean
     timezone: string
@@ -63,6 +69,7 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
   businessId: string | null
   onThemeChange?: (accent?: string, bg?: string) => void
 }) {
+  const { permission, enabled: notifEnabled, setEnabled: setNotifEnabled, requestPermission, sendNotification, isSupported } = useNotifications()
   const [config, setConfig] = useState<BusinessConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -71,6 +78,8 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
   const [newKeyword, setNewKeyword] = useState('')
   const [newForbidden, setNewForbidden] = useState('')
   const [newClosing, setNewClosing] = useState('')
+  const isMobile = useIsMobile()
+  const [showSectionDropdown, setShowSectionDropdown] = useState(false)
   const [bgColor, setBgColor] = useState<string>(() => localStorage.getItem('ar_bg_color') ?? '#07070d')
 
   useEffect(() => { if (businessId) loadConfig() }, [businessId])
@@ -104,6 +113,10 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
         accent_color: data.accent_color ?? '#a78bfa',
         google_calendar_id: data.google_calendar_id ?? null,
         google_refresh_token: data.google_refresh_token ?? null,
+        reminders_enabled: data.reminders_enabled ?? false,
+        mp_access_token: data.mp_access_token ?? null,
+        sheets_refresh_token: data.sheets_refresh_token ?? null,
+        sheets_spreadsheet_id: data.sheets_spreadsheet_id ?? null,
         schedule: data.schedule ?? DEFAULT_SCHEDULE,
       })
     }
@@ -178,21 +191,61 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
   ]
 
   return (
-    <div style={s.container}>
+    <div style={s.container} className="settings-shell">
       {/* Sidebar de secciones */}
-      <div style={s.sectNav}>
-        <div style={s.sectNavTitle}>Configuración</div>
-        {sections.map(sec => (
-          <button key={sec.id} onClick={() => setActiveSection(sec.id)}
-            style={{ ...s.sectBtn, ...(activeSection === sec.id ? s.sectBtnActive : {}) }}>
-            <i className={`ti ${sec.icon}`} style={{ fontSize: 15 }} aria-hidden="true" />
-            {sec.label}
+      {isMobile ? (
+        /* Mobile: dropdown selector */
+        <div style={{ padding: '10px 14px', borderBottom: '0.5px solid #1e1e2e', position: 'relative' as const }}>
+          <button
+            onClick={() => setShowSectionDropdown(p => !p)}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 10, padding: '10px 14px', cursor: 'pointer', color: '#e2e8f0', fontSize: 13, fontFamily: "'Inter', system-ui, sans-serif" }}
+          >
+            <i className={`ti ${sections.find(s => s.id === activeSection)?.icon}`} style={{ fontSize: 16, color: '#a78bfa' }} />
+            <span style={{ flex: 1, textAlign: 'left' as const, fontWeight: 500 }}>
+              {sections.find(s => s.id === activeSection)?.label}
+            </span>
+            <i className={`ti ti-chevron-${showSectionDropdown ? 'up' : 'down'}`} style={{ fontSize: 14, color: '#4a4a6a' }} />
           </button>
-        ))}
-      </div>
+          {showSectionDropdown && (
+            <div className="popover-enter" style={{ position: 'absolute' as const, top: '100%', left: 14, right: 14, background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 10, padding: 6, zIndex: 300, boxShadow: '0 8px 24px rgba(0,0,0,0.7)', marginTop: 4 }}>
+              {sections.map(sec => {
+                const isActive = activeSection === sec.id
+                return (
+                  <button key={sec.id} onClick={() => { setActiveSection(sec.id as Section); setShowSectionDropdown(false) }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: isActive ? '#16162a' : 'transparent', border: 'none', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', color: isActive ? '#c4b5fd' : '#8080a0', fontSize: 13, fontFamily: "'Inter', system-ui, sans-serif" }}
+                  >
+                    <i className={`ti ${sec.icon}`} style={{ fontSize: 15 }} />
+                    {sec.label}
+                    {isActive && <i className="ti ti-check" style={{ fontSize: 12, marginLeft: 'auto', color: '#a78bfa' }} />}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Desktop: sidebar vertical */
+        <div style={s.sectNav} className="settings-sidenav">
+          <div style={s.sectNavTitle} className="settings-sidenav-title">Configuración</div>
+          {sections.map(sec => {
+            const isActive = activeSection === sec.id
+            return (
+              <button key={sec.id} onClick={() => setActiveSection(sec.id)}
+                style={{ ...s.sectBtn, ...(isActive ? s.sectBtnActive : {}) }}
+                className="settings-sidenav-btn"
+                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.color = '#a78bfa' }}
+                onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.color = '#7a7a9a' }}
+              >
+                <i className={`ti ${sec.icon}`} style={{ fontSize: 15, opacity: isActive ? 1 : 0.7 }} aria-hidden="true" />
+                {sec.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {/* Contenido */}
-      <div style={s.content}>
+      <div style={s.content} className="settings-content">
         <div style={s.contentInner}>
 
           {/* ── Personalidad ── */}
@@ -439,6 +492,71 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
                   </div>
                 </div>
               </Field>
+
+              {/* ── Notificaciones del browser ── */}
+              <div style={{ marginTop: 24, marginBottom: 8, fontSize: 10, color: '#4a4a6a', textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>
+                Notificaciones del navegador
+              </div>
+
+              {!isSupported && (
+                <div style={{ background: '#1a1000', border: '0.5px solid #5a3a00', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#fbbf24', marginBottom: 12 }}>
+                  Tu navegador no soporta notificaciones push.
+                </div>
+              )}
+
+              {isSupported && permission === 'denied' && (
+                <div style={{ background: '#1a0000', border: '0.5px solid #5a0000', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#f87171', marginBottom: 12 }}>
+                  Bloqueaste los permisos en este navegador. Hacé clic en el candado de la barra de direcciones y habilitá las notificaciones manualmente.
+                </div>
+              )}
+
+              {isSupported && permission === 'default' && (
+                <div style={{ background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, color: '#8b8baa' }}>Todavía no diste permiso para recibir notificaciones.</div>
+                  <button onClick={() => requestPermission()}
+                    style={{ ...s.saveBtn, padding: '6px 14px', fontSize: 12, flexShrink: 0 }}>
+                    Dar permiso
+                  </button>
+                </div>
+              )}
+
+              {isSupported && (
+                <Field label="">
+                  <div style={s.toggleRow}>
+                    <div>
+                      <div style={{ fontSize: 13, color: '#c4c4d4', fontWeight: 500 }}>Notificaciones de mensajes</div>
+                      <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 2 }}>Alerta en el navegador cuando un cliente te escribe</div>
+                    </div>
+                    <div
+                      style={{
+                        ...s.toggleTrack,
+                        ...(notifEnabled && permission === 'granted' ? s.toggleTrackOn : {}),
+                        ...(permission === 'denied' ? { opacity: 0.4, cursor: 'not-allowed' } : { cursor: 'pointer' }),
+                      }}
+                      onClick={() => permission !== 'denied' && setNotifEnabled(!notifEnabled)}
+                    >
+                      <div style={{ ...s.toggleThumb, ...(notifEnabled && permission === 'granted' ? s.toggleThumbOn : {}) }} />
+                    </div>
+                  </div>
+                </Field>
+              )}
+
+              {isSupported && notifEnabled && permission === 'granted' && (
+                <Field label="">
+                  <div style={{ ...s.toggleRow, justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontSize: 13, color: '#c4c4d4', fontWeight: 500 }}>Probar notificación</div>
+                      <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 2 }}>Enviá una notificación de prueba para verificar que funciona</div>
+                    </div>
+                    <button
+                      onClick={() => sendNotification('💬 Mensaje de prueba', { body: 'Las notificaciones están funcionando correctamente.' })}
+                      style={{ ...s.addBtn, flexShrink: 0 }}
+                    >
+                      Enviar prueba
+                    </button>
+                  </div>
+                </Field>
+              )}
             </div>
           )}
 
@@ -509,44 +627,148 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
           {activeSection === 'integraciones' && (
             <div style={s.section}>
               <SectionHeader icon="ti-plug" title="Integraciones" subtitle="Conectá servicios externos a tu bot" />
-              <div style={{ background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 10, padding: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <i className="ti ti-calendar" style={{ fontSize: 18, color: '#4285f4' }} />
+
+              {/* Google Calendar */}
+              <IntegrationCard
+                icon="ti-calendar" iconColor="#4285f4"
+                name="Google Calendar"
+                description={config.google_refresh_token ? 'El bot puede consultar disponibilidad y agendar turnos' : 'Conectá para que el bot pueda agendar turnos automáticamente'}
+                status={config.google_refresh_token ? 'connected' : 'disconnected'}
+                onConnect={() => {
+                  const popup = window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/calendar/connect/${businessId}`, '_blank', 'width=600,height=700')
+                  const timer = setInterval(() => { if (popup?.closed) { clearInterval(timer); loadConfig() } }, 1000)
+                }}
+                onDisconnect={async () => {
+                  await supabase.from('businesses').update({ google_refresh_token: null, google_calendar_id: null }).eq('id', businessId!)
+                  update('google_refresh_token', null); update('google_calendar_id', null)
+                }}
+              />
+
+              {/* Recordatorios automáticos */}
+              <IntegrationCard
+                icon="ti-bell-ringing" iconColor="#f59e0b"
+                name="Recordatorios automáticos"
+                description={
+                  !config.google_refresh_token
+                    ? 'Requiere Google Calendar conectado'
+                    : config.reminders_enabled
+                      ? 'Enviando recordatorios 24h y 1h antes de cada turno'
+                      : 'Activá para enviar recordatorios de turno por WhatsApp'
+                }
+                status={!config.google_refresh_token ? 'disabled' : config.reminders_enabled ? 'connected' : 'disconnected'}
+                connectLabel="Activar"
+                disconnectLabel="Desactivar"
+                onConnect={async () => {
+                  await supabase.from('businesses').update({ reminders_enabled: true }).eq('id', businessId!)
+                  update('reminders_enabled', true)
+                }}
+                onDisconnect={async () => {
+                  await supabase.from('businesses').update({ reminders_enabled: false }).eq('id', businessId!)
+                  update('reminders_enabled', false)
+                }}
+              />
+
+              {/* Mercado Pago */}
+              <IntegrationCard
+                icon="ti-brand-mastercard" iconColor="#00b1ea"
+                name="Mercado Pago"
+                description={config.mp_access_token ? 'El bot puede generar links de pago automáticamente' : 'Ingresá tu Access Token para que el bot envíe links de cobro'}
+                status={config.mp_access_token ? 'connected' : 'disconnected'}
+                onConnect={async () => {
+                  const token = prompt('Pegá tu Mercado Pago Access Token:')
+                  if (!token) return
+                  await supabase.from('businesses').update({ mp_access_token: token }).eq('id', businessId!)
+                  update('mp_access_token', token)
+                }}
+                onDisconnect={async () => {
+                  await supabase.from('businesses').update({ mp_access_token: null }).eq('id', businessId!)
+                  update('mp_access_token', null)
+                }}
+              />
+
+              {/* Google Sheets */}
+              <div style={{ background: '#0d0d14', border: `0.5px solid ${config.sheets_refresh_token ? '#2a3a2a' : '#1e1e2e'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <i className="ti ti-table" style={{ fontSize: 18, color: '#34d399' }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>Google Sheets</span>
+                      {config.sheets_refresh_token && <span style={{ fontSize: 10, background: '#0a2e14', border: '0.5px solid #1a4a25', color: '#22c55e', borderRadius: 4, padding: '1px 6px' }}>Activo</span>}
                     </div>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>Google Calendar</div>
-                      <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 2 }}>
-                        {config.google_refresh_token ? '✅ Conectado — el bot puede agendar turnos' : 'No conectado — el bot no puede agendar turnos'}
-                      </div>
+                    <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 2 }}>
+                      {config.sheets_refresh_token
+                        ? config.sheets_spreadsheet_id
+                          ? 'Sincronizado — contactos, turnos y conversaciones'
+                          : 'Conectado — hacé clic en Exportar para crear la planilla'
+                        : 'Exportá contactos, turnos y conversaciones a una planilla'}
                     </div>
                   </div>
-                  {config.google_refresh_token ? (
-                    <button
-                      onClick={async () => {
-                        await supabase.from('businesses').update({ google_refresh_token: null, google_calendar_id: null }).eq('id', businessId!)
-                        update('google_refresh_token', null)
-                        update('google_calendar_id', null)
-                      }}
-                      style={{ ...s.addBtn, color: '#f87171', borderColor: '#3e1a1a' }}>
-                      Desconectar
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        const popup = window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/calendar/connect/${businessId}`, '_blank', 'width=600,height=700')
-                        const timer = setInterval(() => {
-                          if (popup?.closed) {
-                            clearInterval(timer)
-                            loadConfig()
-                          }
-                        }, 1000)
-                      }}
-                      style={s.saveBtn}>
-                      Conectar
-                    </button>
-                  )}
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    {config.sheets_refresh_token ? (
+                      <>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/sheets/export/${businessId}`, { method: 'POST' })
+                              const { url } = await res.json()
+                              if (url) window.open(url, '_blank')
+                              // update local state with spreadsheet id from url
+                              const id = url?.match(/\/d\/([^/]+)/)?.[1]
+                              if (id) update('sheets_spreadsheet_id', id)
+                            } catch { alert('Error exportando. Intentá de nuevo.') }
+                          }}
+                          style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: '#16162a', color: '#a78bfa', fontSize: 12, cursor: 'pointer', fontFamily: "'Inter', system-ui, sans-serif" }}>
+                          Exportar
+                        </button>
+                        {config.sheets_spreadsheet_id && (
+                          <button
+                            onClick={() => window.open(`https://docs.google.com/spreadsheets/d/${config.sheets_spreadsheet_id}`, '_blank')}
+                            style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: '#0a2e14', color: '#22c55e', fontSize: 12, cursor: 'pointer', fontFamily: "'Inter', system-ui, sans-serif" }}>
+                            Abrir
+                          </button>
+                        )}
+                        <button
+                          onClick={async () => {
+                            await supabase.from('businesses').update({ sheets_refresh_token: null, sheets_spreadsheet_id: null }).eq('id', businessId!)
+                            update('sheets_refresh_token', null); update('sheets_spreadsheet_id', null)
+                          }}
+                          style={{ padding: '6px 12px', borderRadius: 7, border: '0.5px solid #3e1a1a', background: 'transparent', color: '#f87171', fontSize: 12, cursor: 'pointer', fontFamily: "'Inter', system-ui, sans-serif" }}>
+                          Desconectar
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          const popup = window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/sheets/connect/${businessId}`, '_blank', 'width=600,height=700')
+                          const timer = setInterval(() => { if (popup?.closed) { clearInterval(timer); loadConfig() } }, 1000)
+                        }}
+                        style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'Inter', system-ui, sans-serif" }}>
+                        Conectar
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Próximamente */}
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 11, color: '#3a3a5a', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 600, marginBottom: 10 }}>Próximamente</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {[
+                    { icon: 'ti-webhook', color: '#a78bfa', name: 'Webhook / Zapier', desc: 'Conectar con n8n, Make, Zapier' },
+                    { icon: 'ti-brand-instagram', color: '#e879f9', name: 'Instagram DMs', desc: 'Mismo bot en Instagram' },
+                    { icon: 'ti-shopping-cart', color: '#fb923c', name: 'WooCommerce', desc: 'Consultas de pedidos y stock' },
+                  ].map(item => (
+                    <div key={item.name} style={{ background: '#0a0a14', border: '0.5px solid #1a1a2e', borderRadius: 10, padding: '12px 14px', opacity: 0.5 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <i className={`ti ${item.icon}`} style={{ fontSize: 16, color: item.color }} />
+                        <span style={{ fontSize: 12, fontWeight: 500, color: '#c4c4d4' }}>{item.name}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: '#3a3a5a' }}>{item.desc}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -569,6 +791,45 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
+
+function IntegrationCard({ icon, iconColor, name, description, status, connectLabel = 'Conectar', disconnectLabel = 'Desconectar', onConnect, onDisconnect }: {
+  icon: string; iconColor: string; name: string; description: string
+  status: 'connected' | 'disconnected' | 'disabled'
+  connectLabel?: string; disconnectLabel?: string
+  onConnect?: () => void; onDisconnect?: () => void
+}) {
+  const isConnected = status === 'connected'
+  const isDisabled = status === 'disabled'
+  return (
+    <div style={{ background: '#0d0d14', border: `0.5px solid ${isConnected ? '#2a3a2a' : '#1e1e2e'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 8, background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <i className={`ti ${icon}`} style={{ fontSize: 18, color: iconColor }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>{name}</span>
+            {isConnected && <span style={{ fontSize: 10, background: '#0a2e14', border: '0.5px solid #1a4a25', color: '#22c55e', borderRadius: 4, padding: '1px 6px' }}>Activo</span>}
+          </div>
+          <div style={{ fontSize: 11, color: isDisabled ? '#2a2a4a' : '#4a4a6a', marginTop: 2 }}>{description}</div>
+        </div>
+        {!isDisabled && (
+          isConnected ? (
+            <button onClick={onDisconnect}
+              style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 7, border: '0.5px solid #3e1a1a', background: 'transparent', color: '#f87171', fontSize: 12, cursor: 'pointer', fontFamily: "'Inter', system-ui, sans-serif" }}>
+              {disconnectLabel}
+            </button>
+          ) : (
+            <button onClick={onConnect}
+              style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 7, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'Inter', system-ui, sans-serif" }}>
+              {connectLabel}
+            </button>
+          )
+        )}
+      </div>
+    </div>
+  )
+}
 
 function SectionHeader({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
   return (
@@ -621,11 +882,11 @@ function TagInput({ tags, value, onChange, onAdd, onRemove, placeholder, color }
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
 const s: Record<string, React.CSSProperties> = {
-  container: { display: 'grid', gridTemplateColumns: '200px 1fr', height: '100%', overflow: 'hidden' },
-  sectNav: { background: '#0d0d14', borderRight: '0.5px solid #1e1e2e', padding: '16px 8px', display: 'flex', flexDirection: 'column', gap: 2 },
-  sectNavTitle: { fontSize: 10, color: '#4a4a6a', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0 8px', marginBottom: 8 },
-  sectBtn: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, border: 'none', background: 'transparent', color: '#4a4a6a', fontSize: 12, cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'all 0.15s' },
-  sectBtnActive: { background: '#1a1a2e', color: '#a78bfa' },
+  container: { display: 'grid', gridTemplateColumns: '220px 1fr', height: '100%', overflow: 'hidden' },
+  sectNav: { background: '#0d0d14', borderRight: '0.5px solid #1e1e2e', padding: '20px 10px', display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' },
+  sectNavTitle: { fontSize: 9.5, color: '#3a3a5a', textTransform: 'uppercase', letterSpacing: 0, fontWeight: 600, padding: 0, marginBottom: 10, whiteSpace: 'nowrap' as const },
+  sectBtn: { display: 'flex', alignItems: 'center', gap: 9, padding: '9px 10px', borderRadius: 8, border: 'none', background: 'transparent', color: '#7a7a9a', fontSize: 13, fontWeight: 500, cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'color 0.15s, background 0.15s', letterSpacing: '0.01em' },
+  sectBtnActive: { background: '#16162a', color: '#c4b5fd' },
   content: { display: 'grid', gridTemplateRows: '1fr auto', overflow: 'hidden' },
   contentInner: { overflowY: 'auto', padding: 24 },
   section: { maxWidth: 680 },

@@ -3,6 +3,7 @@ const express = require('express');
 const { getOrCreateConversation, saveMessage, getConversationHistory, getBusinessByPhone, updateConversationStatus } = require('../services/conversation');
 const { callClaude } = require('../services/claude');
 const { getAuthUrl, saveTokens } = require('../services/calendar');
+const { getSheetsAuthUrl, saveSheetsTokens, exportToSheets } = require('../services/sheets');
 
 const router = express.Router();
 
@@ -240,7 +241,7 @@ router.get('/calendar/connect/:businessId', (req: any, res: any) => {
 });
 
 router.get('/calendar/callback', async (req: any, res: any) => {
-  const { code, state: businessId } = req.query;
+  const { code, state } = req.query;
   const { google } = require('googleapis');
   const oauth2 = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
@@ -249,10 +250,54 @@ router.get('/calendar/callback', async (req: any, res: any) => {
   );
   try {
     const { tokens } = await oauth2.getToken(code);
-    await saveTokens(businessId, tokens);
-    res.send('<script>window.close()</script><p>✅ Calendario conectado. Podés cerrar esta ventana.</p>');
+    // Distinguir si es conexión de Calendar o Sheets por el state
+    if (String(state).startsWith('sheets:')) {
+      const businessId = String(state).replace('sheets:', '');
+      await saveSheetsTokens(businessId, tokens);
+      res.send('<script>window.close()</script><p>✅ Google Sheets conectado. Podés cerrar esta ventana.</p>');
+    } else {
+      await saveTokens(state, tokens);
+      res.send('<script>window.close()</script><p>✅ Calendario conectado. Podés cerrar esta ventana.</p>');
+    }
   } catch (err) {
-    res.status(500).send('Error conectando calendario');
+    res.status(500).send('Error conectando Google');
+  }
+});
+
+// ── Google Sheets ──────────────────────────────────────────────────────────
+router.get('/sheets/connect/:businessId', (req: any, res: any) => {
+  const url = getSheetsAuthUrl(req.params.businessId);
+  res.redirect(url);
+});
+
+router.get('/sheets/callback', async (req: any, res: any) => {
+  const { code, state } = req.query;
+  const businessId = String(state).replace('sheets:', '');
+  const { google } = require('googleapis');
+  const oauth2 = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+  );
+  try {
+    const { tokens } = await oauth2.getToken(code);
+    await saveSheetsTokens(businessId, tokens);
+    res.send('<script>window.close()</script><p>✅ Google Sheets conectado. Podés cerrar esta ventana.</p>');
+  } catch (err) {
+    res.status(500).send('Error conectando Sheets');
+  }
+});
+
+router.post('/sheets/export/:businessId', async (req: any, res: any) => {
+  const { supabase } = require('../config/supabase');
+  const { data: business } = await supabase.from('businesses').select('*').eq('id', req.params.businessId).single();
+  if (!business) return res.status(404).json({ error: 'Business not found' });
+  try {
+    const url = await exportToSheets(business);
+    res.json({ url });
+  } catch (err: any) {
+    console.error('[sheets export]', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 

@@ -10,6 +10,8 @@ import Activity from './Activity'
 import Settings from './Settings'
 import Login from './Login'
 import Search from './Search'
+import { useNotifications } from './hooks/useNotifications'
+import { useIsMobile } from './hooks/useIsMobile'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -120,12 +122,7 @@ function avatarColor(id: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
-const DEFAULT_QUICK_REPLIES = [
-  'Hola! ¿En qué te puedo ayudar? 😊',
-  'Enseguida te paso con un agente.',
-  '¡Gracias por contactarnos! ¿Hay algo más en que pueda ayudarte?',
-  'Te confirmo el turno para esa fecha y horario.',
-]
+const DEFAULT_QUICK_REPLIES: string[] = []
 
 // ── Main App ──────────────────────────────────────────────────────────────────
 
@@ -148,6 +145,11 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [convFilter, setConvFilter] = useState<'all' | 'active' | 'resolved' | 'pending'>('all')
   const [convSearch, setConvSearch] = useState('')
+  const [tagFilter, setTagFilter] = useState<string | null>(null)
+  const [showTagFilterPopover, setShowTagFilterPopover] = useState(false)
+  const [dashScale, setDashScale] = useState<'day' | 'week' | 'month' | 'year'>('day')
+  const [reservations, setReservations] = useState(0)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [notes, setNotes] = useState<Note[]>([])
@@ -162,12 +164,22 @@ export default function App() {
   // Summary
   const [summaryText, setSummaryText] = useState<string | null>(null)
   const [summaryLoading, setSummaryLoading] = useState(false)
-  const [quickReplies] = useState<string[]>(() => {
+  const [quickReplies, setQuickReplies] = useState<string[]>(() => {
     try {
       const stored = localStorage.getItem('ar_quick_replies')
       return stored ? JSON.parse(stored) : DEFAULT_QUICK_REPLIES
     } catch { return DEFAULT_QUICK_REPLIES }
   })
+  const [newQuickReply, setNewQuickReply] = useState('')
+  const isMobile = useIsMobile()
+  const [mobileShowChat, setMobileShowChat] = useState(false)
+
+  function saveQuickReplies(updated: string[]) {
+    setQuickReplies(updated)
+    try { localStorage.setItem('ar_quick_replies', JSON.stringify(updated)) } catch { /* ignore */ }
+  }
+
+  const { sendNotification } = useNotifications()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const channelRef = useRef<RealtimeChannel | null>(null)
@@ -265,6 +277,14 @@ export default function App() {
           setUnreadCount(p => p + 1)
           showToast(msg.sender === 'user' ? '💬 Nuevo mensaje' : '🤖 Claude respondió', 'info')
         }
+        if (msg.sender === 'user') {
+          const conv = conversations.find(c => c.id === msg.conversation_id)
+          const contactName = conv?.contact?.name || conv?.contact?.phone || 'Cliente'
+          sendNotification(`💬 ${contactName}`, {
+            body: msg.content?.slice(0, 100) || '',
+            tag: `msg-${msg.conversation_id}`,
+          })
+        }
         loadConversations()
         loadMetrics()
       })
@@ -345,42 +365,52 @@ export default function App() {
     showToast('📝 Nota guardada', 'info')
   }
 
-  async function loadMetrics() {
+  async function loadMetrics(scale: 'day' | 'week' | 'month' | 'year' = dashScale) {
     if (!businessId) return
-    const today = new Date(); today.setHours(0, 0, 0, 0)
-    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1)
+    const now = new Date()
+    const periodStart = new Date(now)
+    if (scale === 'day')   { periodStart.setHours(0, 0, 0, 0) }
+    if (scale === 'week')  { periodStart.setDate(now.getDate() - 7); periodStart.setHours(0,0,0,0) }
+    if (scale === 'month') { periodStart.setDate(1); periodStart.setHours(0,0,0,0) }
+    if (scale === 'year')  { periodStart.setMonth(0, 1); periodStart.setHours(0,0,0,0) }
+    const prevStart = new Date(periodStart)
+    const diff = now.getTime() - periodStart.getTime()
+    prevStart.setTime(periodStart.getTime() - diff)
 
     const { data: bizConvs } = await supabase.from('conversations').select('id').eq('business_id', businessId)
     const convIds = bizConvs?.map(c => c.id) ?? []
 
     const [
       { count: totalMessages },
-      { count: todayMessages },
-      { count: yesterdayMessages },
+      { count: periodMessages },
+      { count: prevMessages },
       { count: uniqueContacts },
       { count: activeConversations },
       { count: pendingConversations },
       { data: tokenData },
-      { data: allMessages }
+      { data: allMessages },
+      { count: reservationCount },
     ] = await Promise.all([
       convIds.length ? supabase.from('messages').select('*', { count: 'exact', head: true }).in('conversation_id', convIds) : Promise.resolve({ count: 0 }),
-      convIds.length ? supabase.from('messages').select('*', { count: 'exact', head: true }).in('conversation_id', convIds).gte('created_at', today.toISOString()) : Promise.resolve({ count: 0 }),
-      convIds.length ? supabase.from('messages').select('*', { count: 'exact', head: true }).in('conversation_id', convIds).gte('created_at', yesterday.toISOString()).lt('created_at', today.toISOString()) : Promise.resolve({ count: 0 }),
+      convIds.length ? supabase.from('messages').select('*', { count: 'exact', head: true }).in('conversation_id', convIds).gte('created_at', periodStart.toISOString()) : Promise.resolve({ count: 0 }),
+      convIds.length ? supabase.from('messages').select('*', { count: 'exact', head: true }).in('conversation_id', convIds).gte('created_at', prevStart.toISOString()).lt('created_at', periodStart.toISOString()) : Promise.resolve({ count: 0 }),
       supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('business_id', businessId),
       supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('business_id', businessId).eq('status', 'active'),
       supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('business_id', businessId).eq('status', 'pending'),
       convIds.length ? supabase.from('messages').select('tokens_used').eq('sender', 'assistant').in('conversation_id', convIds).not('tokens_used', 'is', null) : Promise.resolve({ data: [] }),
       convIds.length ? supabase.from('messages').select('sender').in('conversation_id', convIds).limit(1000) : Promise.resolve({ data: [] }),
+      supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('business_id', businessId).gte('created_at', periodStart.toISOString()),
     ])
 
     const totalTokens = tokenData?.reduce((s, m) => s + (m.tokens_used || 0), 0) ?? 0
     const assistantCount = allMessages?.filter(m => m.sender === 'assistant').length ?? 0
     const userCount = allMessages?.filter(m => m.sender === 'user').length ?? 0
 
-    setYesterdayMsgCount(yesterdayMessages ?? 0)
+    setYesterdayMsgCount(prevMessages ?? 0)
+    setReservations(reservationCount ?? 0)
     setMetrics({
       totalMessages: totalMessages ?? 0,
-      todayMessages: todayMessages ?? 0,
+      todayMessages: periodMessages ?? 0,
       automationRate: userCount > 0 ? Math.round((assistantCount / userCount) * 100) : 0,
       avgResponseTime: 1.1,
       uniqueContacts: uniqueContacts ?? 0,
@@ -491,6 +521,7 @@ export default function App() {
 
   const filteredConvs = conversations
     .filter(c => convFilter === 'all' || c.status === convFilter)
+    .filter(c => !tagFilter || (c.tags ?? []).includes(tagFilter))
     .filter(c => {
       if (!convSearch) return true
       const q = convSearch.toLowerCase()
@@ -511,10 +542,10 @@ export default function App() {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <div style={s.shell}>
+    <div style={{ ...s.shell, ...(isMobile ? { display: 'flex', flexDirection: 'column', gridTemplateColumns: 'none' } : {}) }} className="app-shell">
 
       {/* Sidebar */}
-      <nav style={s.sidebar}>
+      <nav style={{ ...s.sidebar, ...(isMobile ? { display: 'none' } : {}) }} className="desktop-sidebar">
         <div style={s.logo}>AR</div>
         {navItems.map(n => (
           <button key={n.id} onClick={() => setTab(n.id)} title={n.label}
@@ -531,17 +562,65 @@ export default function App() {
         ))}
         <div style={{ flex: 1 }} />
         <div style={{ ...s.userAvatar, cursor: 'pointer' }}
-          title={`Cerrar sesión (${session?.user?.email})`}
-          onClick={() => supabase.auth.signOut()}>
+          title={session?.user?.email}
+          onClick={() => setShowLogoutModal(true)}>
           {session?.user?.email?.slice(0, 1).toUpperCase() ?? 'U'}
         </div>
       </nav>
 
+      {/* Bottom Nav (mobile) */}
+      <nav className="bottom-nav">
+        {navItems.map(n => (
+          <button key={n.id} onClick={() => { setTab(n.id); if (n.id !== 'inbox') setMobileShowChat(false) }}
+            className={`bottom-nav-item${tab === n.id ? ' active' : ''}`}>
+            <i className={`ti ${n.icon}`} />
+            <span>{n.label}</span>
+            {n.id === 'inbox' && unreadCount > 0 && (
+              <span style={{ position: 'absolute', top: 6, width: 6, height: 6, borderRadius: '50%', background: '#a78bfa' }} />
+            )}
+          </button>
+        ))}
+      </nav>
+
+      {/* Modal cerrar sesión */}
+      {showLogoutModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShowLogoutModal(false)}>
+          <div style={{ background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 14, padding: '28px 28px 22px', width: 320, display: 'flex', flexDirection: 'column', gap: 0 }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--accent-dim)', border: '1px solid var(--border-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: 'var(--accent)', fontWeight: 700, marginBottom: 14 }}>
+              {session?.user?.email?.slice(0, 1).toUpperCase() ?? 'U'}
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#e2e8f0', marginBottom: 4 }}>Tu cuenta</div>
+            <div style={{ fontSize: 12, color: '#5a5a7a', marginBottom: 20, wordBreak: 'break-all' }}>{session?.user?.email}</div>
+            <div style={{ height: '0.5px', background: '#1e1e2e', marginBottom: 20 }} />
+            <div style={{ fontSize: 13, color: '#c4c4d4', marginBottom: 20 }}>¿Cerrar sesión en este dispositivo?</div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowLogoutModal(false)}
+                style={{ padding: '8px 18px', borderRadius: 8, border: '0.5px solid #2e2e4e', background: 'transparent', color: '#8b8baa', fontSize: 13, cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button onClick={() => { setShowLogoutModal(false); supabase.auth.signOut() }}
+                style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#f87171', color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
+                Cerrar sesión
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main */}
-      <div style={s.main}>
+      <div style={{ ...s.main, ...(isMobile ? { width: '100%' } : {}) }} className="app-main">
 
         {/* Topbar */}
         <div style={s.topbar}>
+          {isMobile && tab === 'inbox' && mobileShowChat && (
+            <button className="mobile-back-btn"
+              onClick={() => setMobileShowChat(false)}
+              style={{ background: 'none', border: 'none', color: '#a78bfa', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, padding: '0 4px 0 0', fontFamily: "'Inter', system-ui, sans-serif" }}>
+              <i className="ti ti-chevron-left" style={{ fontSize: 18 }} />
+            </button>
+          )}
           <span style={s.topbarTitle}>{navItems.find(n => n.id === tab)?.label}</span>
           <span style={s.prodBadge}>
             <div style={s.liveDot} />
@@ -572,35 +651,43 @@ export default function App() {
         {/* Dashboard */}
         {tab === 'dashboard' && (
           <div style={s.scrollArea}>
+            {/* Selector de escala */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+              {(['day', 'week', 'month', 'year'] as const).map(sc => (
+                <button key={sc} onClick={() => { setDashScale(sc); loadMetrics(sc) }}
+                  style={{ padding: '5px 14px', borderRadius: 8, border: '0.5px solid', fontSize: 12, fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s',
+                    background: dashScale === sc ? 'var(--accent-dim)' : 'transparent',
+                    borderColor: dashScale === sc ? 'var(--accent)' : '#2e2e4e',
+                    color: dashScale === sc ? 'var(--accent)' : '#5a5a7a' }}>
+                  {sc === 'day' ? 'Hoy' : sc === 'week' ? 'Semana' : sc === 'month' ? 'Mes' : 'Año'}
+                </button>
+              ))}
+            </div>
             {loading ? (
-              <div style={s.metricsGrid}>
-                {Array(8).fill(0).map((_, i) => <SkeletonCard key={i} />)}
+              <div style={s.metricsGrid} className="metrics-grid">
+                {Array(6).fill(0).map((_, i) => <SkeletonCard key={i} />)}
               </div>
             ) : (
-              <div style={s.metricsGrid}>
-                <MetricCard label="Mensajes hoy" value={metrics.todayMessages.toLocaleString()}
+              <div style={s.metricsGrid} className="metrics-grid">
+                <MetricCard label={dashScale === 'day' ? 'Mensajes hoy' : dashScale === 'week' ? 'Mensajes esta semana' : dashScale === 'month' ? 'Mensajes este mes' : 'Mensajes este año'}
+                  value={metrics.todayMessages.toLocaleString()}
                   sub={`${metrics.totalMessages.toLocaleString()} total`}
-                  trend={todayTrend} trendDetail={`ayer: ${yesterdayMsgCount}`}
+                  trend={todayTrend} trendDetail={`período anterior: ${yesterdayMsgCount}`}
                   icon="ti-message-2" iconColor="#a78bfa" />
-                <MetricCard label="Automatización" value={`${metrics.automationRate}%`}
-                  sub="respuestas IA" color="#22c55e"
-                  icon="ti-sparkles" iconColor="#22c55e" />
                 <MetricCard label="Tokens / costo" value={`${(metrics.totalTokens / 1000).toFixed(1)}k`}
                   sub={`~$${metrics.estimatedCost.toFixed(2)} USD`} color="#f59e0b"
                   icon="ti-coins" iconColor="#f59e0b" />
-                <MetricCard label="Tiempo resp." value={`${metrics.avgResponseTime}s`} sub="promedio estimado"
-                  icon="ti-clock" iconColor="#38bdf8" />
+                <MetricCard label="Reservas realizadas" value={reservations.toString()}
+                  sub={dashScale === 'day' ? 'hoy' : dashScale === 'week' ? 'esta semana' : dashScale === 'month' ? 'este mes' : 'este año'}
+                  color="#22c55e" icon="ti-calendar-check" iconColor="#22c55e" />
                 <MetricCard label="Contactos únicos" value={metrics.uniqueContacts.toLocaleString()} sub="registrados"
                   icon="ti-users" iconColor="#e879f9" />
-                <MetricCard label="Convs. activas" value={metrics.activeConversations.toString()}
-                  sub="en curso" color="#22c55e"
-                  icon="ti-messages" iconColor="#22c55e" />
                 <MetricCard label="Pendientes" value={metrics.pendingConversations.toString()}
                   sub="sin responder" color={metrics.pendingConversations > 0 ? '#f59e0b' : undefined}
                   icon="ti-clock-pause" iconColor={metrics.pendingConversations > 0 ? '#f59e0b' : '#4a4a6a'}
                   onClick={metrics.pendingConversations > 0 ? () => { setConvFilter('pending'); setTab('inbox') } : undefined} />
                 <MetricCard label="Escalaciones" value={metrics.escalations.toString()}
-                  sub="a humano hoy" color={metrics.escalations > 0 ? '#f87171' : undefined}
+                  sub="a humano" color={metrics.escalations > 0 ? '#f87171' : undefined}
                   icon="ti-alert-triangle" iconColor={metrics.escalations > 0 ? '#f87171' : '#4a4a6a'} />
               </div>
             )}
@@ -610,17 +697,17 @@ export default function App() {
               : conversations.length === 0
                 ? <EmptyState icon="ti-message-2" title="Sin conversaciones aún" sub="Las conversaciones de tus clientes aparecerán acá" />
                 : <ConvList conversations={conversations.slice(0, 10)} selected={selectedConv}
-                    onSelect={c => { setSelectedConv(c); setTab('inbox') }} onCopyPhone={copyPhone} />
+                    onSelect={c => { setSelectedConv(c); setTab('inbox'); if (isMobile) setMobileShowChat(true) }} onCopyPhone={copyPhone} />
             }
           </div>
         )}
 
         {/* Inbox */}
         {tab === 'inbox' && (
-          <div style={s.inboxLayout}>
+          <div style={{ ...s.inboxLayout, ...(isMobile ? { display: 'block', gridTemplateColumns: 'none' } : {}) }} className="inbox-layout">
 
             {/* Conv list */}
-            <div style={s.convPane}>
+            <div style={{ ...s.convPane, ...(isMobile && mobileShowChat ? { display: 'none' } : {}) }} className="inbox-list-pane">
               <div style={s.convSearchBox}>
                 <i className="ti ti-search" style={{ fontSize: 13, color: '#4a4a6a' }} aria-hidden="true" />
                 <input style={s.convSearchInput} placeholder="Buscar contacto..."
@@ -631,6 +718,33 @@ export default function App() {
                     ×
                   </button>
                 )}
+                {/* Filtro de etiquetas */}
+                <div style={{ position: 'relative' as const, flexShrink: 0 }}>
+                  <button onClick={() => setShowTagFilterPopover(p => !p)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, background: tagFilter ? 'var(--accent-dim)' : 'transparent', border: `0.5px solid ${tagFilter ? 'var(--accent)' : '#2e2e4e'}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', color: tagFilter ? 'var(--accent)' : '#4a4a6a', fontSize: 11, fontFamily: "'Inter', system-ui, sans-serif", whiteSpace: 'nowrap' as const }}>
+                    <i className="ti ti-tag" style={{ fontSize: 11 }} />
+                    {tagFilter ?? 'Etiqueta'}
+                    <i className={`ti ti-chevron-${showTagFilterPopover ? 'up' : 'down'}`} style={{ fontSize: 10 }} />
+                  </button>
+                  {showTagFilterPopover && (
+                    <div className="popover-enter" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, background: 'var(--bg-card)', border: '1px solid var(--border-mid)', borderRadius: 10, padding: 6, zIndex: 100, boxShadow: '0 8px 24px rgba(0,0,0,0.6)', minWidth: 160 }}>
+                      <button onClick={() => { setTagFilter(null); setShowTagFilterPopover(false) }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: !tagFilter ? '#1a1a2e' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: !tagFilter ? '#a78bfa' : '#6a6a8a', fontSize: 12, fontFamily: "'Inter', system-ui, sans-serif" }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4a4a6a', flexShrink: 0 }} />
+                        Todas
+                        {!tagFilter && <i className="ti ti-check" style={{ fontSize: 11, marginLeft: 'auto' }} />}
+                      </button>
+                      {TAG_PRESETS.map(p => (
+                        <button key={p.label} onClick={() => { setTagFilter(p.label); setShowTagFilterPopover(false) }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: tagFilter === p.label ? p.color + '18' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: tagFilter === p.label ? p.color : '#8080a0', fontSize: 12, fontFamily: "'Inter', system-ui, sans-serif", transition: 'all 0.1s' }}>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+                          {p.label}
+                          {tagFilter === p.label && <i className="ti ti-check" style={{ fontSize: 11, marginLeft: 'auto' }} />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <div style={s.filterRow}>
                 {(['all', 'active', 'pending', 'resolved'] as const).map(f => (
@@ -654,14 +768,14 @@ export default function App() {
                     ? <EmptyState icon="ti-message-off" title="Sin conversaciones"
                         sub={convSearch ? 'Probá con otro término de búsqueda' : 'Las nuevas conversaciones aparecerán acá'} />
                     : <ConvList conversations={filteredConvs} selected={selectedConv}
-                        onSelect={setSelectedConv} onCopyPhone={copyPhone} />
+                        onSelect={c => { setSelectedConv(c); if (isMobile) setMobileShowChat(true) }} onCopyPhone={copyPhone} />
                 }
               </div>
             </div>
 
             {/* Chat */}
-            {selectedConv ? (
-              <div style={s.chatPane}>
+            {(!isMobile || mobileShowChat) && (selectedConv ? (
+              <div style={s.chatPane} className="inbox-chat-pane">
 
                 {/* Header */}
                 <div style={s.chatHeader}>
@@ -751,15 +865,75 @@ export default function App() {
 
                 {/* Contact panel */}
                 {contactPanelOpen && (
-                  <div className="contact-panel" style={s.contactPanel}>
-                    <ContactPanelItem label="Teléfono" value={selectedConv.contact?.phone ?? '—'}
-                      onClick={() => copyPhone(selectedConv.contact?.phone ?? '')} copyable />
-                    <ContactPanelItem label="Interacciones" value={`${selectedConv.contact?.interaction_count ?? 0} mensajes`} />
-                    <ContactPanelItem label="Estado" value={selectedConv.status}
-                      valueColor={selectedConv.status === 'active' ? '#22c55e' : selectedConv.status === 'pending' ? '#f59e0b' : '#4a4a6a'} />
-                    <ContactPanelItem label="IA" value={selectedConv.ai_enabled ? 'Activa' : 'Pausada'}
-                      valueColor={selectedConv.ai_enabled ? '#a78bfa' : '#4a4a6a'} />
-                    <ContactPanelItem label="Iniciada" value={fullTime(selectedConv.created_at)} />
+                  <div className="contact-panel" style={{ ...s.contactPanel, flexDirection: 'column', gap: 0, padding: 0 }}>
+                    {/* Header del contacto */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '0.5px solid var(--border)' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: avatarColor(selectedConv.id), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                        {getInitials(selectedConv.contact?.phone ?? '', selectedConv.contact?.name)}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', marginBottom: 1 }}>
+                          {selectedConv.contact?.name ?? 'Sin nombre'}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#5a5a7a', cursor: 'pointer' }} onClick={() => copyPhone(selectedConv.contact?.phone ?? '')}>
+                          {selectedConv.contact?.phone} <i className="ti ti-copy" style={{ fontSize: 10 }} />
+                        </div>
+                      </div>
+                      {/* Estado e IA pills */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 5,
+                          background: selectedConv.status === 'active' ? '#22c55e20' : selectedConv.status === 'pending' ? '#f59e0b20' : '#4a4a6a20',
+                          color: selectedConv.status === 'active' ? '#22c55e' : selectedConv.status === 'pending' ? '#f59e0b' : '#6a6a8a' }}>
+                          {selectedConv.status === 'active' ? 'activa' : selectedConv.status === 'pending' ? 'pendiente' : 'resuelta'}
+                        </span>
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 5,
+                          background: selectedConv.ai_enabled ? 'var(--accent-dim)' : '#2e2e4e',
+                          color: selectedConv.ai_enabled ? 'var(--accent)' : '#5a5a7a' }}>
+                          IA {selectedConv.ai_enabled ? 'activa' : 'pausada'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Stats rápidas */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', borderBottom: '0.5px solid var(--border)' }}>
+                      {[
+                        { label: 'Mensajes', value: messages.length },
+                        { label: 'Interacciones', value: selectedConv.contact?.interaction_count ?? 0 },
+                        { label: 'Etiquetas', value: (selectedConv.tags ?? []).length },
+                      ].map(stat => (
+                        <div key={stat.label} style={{ padding: '10px 14px', borderRight: '0.5px solid var(--border)', textAlign: 'center' as const }}>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0', lineHeight: 1 }}>{stat.value}</div>
+                          <div style={{ fontSize: 10, color: '#4a4a6a', marginTop: 3 }}>{stat.label}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Etiquetas activas */}
+                    {(selectedConv.tags ?? []).length > 0 && (
+                      <div style={{ padding: '10px 16px', borderBottom: '0.5px solid var(--border)', display: 'flex', flexWrap: 'wrap' as const, gap: 5 }}>
+                        {(selectedConv.tags ?? []).map(tag => {
+                          const preset = TAG_PRESETS.find(p => p.label === tag)
+                          const color = preset?.color ?? '#8080a0'
+                          return (
+                            <span key={tag} style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: color + '20', border: `0.5px solid ${color}55`, color }}>
+                              {tag}
+                            </span>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {/* Fechas */}
+                    <div style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                        <span style={{ color: '#4a4a6a' }}>Primer contacto</span>
+                        <span style={{ color: '#8b8baa' }}>{fullTime(selectedConv.created_at)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
+                        <span style={{ color: '#4a4a6a' }}>Última actividad</span>
+                        <span style={{ color: '#8b8baa' }}>{timeAgo(selectedConv.updated_at)}</span>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -778,7 +952,7 @@ export default function App() {
                 )}
 
                 {/* Messages + Notes thread */}
-                <div style={s.messageArea}>
+                <div style={s.messageArea} className="message-area-scroll">
                   {messages.length === 0 && notes.length === 0 && (
                     <EmptyState icon="ti-message-2" title="Sin mensajes" sub="Esta conversación todavía no tiene mensajes" />
                   )}
@@ -865,12 +1039,42 @@ export default function App() {
                       {showQuickReplies && (
                         <div className="popover-enter" style={s.quickRepliesPopover}>
                           <div style={s.quickRepliesTitle}>⚡ Respuestas rápidas</div>
+                          {quickReplies.length === 0 && (
+                            <div style={{ fontSize: 12, color: '#4a4a6a', padding: '8px 4px', textAlign: 'center' as const }}>
+                              Sin respuestas guardadas
+                            </div>
+                          )}
                           {quickReplies.map((qr, i) => (
-                            <button key={i} className="quick-reply-item" style={s.quickReplyItem}
-                              onClick={() => { setReplyText(qr); setShowQuickReplies(false); textareaRef.current?.focus() }}>
-                              {qr}
-                            </button>
+                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <button className="quick-reply-item" style={{ ...s.quickReplyItem, flex: 1 }}
+                                onClick={() => { setReplyText(qr); setShowQuickReplies(false); textareaRef.current?.focus() }}>
+                                {qr}
+                              </button>
+                              <button onClick={() => saveQuickReplies(quickReplies.filter((_, j) => j !== i))}
+                                style={{ background: 'none', border: 'none', color: '#4a4a6a', cursor: 'pointer', fontSize: 14, padding: '2px 4px', lineHeight: 1, flexShrink: 0 }}
+                                title="Eliminar">×</button>
+                            </div>
                           ))}
+                          {/* Agregar nueva */}
+                          <div style={{ display: 'flex', gap: 4, marginTop: 8, paddingTop: 8, borderTop: '0.5px solid var(--border)' }}>
+                            <input
+                              style={{ flex: 1, background: 'var(--bg-base)', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '5px 8px', color: '#e2e8f0', fontSize: 12, fontFamily: "'Inter', system-ui, sans-serif", outline: 'none' }}
+                              placeholder="Nueva respuesta..."
+                              value={newQuickReply}
+                              onChange={e => setNewQuickReply(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter' && newQuickReply.trim()) {
+                                  saveQuickReplies([...quickReplies, newQuickReply.trim()])
+                                  setNewQuickReply('')
+                                }
+                              }}
+                            />
+                            <button
+                              onClick={() => { if (newQuickReply.trim()) { saveQuickReplies([...quickReplies, newQuickReply.trim()]); setNewQuickReply('') } }}
+                              style={{ background: 'var(--accent-dim)', border: 'none', borderRadius: 6, padding: '5px 10px', color: 'var(--accent)', fontSize: 12, cursor: 'pointer', flexShrink: 0 }}>
+                              +
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -890,7 +1094,7 @@ export default function App() {
                 <EmptyState icon="ti-message-2" title="Seleccioná una conversación"
                   sub="Las conversaciones de tus clientes aparecen en el panel izquierdo" />
               </div>
-            )}
+            ) )}
           </div>
         )}
 
@@ -1015,19 +1219,7 @@ function ConvList({ conversations, selected, onSelect, onCopyPhone }: {
   )
 }
 
-function ContactPanelItem({ label, value, onClick, copyable, valueColor }: {
-  label: string; value: string; onClick?: () => void; copyable?: boolean; valueColor?: string
-}) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 2, padding: '4px 16px 4px 0', borderRight: '0.5px solid #1e1e2e', marginRight: 16 }}>
-      <div style={{ fontSize: 10, color: '#4a4a6a', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>{label}</div>
-      <div style={{ fontSize: 12, color: valueColor ?? '#c4c4d4', cursor: onClick ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 4 }} onClick={onClick}>
-        {value}
-        {copyable && <i className="ti ti-copy" style={{ fontSize: 10, color: '#4a4a6a' }} />}
-      </div>
-    </div>
-  )
-}
+
 
 function SkeletonCard() {
   return (

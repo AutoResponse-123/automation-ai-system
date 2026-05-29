@@ -94,3 +94,130 @@ input::placeholder, textarea::placeholder { color: #4a4a6a; }
 /* Input / textarea focus */
 input, textarea, select { transition: border-color 0.15s; }
 input:focus, textarea:focus, select:focus { border-color: #4a4a8a !important; }
+
+/* ── Mobile layout ── */
+
+/* Bottom nav: oculto en desktop */
+.bottom-nav { display: none; }
+
+@media (max-width: 767px) {
+  /* Prevent zoom on input focus (iOS) */
+  input, textarea, select { font-size: 16px !important; }
+
+  /* Shell: flex-column, altura dinámica para teclado iOS */
+  .app-shell {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+  }
+
+  /* Desktop sidebar: ocultar */
+  .desktop-sidebar { display: none !important; }
+
+  /* Main: flex-item que ocupa todo el espacio disponible */
+  .app-main {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    order: 1;
+  }
+
+  /* Bottom nav: flex-item estático (no fixed), siempre visible */
+  .bottom-nav {
+    display: flex !important;
+    flex-shrink: 0;
+    order: 2;
+    height: 56px;
+    background: #0a0a12;
+    border-top: 0.5px solid #16162a;
+    z-index: 200;
+    align-items: stretch;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-size: 9px;
+    color: #4a4a6a;
+    border: none;
+    background: none;
+    cursor: pointer;
+    transition: color 0.15s;
+    padding: 0;
+  }
+  .bottom-nav-item.active { color: #a78bfa; }
+  .bottom-nav-item i { font-size: 20px; }
+
+  /* Inbox: una sola columna */
+  .inbox-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+  .inbox-list-pane {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    border-right: none !important;
+  }
+  /* Chat pane: flex-column para que messageArea sea scrollable */
+  .inbox-chat-pane {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+  /* messageArea: flex-item que crece y scrollea */
+  .message-area-scroll {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    overflow-y: scroll !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Metrics grid: 2 columnas */
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Settings: columna única */
+  .settings-shell {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto 1fr !important;
+  }
+  .settings-sidenav {
+    width: 100% !important;
+    height: auto !important;
+    border-right: none !important;
+    border-bottom: 0.5px solid #16162a !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 8px 12px !important;
+    gap: 6px !important;
+    flex-shrink: 0;
+  }
+  .settings-sidenav-title { display: none !important; }
+  .settings-sidenav-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 6px 14px !important;
+    border-radius: 20px !important;
+    font-size: 12px !important;
+  }
+  .settings-content { padding: 16px !important; }
+}

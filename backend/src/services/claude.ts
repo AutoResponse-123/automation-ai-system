@@ -1,6 +1,8 @@
 export {};
 const Anthropic = require('@anthropic-ai/sdk').default;
 const { getAvailableSlots, createEvent } = require('./calendar');
+const { supabase } = require('../config/supabase');
+const { createPaymentLink } = require('./mercadopago');
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -19,6 +21,18 @@ const calendarTools = [
         },
       },
       required: ['date'],
+    },
+  },
+  {
+    name: 'create_payment_link',
+    description: 'Genera un link de pago de Mercado Pago para cobrarle al cliente. Usalo cuando el cliente quiera pagar, pregunté precio o mostrá intención de compra.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Descripción del producto o servicio (ej: Corte de cabello)' },
+        amount: { type: 'number', description: 'Monto a cobrar en la moneda local (ej: 5000)' },
+      },
+      required: ['title', 'amount'],
     },
   },
   {
@@ -61,8 +75,13 @@ async function callClaude(
   clientPhone?: string
 ) {
   const hasCalendar = !!business?.google_refresh_token;
-  const tools = hasCalendar ? calendarTools : undefined;
-  const effectiveMaxTokens = hasCalendar ? Math.max(maxTokens, 1000) : maxTokens;
+  const hasMP = !!business?.mp_access_token;
+  const activeTools = calendarTools.filter((t: any) => {
+    if (t.name === 'create_payment_link') return hasMP;
+    return hasCalendar;
+  });
+  const tools = (hasCalendar || hasMP) ? activeTools : undefined;
+  const effectiveMaxTokens = (hasCalendar || hasMP) ? Math.max(maxTokens, 1000) : maxTokens;
 
   let currentMessages = [...messages];
   let totalTokens = 0;
@@ -111,8 +130,31 @@ async function callClaude(
           clientPhone: clientPhone || '',
           durationMinutes: toolUseBlock.input.duration_minutes,
         });
+        // Guardar en Supabase para recordatorios
+        await supabase.from('appointments').insert({
+          business_id: business.id,
+          google_event_id: eventId,
+          title: toolUseBlock.input.title,
+          client_name: toolUseBlock.input.client_name,
+          client_phone: clientPhone || '',
+          appointment_date: toolUseBlock.input.date,
+          appointment_time: toolUseBlock.input.time + ':00',
+          duration_minutes: toolUseBlock.input.duration_minutes || 60,
+        }).catch((e: any) => console.error('[appointments insert]', e.message));
         toolResult = `Turno creado exitosamente. ID: ${eventId}`;
         console.log(`[create_appointment] OK — Event ID: ${eventId}`);
+      } else if (toolUseBlock.name === 'create_payment_link') {
+        if (!business.mp_access_token) {
+          toolResult = 'Mercado Pago no está configurado en este negocio.';
+        } else {
+          const { url } = await createPaymentLink({
+            accessToken: business.mp_access_token,
+            title: toolUseBlock.input.title,
+            amount: toolUseBlock.input.amount,
+          });
+          toolResult = `Link de pago generado: ${url}`;
+          console.log(`[create_payment_link] OK — ${url}`);
+        }
       } else {
         toolResult = `Tool desconocido: ${toolUseBlock.name}`;
       }
