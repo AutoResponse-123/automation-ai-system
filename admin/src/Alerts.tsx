@@ -87,7 +87,7 @@ export default function Alerts({ onCount }: AlertsProps) {
       const { data: convIds } = await supabase.from('conversations').select('id').eq('business_id', b.id)
       const ids = (convIds ?? []).map((c: any) => c.id)
       if (ids.length === 0) continue
-      const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).in('conversation_id', ids).gte('created_at', sevenAgo)
+      const { count } = await supabase.from('messages').select('id', { count: 'exact' }).in('conversation_id', ids).gte('created_at', sevenAgo)
       if ((count ?? 0) === 0) {
         all.push({
           id: `churn-${b.id}`, severity: 'warning',

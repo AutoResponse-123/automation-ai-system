@@ -56,9 +56,9 @@ export default function Clients() {
 
     const enriched = await Promise.all(data.map(async b => {
       const [{ count: msg_count }, { count: contact_count }, { count: conv_count }, { data: tokens }] = await Promise.all([
-        supabase.from('messages').select('*', { count: 'exact', head: true }),
-        supabase.from('contacts').select('*', { count: 'exact', head: true }).eq('business_id', b.id),
-        supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('business_id', b.id),
+        supabase.from('messages').select('id', { count: 'exact' }),
+        supabase.from('contacts').select('id', { count: 'exact' }).eq('business_id', b.id),
+        supabase.from('conversations').select('id', { count: 'exact' }).eq('business_id', b.id),
         supabase.from('messages').select('tokens_used').eq('sender', 'assistant').not('tokens_used', 'is', null)
       ])
       return { ...b, msg_count: msg_count ?? 0, contact_count: contact_count ?? 0, conv_count: conv_count ?? 0, token_count: tokens?.reduce((s, r) => s + (r.tokens_used || 0), 0) ?? 0 }

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
 interface Conv {
-  id: string; status: string; updated_at: string; created_at: string
+  id: string; status: string; updated_at: string; started_at: string
+  business_id: string; contact_id: string
   business?: { name: string; id: string }
   contact?: { phone: string; name: string | null }
   lastMsg?: string; msgCount?: number
@@ -44,21 +45,36 @@ export default function Conversations() {
 
   async function load() {
     setLoading(true)
-    const { data } = await supabase
+
+    const { data: rawConvs } = await supabase
       .from('conversations')
-      .select('id, status, updated_at, created_at, businesses(id, name), contacts(phone, name)')
+      .select('id, status, updated_at, started_at, business_id, contact_id')
       .order('updated_at', { ascending: false })
       .limit(100)
 
-    if (!data) { setLoading(false); return }
+    if (!rawConvs || rawConvs.length === 0) { setLoading(false); return }
 
-    const enriched = await Promise.all(data.map(async (c: any) => {
-      const { data: msgs } = await supabase.from('messages').select('content, sender').eq('conversation_id', c.id).order('created_at', { ascending: false }).limit(1)
-      const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('conversation_id', c.id)
+    // Fetch businesses and contacts in bulk
+    const bizIds = [...new Set(rawConvs.map((c: any) => c.business_id).filter(Boolean))]
+    const contactIds = [...new Set(rawConvs.map((c: any) => c.contact_id).filter(Boolean))]
+
+    const [{ data: bizList }, { data: contactList }] = await Promise.all([
+      supabase.from('businesses').select('id, name').in('id', bizIds),
+      supabase.from('contacts').select('id, phone, name').in('id', contactIds),
+    ])
+
+    const bizMap: Record<string, any> = {}
+    const contactMap: Record<string, any> = {}
+    ;(bizList ?? []).forEach((b: any) => { bizMap[b.id] = b })
+    ;(contactList ?? []).forEach((c: any) => { contactMap[c.id] = c })
+
+    const enriched = await Promise.all(rawConvs.map(async (c: any) => {
+      const { data: msgs } = await supabase.from('messages').select('content').eq('conversation_id', c.id).order('created_at', { ascending: false }).limit(1)
+      const { count } = await supabase.from('messages').select('id', { count: 'exact' }).eq('conversation_id', c.id)
       return {
         ...c,
-        business: c.businesses,
-        contact: c.contacts,
+        business: bizMap[c.business_id] || null,
+        contact: contactMap[c.contact_id] || null,
         lastMsg: msgs?.[0]?.content?.slice(0, 80) || '',
         msgCount: count ?? 0,
       }

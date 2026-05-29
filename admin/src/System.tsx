@@ -24,11 +24,11 @@ export default function System() {
       { count: contacts }, { count: businesses },
       { count: suspended },
     ] = await Promise.all([
-      supabase.from('messages').select('*', { count: 'exact', head: true }),
-      supabase.from('conversations').select('*', { count: 'exact', head: true }),
-      supabase.from('contacts').select('*', { count: 'exact', head: true }),
-      supabase.from('businesses').select('*', { count: 'exact', head: true }),
-      supabase.from('businesses').select('*', { count: 'exact', head: true }).eq('is_active', false),
+      supabase.from('messages').select('id', { count: 'exact' }),
+      supabase.from('conversations').select('id', { count: 'exact' }),
+      supabase.from('contacts').select('id', { count: 'exact' }),
+      supabase.from('businesses').select('id', { count: 'exact' }),
+      supabase.from('businesses').select('id', { count: 'exact' }).eq('is_active', false),
     ])
 
     const latency = Date.now() - t0

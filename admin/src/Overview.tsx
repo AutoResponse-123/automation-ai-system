@@ -91,13 +91,13 @@ export default function Overview({ onNavigate, onAlertCount }: OverviewProps) {
       { count: activeConv }, { count: pendConv },
       { data: tokenRows }, { data: recentMsgs }
     ] = await Promise.all([
-      supabase.from('businesses').select('*', { count: 'exact', head: true }),
-      supabase.from('businesses').select('*', { count: 'exact', head: true }).eq('is_active', true),
-      supabase.from('messages').select('*', { count: 'exact', head: true }),
-      supabase.from('messages').select('*', { count: 'exact', head: true }).gte('created_at', today.toISOString()),
-      supabase.from('contacts').select('*', { count: 'exact', head: true }),
-      supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-      supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('businesses').select('id', { count: 'exact' }),
+      supabase.from('businesses').select('id', { count: 'exact' }).eq('is_active', true),
+      supabase.from('messages').select('id', { count: 'exact' }),
+      supabase.from('messages').select('id', { count: 'exact' }).gte('created_at', today.toISOString()),
+      supabase.from('contacts').select('id', { count: 'exact' }),
+      supabase.from('conversations').select('id', { count: 'exact' }).eq('status', 'active'),
+      supabase.from('conversations').select('id', { count: 'exact' }).eq('status', 'pending'),
       supabase.from('messages').select('tokens_used').eq('sender', 'assistant').not('tokens_used', 'is', null),
       supabase.from('messages').select('id,sender,content,created_at').order('created_at', { ascending: false }).limit(10)
     ])
@@ -109,7 +109,7 @@ export default function Overview({ onNavigate, onAlertCount }: OverviewProps) {
     for (let i = 6; i >= 0; i--) {
       const from = new Date(); from.setDate(from.getDate() - i); from.setHours(0, 0, 0, 0)
       const to = new Date(from); to.setHours(23, 59, 59, 999)
-      const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true })
+      const { count } = await supabase.from('messages').select('id', { count: 'exact' })
         .gte('created_at', from.toISOString()).lte('created_at', to.toISOString())
       days.push(count ?? 0)
     }
@@ -119,7 +119,7 @@ export default function Overview({ onNavigate, onAlertCount }: OverviewProps) {
     const { data: allM } = await supabase.from('messages').select('sender').limit(1000)
     const assistN = allM?.filter(x => x.sender === 'assistant').length ?? 0
     const userN = allM?.filter(x => x.sender === 'user').length ?? 0
-    const automationRate = userN > 0 ? Math.round((assistN / userN) * 100) : 0
+    const automationRate = userN > 0 ? Math.min(100, Math.round((assistN / userN) * 100)) : 0
 
     setM({
       totalBusinesses: totalB ?? 0, activeBusinesses: activeB ?? 0,
