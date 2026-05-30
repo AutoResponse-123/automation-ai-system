@@ -9,6 +9,7 @@ import Contacts from './Contacts'
 import Activity from './Activity'
 import Settings from './Settings'
 import Appointments from './Appointments'
+import Onboarding from './Onboarding'
 import Login from './Login'
 import Search from './Search'
 import { useNotifications } from './hooks/useNotifications'
@@ -132,6 +133,7 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [businessId, setBusinessId] = useState<string | null>(null)
+  const [businessData, setBusinessData] = useState<any>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -237,9 +239,10 @@ export default function App() {
   useEffect(() => { if (session) loadBusiness() }, [session])
 
   async function loadBusiness() {
-    const { data } = await supabase.from('businesses').select('id, accent_color').eq('user_id', session!.user.id).single()
+    const { data } = await supabase.from('businesses').select('id, accent_color, name, business_description, phone_whatsapp, services, prices, schedule, escalation_email').eq('user_id', session!.user.id).single()
     if (data) {
       setBusinessId(data.id)
+      setBusinessData(data)
       const bg = localStorage.getItem('ar_bg_color') ?? undefined
       applyTheme(data.accent_color ?? undefined, bg)
     }
@@ -659,6 +662,7 @@ export default function App() {
         {/* Dashboard */}
         {tab === 'dashboard' && (
           <div style={s.scrollArea}>
+            <Onboarding business={businessData} onGoToSettings={() => setTab('settings')} />
             {/* Selector de escala */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
               {(['day', 'week', 'month', 'year'] as const).map(sc => (

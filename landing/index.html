@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoResponse — IA para tu negocio en WhatsApp</title>
+  <meta name="description" content="Automatizá la atención al cliente de tu PYME con inteligencia artificial. Bot para WhatsApp que responde, agenda turnos y nunca duerme." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --accent: #7c3aed;
+      --accent-light: #a78bfa;
+      --bg: #0a0a0f;
+      --bg-card: #12121a;
+      --border: #1e1e2e;
+      --text-1: #f0f0ff;
+      --text-2: #9090b0;
+      --text-3: #5050708;
+      --green: #10b981;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-1); line-height: 1.6; }
+    a { color: inherit; text-decoration: none; }
+
+    /* Nav */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 5%; height: 64px;
+      background: rgba(10,10,15,0.85); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo span { color: var(--accent-light); }
+    .nav-links { display: flex; align-items: center; gap: 28px; font-size: 14px; color: var(--text-2); }
+    .nav-links a:hover { color: var(--text-1); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.18s; border: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #6d28d9; transform: translateY(-1px); }
+    .btn-outline { background: transparent; color: var(--text-1); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--accent-light); color: var(--accent-light); }
+
+    /* Hero */
+    .hero {
+      padding: 140px 5% 80px;
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -20%; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 600px;
+      background: radial-gradient(ellipse, rgba(124,58,237,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.3);
+      padding: 6px 14px; border-radius: 100px; font-size: 12px; font-weight: 600;
+      color: var(--accent-light); margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 72px); font-weight: 800; line-height: 1.1;
+      letter-spacing: -2px; margin-bottom: 20px;
+    }
+    .hero h1 em { font-style: normal; color: var(--accent-light); }
+    .hero p {
+      font-size: clamp(16px, 2vw, 20px); color: var(--text-2);
+      max-width: 580px; margin: 0 auto 36px;
+    }
+    .hero-btns { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .hero-btns .btn { font-size: 15px; padding: 13px 28px; }
+    .hero-note { margin-top: 14px; font-size: 12px; color: var(--text-2); }
+
+    /* Chat preview */
+    .chat-preview {
+      max-width: 360px; margin: 60px auto 0;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 18px; overflow: hidden;
+      box-shadow: 0 0 80px rgba(124,58,237,0.12);
+    }
+    .chat-header {
+      background: #128c7e; padding: 12px 16px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .chat-avatar { width: 36px; height: 36px; border-radius: 50%; background: #25d366; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .chat-name { font-weight: 600; font-size: 14px; }
+    .chat-status { font-size: 11px; opacity: 0.8; }
+    .chat-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; background: #111b21; }
+    .bubble { padding: 10px 14px; border-radius: 12px; font-size: 13px; max-width: 85%; line-height: 1.5; }
+    .bubble-in { background: #1f2c34; color: #e9edef; border-bottom-left-radius: 2px; align-self: flex-start; }
+    .bubble-out { background: #005c4b; color: #e9edef; border-bottom-right-radius: 2px; align-self: flex-end; }
+    .bubble-time { font-size: 10px; opacity: 0.5; text-align: right; margin-top: 2px; }
+    .typing { display: flex; gap: 4px; padding: 10px 14px; background: #1f2c34; border-radius: 12px; width: fit-content; align-self: flex-start; }
+    .dot { width: 6px; height: 6px; background: var(--accent-light); border-radius: 50%; animation: bounce 1.2s infinite; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+    /* Section */
+    section { padding: 80px 5%; }
+    .section-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-light); margin-bottom: 12px; }
+    .section-title { font-size: clamp(28px, 4vw, 44px); font-weight: 800; letter-spacing: -1px; margin-bottom: 14px; }
+    .section-sub { font-size: 17px; color: var(--text-2); max-width: 560px; }
+    .center { text-align: center; }
+    .center .section-sub { margin: 0 auto; }
+
+    /* Features grid */
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 48px; }
+    .feature-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feature-card:hover { border-color: rgba(124,58,237,0.4); transform: translateY(-3px); }
+    .feature-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      background: rgba(124,58,237,0.12); display: flex; align-items: center;
+      justify-content: center; font-size: 22px; margin-bottom: 16px;
+    }
+    .feature-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .feature-card p { font-size: 14px; color: var(--text-2); line-height: 1.6; }
+
+    /* How it works */
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; margin-top: 48px; }
+    .step { text-align: center; padding: 0 10px; }
+    .step-num {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--accent); color: #fff; font-size: 20px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .step h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .step p { font-size: 14px; color: var(--text-2); }
+
+    /* Pricing */
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-top: 48px; max-width: 900px; margin-left: auto; margin-right: auto; }
+    .plan-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px 28px; position: relative;
+    }
+    .plan-card.featured { border-color: var(--accent); }
+    .plan-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: #fff; font-size: 11px; font-weight: 700;
+      padding: 4px 14px; border-radius: 100px; white-space: nowrap;
+    }
+    .plan-name { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-2); margin-bottom: 8px; }
+    .plan-price { font-size: 42px; font-weight: 800; letter-spacing: -2px; margin-bottom: 4px; }
+    .plan-price span { font-size: 16px; font-weight: 500; color: var(--text-2); }
+    .plan-desc { font-size: 13px; color: var(--text-2); margin-bottom: 24px; }
+    .plan-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .plan-features li { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+    .plan-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+    .plan-features li.no::before { content: '✕'; color: #ef4444; }
+    .plan-card .btn { width: 100%; justify-content: center; }
+
+    /* Testimonials */
+    .testimonials { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 48px; }
+    .testimonial {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px;
+    }
+    .stars { color: #f59e0b; font-size: 14px; margin-bottom: 12px; }
+    .testimonial p { font-size: 14px; color: var(--text-2); margin-bottom: 16px; line-height: 1.7; font-style: italic; }
+    .testimonial-author { display: flex; align-items: center; gap: 10px; }
+    .ta-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; }
+    .ta-name { font-size: 13px; font-weight: 600; }
+    .ta-biz { font-size: 12px; color: var(--text-2); }
+
+    /* FAQ */
+    .faq { max-width: 680px; margin: 48px auto 0; display: flex; flex-direction: column; gap: 12px; }
+    .faq-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .faq-q { width: 100%; background: none; border: none; color: var(--text-1); font-size: 15px; font-weight: 600; padding: 18px 20px; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .faq-q:hover { color: var(--accent-light); }
+    .faq-a { padding: 0 20px 18px; font-size: 14px; color: var(--text-2); line-height: 1.7; }
+
+    /* CTA */
+    .cta-section {
+      text-align: center; padding: 100px 5%;
+      background: linear-gradient(to bottom, transparent, rgba(124,58,237,0.06));
+    }
+    .cta-section h2 { font-size: clamp(28px, 4vw, 48px); font-weight: 800; letter-spacing: -1.5px; margin-bottom: 16px; }
+    .cta-section p { font-size: 17px; color: var(--text-2); margin-bottom: 36px; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border); padding: 32px 5%;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 16px;
+      font-size: 13px; color: var(--text-2);
+    }
+
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      .hero { padding: 110px 5% 60px; }
+      footer { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="logo">Auto<span>Response</span></div>
+  <div class="nav-links">
+    <a href="#features">Funcionalidades</a>
+    <a href="#pricing">Precios</a>
+    <a href="#faq">FAQ</a>
+  </div>
+  <a href="https://automation-ai-dashboard.vercel.app" class="btn btn-primary">Empezar gratis →</a>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="badge">🤖 Potenciado por Claude AI (Anthropic)</div>
+  <h1>Tu negocio atiende<br /><em>24/7 en WhatsApp</em></h1>
+  <p>AutoResponse automatiza la atención al cliente de tu PYME con inteligencia artificial. Responde preguntas, agenda turnos y nunca descansa.</p>
+  <div class="hero-btns">
+    <a href="https://automation-ai-dashboard.vercel.app" class="btn btn-primary">Probar gratis 14 días</a>
+    <a href="#features" class="btn btn-outline">Ver cómo funciona</a>
+  </div>
+  <p class="hero-note">Sin tarjeta de crédito · Sin contratos · Cancelá cuando quieras</p>
+
+  <!-- Chat preview -->
+  <div class="chat-preview">
+    <div class="chat-header">
+      <div class="chat-avatar">🌟</div>
+      <div>
+        <div class="chat-name">Bot Estudio Contable Rivera</div>
+        <div class="chat-status">en línea</div>
+      </div>
+    </div>
+    <div class="chat-body">
+      <div class="bubble bubble-in">Hola! ¿Cuánto cuesta hacer una declaración jurada?
+        <div class="bubble-time">10:14</div>
+      </div>
+      <div class="bubble bubble-out">¡Hola! 👋 Nuestra declaración jurada de personas físicas cuesta $25.000. Incluye asesoramiento y presentación ante AFIP. ¿Querés agendar una consulta?
+        <div class="bubble-time">10:14 ✓✓</div>
+      </div>
+      <div class="bubble bubble-in">Sí, ¿tienen turno esta semana?
+        <div class="bubble-time">10:15</div>
+      </div>
+      <div class="typing">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features">
+  <div class="section-label">Funcionalidades</div>
+  <h2 class="section-title">Todo lo que tu negocio necesita</h2>
+  <p class="section-sub">Un asistente inteligente entrenado con la info de tu negocio, listo en minutos.</p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">💬</div>
+      <h3>Respuestas automáticas 24/7</h3>
+      <p>El bot conoce tus servicios, precios y horarios. Responde al instante en el tono que define tu marca.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📅</div>
+      <h3>Agenda turnos en Google Calendar</h3>
+      <p>Integración nativa con tu calendario. El bot consulta disponibilidad real y crea eventos automáticamente.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔔</div>
+      <h3>Recordatorios de turnos</h3>
+      <p>Envía WhatsApp automático 24h y 1h antes del turno. Reducí ausentismo sin hacer nada.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">👤</div>
+      <h3>Escalación a humano</h3>
+      <p>Detecta palabras clave y deriva al equipo humano. Te llega email con el contexto completo.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Dashboard en tiempo real</h3>
+      <p>Métricas de conversaciones, mensajes, contactos y tasa de automatización. Todo desde el navegador.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <h3>Multi-tenant seguro</h3>
+      <p>Cada negocio tiene su propio bot con datos completamente aislados. Cumplimiento con Row Level Security.</p>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section style="background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <div class="center">
+    <div class="section-label">Cómo funciona</div>
+    <h2 class="section-title">Listo en menos de 10 minutos</h2>
+    <p class="section-sub">Sin código, sin configuraciones complicadas.</p>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Cargás tu negocio</h3>
+      <p>Nombre, servicios, precios, horarios e instrucciones especiales para el bot.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Conectás WhatsApp</h3>
+      <p>Usamos Twilio Sandbox para el número. Produción con API de Meta disponible.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>El bot ya atiende</h3>
+      <p>Tus clientes escriben por WhatsApp y reciben respuestas al instante, 24/7.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <h3>Seguís desde el dashboard</h3>
+      <p>Ves todas las conversaciones en tiempo real y podés tomar control cuando sea necesario.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section id="pricing" class="center">
+  <div class="section-label">Precios</div>
+  <h2 class="section-title">Simple y transparente</h2>
+  <p class="section-sub">Empezá gratis, escalá cuando tu negocio lo necesite.</p>
+
+  <div class="pricing-grid">
+    <div class="plan-card">
+      <div class="plan-name">Trial</div>
+      <div class="plan-price">$0 <span>/mes</span></div>
+      <div class="plan-desc">14 días gratis para probar todo</div>
+      <ul class="plan-features">
+        <li>200 mensajes/mes</li>
+        <li>1 número WhatsApp</li>
+        <li>Dashboard completo</li>
+        <li>Soporte por email</li>
+        <li class="no">Google Calendar</li>
+        <li class="no">Recordatorios automáticos</li>
+      </ul>
+      <a href="https://automation-ai-dashboard.vercel.app" class="btn btn-outline">Empezar gratis</a>
+    </div>
+    <div class="plan-card featured">
+      <div class="plan-badge">⭐ Más popular</div>
+      <div class="plan-name">Basic</div>
+      <div class="plan-price">$29 <span>USD/mes</span></div>
+      <div class="plan-desc">Para PYMEs en crecimiento</div>
+      <ul class="plan-features">
+        <li>1.000 mensajes/mes</li>
+        <li>1 número WhatsApp</li>
+        <li>Dashboard completo</li>
+        <li>Google Calendar integrado</li>
+        <li>Recordatorios WhatsApp</li>
+        <li>Soporte prioritario</li>
+      </ul>
+      <a href="https://automation-ai-dashboard.vercel.app" class="btn btn-primary">Empezar →</a>
+    </div>
+    <div class="plan-card">
+      <div class="plan-name">Pro</div>
+      <div class="plan-price">$79 <span>USD/mes</span></div>
+      <div class="plan-desc">Para negocios con alto volumen</div>
+      <ul class="plan-features">
+        <li>5.000 mensajes/mes</li>
+        <li>Múltiples números</li>
+        <li>Dashboard completo</li>
+        <li>Google Calendar + Sheets</li>
+        <li>Recordatorios WhatsApp</li>
+        <li>MercadoPago integrado</li>
+      </ul>
+      <a href="https://automation-ai-dashboard.vercel.app" class="btn btn-outline">Empezar →</a>
+    </div>
+  </div>
+</section>
+
+<!-- Testimonials -->
+<section style="background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <div class="center">
+    <div class="section-label">Testimonios</div>
+    <h2 class="section-title">PYMEs que ya usan AutoResponse</h2>
+  </div>
+  <div class="testimonials">
+    <div class="testimonial">
+      <div class="stars">★★★★★</div>
+      <p>"Antes perdíamos consultas los fines de semana. Ahora el bot responde al toque y agenda turnos mientras dormimos."</p>
+      <div class="testimonial-author">
+        <div class="ta-avatar" style="background: #7c3aed;">MR</div>
+        <div>
+          <div class="ta-name">María R.</div>
+          <div class="ta-biz">Estética & Bienestar</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial">
+      <div class="stars">★★★★★</div>
+      <p>"Lo que más me gustó es que el bot sabe exactamente qué servicios ofrezco y a qué precio. Mis clientes no lo distinguen de una persona real."</p>
+      <div class="testimonial-author">
+        <div class="ta-avatar" style="background: #059669;">CL</div>
+        <div>
+          <div class="ta-name">Carlos L.</div>
+          <div class="ta-biz">Clínica Dental</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial">
+      <div class="stars">★★★★★</div>
+      <p>"Los recordatorios automáticos de turno redujeron los ausentismos casi a cero. Solo eso ya paga el costo mensual."</p>
+      <div class="testimonial-author">
+        <div class="ta-avatar" style="background: #d97706;">AG</div>
+        <div>
+          <div class="ta-name">Ana G.</div>
+          <div class="ta-biz">Psicóloga - Consultorio privado</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" class="center">
+  <div class="section-label">FAQ</div>
+  <h2 class="section-title">Preguntas frecuentes</h2>
+  <div class="faq">
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        ¿Necesito saber programar para usarlo?
+        <span>+</span>
+      </button>
+      <div class="faq-a" style="display:none">No. El dashboard es completamente visual. Cargás los datos de tu negocio en un formulario y el bot ya sabe cómo responder.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        ¿Cómo funciona la integración con WhatsApp?
+        <span>+</span>
+      </button>
+      <div class="faq-a" style="display:none">Usamos Twilio como proveedor de WhatsApp. En el plan trial funciona con el Sandbox de Twilio (cualquier número puede chatear). Para producción con tu número propio se necesita aprobación de Meta (lo gestionamos juntos).</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        ¿El bot puede agendar turnos en mi calendario?
+        <span>+</span>
+      </button>
+      <div class="faq-a" style="display:none">Sí. Con Google Calendar conectado, el bot consulta tu disponibilidad en tiempo real y crea eventos directamente. También envía recordatorios por WhatsApp 24h y 1h antes del turno.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        ¿Qué pasa cuando el bot no sabe responder algo?
+        <span>+</span>
+      </button>
+      <div class="faq-a" style="display:none">Podés configurar palabras clave de escalación (como "quiero hablar con alguien" o "urgente"). Cuando el bot las detecta, notifica a tu equipo por email con el historial de la conversación.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        ¿Puedo cancelar en cualquier momento?
+        <span>+</span>
+      </button>
+      <div class="faq-a" style="display:none">Sí, sin contratos ni penalidades. Si cancelás, tu bot sigue activo hasta el fin del período ya pagado.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>Tu negocio merece un asistente<br />que nunca duerme</h2>
+  <p>14 días de prueba gratis. Sin tarjeta de crédito.</p>
+  <a href="https://automation-ai-dashboard.vercel.app" class="btn btn-primary" style="font-size: 16px; padding: 15px 36px;">
+    Empezar gratis ahora →
+  </a>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="logo" style="font-size: 15px;">Auto<span>Response</span></div>
+  <div>Bot WhatsApp con IA para PYMEs latinoamericanas</div>
+  <div>
+    <a href="https://automation-ai-dashboard.vercel.app" style="color: var(--accent-light);">Iniciar sesión</a>
+  </div>
+</footer>
+
+<script>
+  function toggle(btn) {
+    const answer = btn.nextElementSibling
+    const icon = btn.querySelector('span')
+    const isOpen = answer.style.display !== 'none'
+    answer.style.display = isOpen ? 'none' : 'block'
+    icon.textContent = isOpen ? '+' : '−'
+  }
+</script>
+</body>
+</html>

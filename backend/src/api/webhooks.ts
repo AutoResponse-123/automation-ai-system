@@ -88,6 +88,20 @@ function isOutsideHours(schedule: any): boolean {
 
 router.post('/whatsapp', async (req: any, res: any) => {
   try {
+    // ── Validación firma Twilio ──────────────────────────────────────────────
+    const authToken = process.env.TWILIO_AUTH_TOKEN || '';
+    if (authToken) {
+      const twilio = require('twilio');
+      const signature = req.headers['x-twilio-signature'] as string || '';
+      const webhookUrl = process.env.WEBHOOK_URL || `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+      const isValid = twilio.validateRequest(authToken, signature, webhookUrl, req.body);
+      if (!isValid) {
+        console.warn('[webhook] Firma Twilio inválida — rechazando');
+        res.status(403).send('Forbidden');
+        return;
+      }
+    }
+
     console.log('Webhook recibido:', req.body);
 
     const rawBody = req.body.Body || '';
@@ -150,6 +164,31 @@ router.post('/whatsapp', async (req: any, res: any) => {
         twiml.message(trialMsg);
         res.type('text/xml');
         return res.send(twiml.toString());
+      }
+    }
+
+    // ── Límite mensual de mensajes por plan ─────────────────────────────────
+    const PLAN_LIMITS: Record<string, number> = { trial: 200, basic: 1000, pro: 5000 };
+    const planLimit = PLAN_LIMITS[business.plan] ?? -1;
+    if (planLimit > 0) {
+      const monthStart = new Date();
+      monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+      const { data: bizConvs } = await supabase.from('conversations').select('id').eq('business_id', business.id);
+      const bizConvIds = (bizConvs || []).map((c: any) => c.id);
+      if (bizConvIds.length > 0) {
+        const { count: monthlyCount } = await supabase
+          .from('messages').select('id', { count: 'exact', head: true })
+          .in('conversation_id', bizConvIds)
+          .eq('sender', 'user')
+          .gte('created_at', monthStart.toISOString());
+        if ((monthlyCount ?? 0) >= planLimit) {
+          console.log(`[webhook] Límite mensual alcanzado para ${business.id}: ${monthlyCount}/${planLimit}`);
+          const limitPlanMsg = `Lo sentimos, hemos alcanzado el límite de mensajes del plan este mes. Para continuar, contactanos para actualizar tu plan.`;
+          const twimlLP = new (require('twilio').twiml.MessagingResponse)();
+          twimlLP.message(limitPlanMsg);
+          res.type('text/xml');
+          return res.send(twimlLP.toString());
+        }
       }
     }
 
