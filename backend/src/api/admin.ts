@@ -73,17 +73,31 @@ router.post('/create-client', async (req: Request, res: Response) => {
     return;
   }
 
-  // 4. Enviar password reset para que el cliente ponga su contrasena
-  await adminSupabase.auth.admin.generateLink({
+  // 4. Generar link de setup para que el cliente defina su contraseña
+  const { data: linkData } = await adminSupabase.auth.admin.generateLink({
     type: 'recovery',
     email,
     options: { redirectTo: 'https://automation-ai-dashboard.vercel.app' },
   });
 
-  res.json({ ok: true, userId, businessId: biz.id, email, plan, trialEndsAt });
+  res.json({ ok: true, userId, businessId: biz.id, email, plan, trialEndsAt, setupLink: linkData?.properties?.action_link ?? null });
 });
 
-// GET /api/admin/stats — metricas globales rapidas
+// POST /api/admin/reset-link — genera nuevo link de setup para un usuario existente
+router.post('/reset-link', async (req: Request, res: Response) => {
+  if (!checkAdminSecret(req, res)) return;
+  const { email } = req.body;
+  if (!email) { res.status(400).json({ error: 'email requerido' }); return; }
+  const { data, error } = await adminSupabase.auth.admin.generateLink({
+    type: 'recovery',
+    email,
+    options: { redirectTo: 'https://automation-ai-dashboard.vercel.app' },
+  });
+  if (error) { res.status(400).json({ error: error.message }); return; }
+  res.json({ setupLink: data?.properties?.action_link ?? null });
+});
+
+// GET /api/admin/stats
 router.get('/stats', async (req: Request, res: Response) => {
   if (!checkAdminSecret(req, res)) return;
   const [{ count: totalBiz }, { count: activeBiz }, { count: totalMsg }] = await Promise.all([

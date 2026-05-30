@@ -90,7 +90,30 @@ router.post('/whatsapp', async (req: any, res: any) => {
   try {
     console.log('Webhook recibido:', req.body);
 
-    const messageBody = req.body.Body || '';
+    const rawBody = req.body.Body || '';
+    const numMedia = parseInt(req.body.NumMedia || '0', 10);
+    const mediaType = req.body.MediaContentType0 || '';
+    let messageBody = rawBody;
+
+    // Si llegó media sin texto, construir un mensaje descriptivo para Claude
+    if (numMedia > 0 && !rawBody) {
+      if (mediaType.startsWith('audio/')) {
+        messageBody = '[El usuario envió un mensaje de voz]';
+      } else if (mediaType.startsWith('image/')) {
+        messageBody = '[El usuario envió una imagen]';
+      } else if (mediaType.startsWith('video/')) {
+        messageBody = '[El usuario envió un video]';
+      } else {
+        messageBody = '[El usuario envió un archivo adjunto]';
+      }
+    }
+
+    // Si no hay cuerpo ni media, ignorar (ej: delivery receipts)
+    if (!messageBody) {
+      res.status(200).send('<Response/>');
+      return;
+    }
+
     const fromPhone = req.body.From?.replace('whatsapp:', '') || '';
     const toPhone = req.body.To?.replace('whatsapp:', '') || '';
 
@@ -176,8 +199,25 @@ router.post('/whatsapp', async (req: any, res: any) => {
       return res.send(twiml.toString());
     }
 
+    // Buscar turnos próximos del contacto para contexto
+    const today = new Date().toISOString().split('T')[0];
+    const { data: upcomingAppts } = await supabase
+      .from('appointments')
+      .select('title, client_name, appointment_date, appointment_time')
+      .eq('business_id', business.id)
+      .eq('client_phone', fromPhone)
+      .gte('appointment_date', today)
+      .order('appointment_date').order('appointment_time')
+      .limit(3);
+
     // Construir prompt dinámico y llamar a Claude
-    const systemPrompt = buildSystemPrompt(business);
+    let systemPrompt = buildSystemPrompt(business);
+    if (upcomingAppts && upcomingAppts.length > 0) {
+      const apptLines = upcomingAppts.map((a: any) =>
+        `- ${a.title || 'Turno'} el ${a.appointment_date} a las ${String(a.appointment_time).slice(0,5)}`
+      ).join('\n');
+      systemPrompt += `\n\nTurnos próximos de este cliente:\n${apptLines}`;
+    }
     const messages = history.map((msg: any) => ({
       role: msg.sender === 'user' ? 'user' : 'assistant',
       content: msg.content,
@@ -287,24 +327,6 @@ router.get('/calendar/callback', async (req: any, res: any) => {
 router.get('/sheets/connect/:businessId', (req: any, res: any) => {
   const url = getSheetsAuthUrl(req.params.businessId);
   res.redirect(url);
-});
-
-router.get('/sheets/callback', async (req: any, res: any) => {
-  const { code, state } = req.query;
-  const businessId = String(state).replace('sheets:', '');
-  const { google } = require('googleapis');
-  const oauth2 = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-  );
-  try {
-    const { tokens } = await oauth2.getToken(code);
-    await saveSheetsTokens(businessId, tokens);
-    res.send('<script>window.close()<\/script><p>✅ Google Sheets conectado. Podés cerrar esta ventana.<\/p>');
-  } catch (err) {
-    res.status(500).send('Error conectando Google Sheets');
-  }
 });
 
 // Exportar data a Google Sheets

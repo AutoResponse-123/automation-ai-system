@@ -50,12 +50,24 @@ export default function System() {
         detail: 'ANTHROPIC_API_KEY presente en Railway',
         icon: 'ti-sparkles'
       },
-      {
-        name: 'Railway Backend',
-        status: 'ok', value: 'Online',
-        detail: 'automation-ai-system-production.up.railway.app',
-        icon: 'ti-server'
-      },
+      await (async () => {
+        const backendUrl = 'https://automation-ai-system-production.up.railway.app'
+        try {
+          const t = Date.now()
+          const r = await fetch(backendUrl + '/health', { signal: AbortSignal.timeout(5000) })
+          const railwayLatency = Date.now() - t
+          const railwayOk = r.ok
+          svcs.push({
+            name: 'Railway Backend',
+            status: railwayOk ? (railwayLatency < 600 ? 'ok' : 'warn') : 'error',
+            value: railwayOk ? `${railwayLatency}ms` : 'Error',
+            detail: railwayOk ? `automation-ai-system-production.up.railway.app` : 'No responde',
+            icon: 'ti-server'
+          })
+        } catch {
+          svcs.push({ name: 'Railway Backend', status: 'error', value: 'Timeout', detail: 'No responde en 5s', icon: 'ti-server' })
+        }
+      })()
       {
         name: 'Twilio WhatsApp',
         status: 'ok', value: 'Sandbox',

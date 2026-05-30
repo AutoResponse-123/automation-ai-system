@@ -46,7 +46,9 @@ export default function Clients() {
   const [showCreate, setShowCreate] = useState(false)
   const [saving, setSaving] = useState(false)
   const [createError, setCreateError] = useState('')
-  const [newForm, setNewForm] = useState({ name: '', email: '', plan: 'trial', trial_days: '14' })
+  const [newForm, setNewForm] = useState({ name: '', email: '', phone: '', plan: 'trial', trial_days: '14' })
+  const [setupLink, setSetupLink] = useState('')
+  const [resendLink, setResendLink] = useState('')
 
   async function handleCreateClient() {
     if (!newForm.name || !newForm.email) { setCreateError('Nombre y email son requeridos'); return }
@@ -56,15 +58,34 @@ export default function Clients() {
       const res = await fetch(backendUrl + '/api/admin/create-client', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-secret': import.meta.env.VITE_ADMIN_SECRET || '' },
-        body: JSON.stringify({ name: newForm.name, email: newForm.email, plan: newForm.plan, trial_days: Number(newForm.trial_days) }),
+        body: JSON.stringify({ name: newForm.name, email: newForm.email, phone_whatsapp: newForm.phone, plan: newForm.plan, trial_days: Number(newForm.trial_days) }),
       })
       const data = await res.json()
       if (!res.ok) { setCreateError(data.error || 'Error al crear cliente'); return }
-      setShowCreate(false)
-      setNewForm({ name: '', email: '', plan: 'trial', trial_days: '14' })
+      setSetupLink(data.setupLink || '')
+      setNewForm({ name: '', email: '', phone: '', plan: 'trial', trial_days: '14' })
       loadBusinesses()
     } catch (e: any) {
       setCreateError(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleResendLink() {
+    if (!selected?.escalation_email) return
+    setSaving(true)
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://automation-ai-system-production.up.railway.app'
+      const res = await fetch(backendUrl + '/api/admin/reset-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': import.meta.env.VITE_ADMIN_SECRET || '' },
+        body: JSON.stringify({ email: selected.escalation_email }),
+      })
+      const data = await res.json()
+      if (data.setupLink) setResendLink(data.setupLink)
+    } catch (e: any) {
+      console.error(e)
     } finally {
       setSaving(false)
     }
@@ -223,7 +244,21 @@ export default function Clients() {
                 <i className={`ti ${selected.is_active ? 'ti-player-pause' : 'ti-player-play'}`} style={{ fontSize: 12 }} />
                 {selected.is_active ? 'Suspender' : 'Reactivar'}
               </button>
+              <button onClick={handleResendLink} disabled={saving}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text-2)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <i className="ti ti-link" style={{ fontSize: 12 }} />
+                Link acceso
+              </button>
             </div>
+            {resendLink && (
+              <div style={{ margin: '8px 0', background: '#10b98112', border: '1px solid #10b98130', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ fontSize: 10, color: '#10b981', fontWeight: 600, marginBottom: 6 }}>Link de acceso para {selected.escalation_email}:</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input readOnly value={resendLink} style={{ flex: 1, fontSize: 10, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-2)', fontFamily: 'monospace' }} onClick={e => (e.target as HTMLInputElement).select()} />
+                  <button onClick={() => { navigator.clipboard.writeText(resendLink); setResendLink('') }} style={{ padding: '5px 10px', borderRadius: 6, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 10, cursor: 'pointer', fontWeight: 600 }}>Copiar</button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Suspension alert */}
@@ -310,6 +345,7 @@ export default function Clients() {
             {[
               { label: 'Nombre del negocio', key: 'name', placeholder: 'Ej: Peluquería Ana' },
               { label: 'Email del dueño', key: 'email', placeholder: 'cliente@email.com' },
+              { label: 'WhatsApp del negocio', key: 'phone', placeholder: '+5491123456789' },
             ].map(f => (
               <div key={f.key} style={{ marginBottom: 14 }}>
                 <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: 5 }}>{f.label}</label>
@@ -332,12 +368,21 @@ export default function Clients() {
                 style={{ width: '100%', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: newForm.plan !== 'trial' ? 'var(--text-3)' : 'var(--text-1)', outline: 'none', fontFamily: 'inherit' }} />
             </div>
             {createError && <div style={{ background: '#ef444418', border: '1px solid #ef444440', borderRadius: 8, padding: '8px 12px', fontSize: 11, color: '#ef4444', marginBottom: 14 }}>{createError}</div>}
+            {setupLink && (
+              <div style={{ background: '#10b98118', border: '1px solid #10b98140', borderRadius: 8, padding: '12px', marginBottom: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#10b981', marginBottom: 6 }}>✅ Cliente creado. Enviá este link de acceso:</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input readOnly value={setupLink} style={{ flex: 1, fontSize: 10, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-2)', fontFamily: 'monospace' }} onClick={e => (e.target as HTMLInputElement).select()} />
+                  <button onClick={() => navigator.clipboard.writeText(setupLink)} style={{ padding: '6px 10px', borderRadius: 6, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 10, cursor: 'pointer', fontWeight: 600 }}>Copiar</button>
+                </div>
+              </div>
+            )}
             <div style={{ background: 'var(--warn)18', border: '1px solid var(--warn)40', borderRadius: 8, padding: '10px 12px', fontSize: 11, color: 'var(--warn)', marginBottom: 20 }}>
               <i className="ti ti-info-circle" style={{ marginRight: 6 }} />
               Se crea el usuario en Auth y el negocio en la DB. El cliente recibirá un email para configurar su contraseña.
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => { setShowCreate(false); setCreateError('') }} disabled={saving} style={{ flex: 1, background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '9px', fontSize: 12, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+              <button onClick={() => { setShowCreate(false); setCreateError(''); setSetupLink(''); setNewForm({ name: '', email: '', phone: '', plan: 'trial', trial_days: '14' }) }} disabled={saving} style={{ flex: 1, background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '9px', fontSize: 12, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
               <button onClick={handleCreateClient} disabled={saving} style={{ flex: 1, background: 'var(--accent)', border: 'none', borderRadius: 8, padding: '9px', fontSize: 12, fontWeight: 600, color: '#fff', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, fontFamily: 'inherit' }}>
                 {saving ? 'Creando...' : 'Crear cliente →'}
               </button>

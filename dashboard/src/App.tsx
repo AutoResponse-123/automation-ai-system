@@ -8,6 +8,7 @@ import Analytics from './Analytics'
 import Contacts from './Contacts'
 import Activity from './Activity'
 import Settings from './Settings'
+import Appointments from './Appointments'
 import Login from './Login'
 import Search from './Search'
 import { useNotifications } from './hooks/useNotifications'
@@ -80,7 +81,7 @@ interface Toast {
   type: 'info' | 'success' | 'warning'
 }
 
-type Tab = 'dashboard' | 'inbox' | 'analytics' | 'contacts' | 'activity' | 'settings'
+type Tab = 'dashboard' | 'inbox' | 'analytics' | 'contacts' | 'activity' | 'appointments' | 'settings'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -478,6 +479,12 @@ export default function App() {
     setSummaryLoading(false)
   }
 
+  async function reopenConversation(conv: Conversation) {
+    await supabase.from('conversations').update({ status: 'active' }).eq('id', conv.id)
+    setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, status: 'active' } : c))
+    if (selectedConv?.id === conv.id) setSelectedConv({ ...conv, status: 'active' })
+  }
+
   async function toggleAI(conv: Conversation) {
     const newVal = !conv.ai_enabled
     await supabase.from('conversations').update({ ai_enabled: newVal }).eq('id', conv.id)
@@ -514,7 +521,8 @@ export default function App() {
     { id: 'dashboard', icon: 'ti-layout-dashboard', label: 'Dashboard' },
     { id: 'inbox',     icon: 'ti-message-2',        label: 'Inbox' },
     { id: 'analytics', icon: 'ti-chart-bar',        label: 'Analytics' },
-    { id: 'contacts',  icon: 'ti-users',            label: 'Contactos' },
+    { id: 'contacts',     icon: 'ti-users',            label: 'Contactos' },
+    { id: 'appointments', icon: 'ti-calendar',        label: 'Turnos' },
     { id: 'activity',  icon: 'ti-activity',         label: 'Actividad' },
     { id: 'settings',  icon: 'ti-settings',         label: 'Configuración' },
   ]
@@ -855,6 +863,12 @@ export default function App() {
                         <i className="ti ti-check" style={{ fontSize: 11 }} aria-hidden="true" /> resolver
                       </button>
                     )}
+                    {selectedConv.status === 'resolved' && (
+                      <button onClick={() => reopenConversation(selectedConv)}
+                        style={{ ...s.chip, color: '#f59e0b', borderColor: '#2e2210' }}>
+                        <i className="ti ti-refresh" style={{ fontSize: 11 }} aria-hidden="true" /> reabrir
+                      </button>
+                    )}
                     <button onClick={() => setContactPanelOpen(p => !p)}
                       style={{ ...s.chip, color: contactPanelOpen ? 'var(--accent)' : '#4a4a6a' }}
                       title="Info del contacto">
@@ -1105,6 +1119,7 @@ export default function App() {
             if (conv) { setSelectedConv(conv); setTab('inbox') }
           }} />
         )}
+        {tab === 'appointments' && businessId && <Appointments businessId={businessId} />}
         {tab === 'activity' && <Activity />}
         {tab === 'settings' && <Settings businessId={businessId} onThemeChange={applyTheme} />}
       </div>
