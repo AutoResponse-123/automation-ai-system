@@ -5,6 +5,7 @@ const { callClaude } = require('../services/claude');
 const { getAuthUrl, saveTokens } = require('../services/calendar');
 const { getSheetsAuthUrl, saveSheetsTokens, exportToSheets } = require('../services/sheets');
 const { sendEscalationEmail } = require('../services/email');
+const { supabase } = require('../config/supabase');
 
 const router = express.Router();
 
@@ -115,6 +116,20 @@ router.post('/whatsapp', async (req: any, res: any) => {
       return res.send(twiml.toString());
     }
 
+    // Verificar trial vencido (solo para plan 'trial')
+    if (business.plan === 'trial' && business.trial_ends_at) {
+      const trialEnd = new Date(business.trial_ends_at);
+      if (trialEnd < new Date()) {
+        console.log('Trial vencido para:', business.id, '— suspendiendo');
+        await supabase.from('businesses').update({ is_active: false }).eq('id', business.id);
+        const trialMsg = `Tu período de prueba ha finalizado. Para continuar usando el servicio, contactanos para activar tu plan.`;
+        const twiml = new (require('twilio').twiml.MessagingResponse)();
+        twiml.message(trialMsg);
+        res.type('text/xml');
+        return res.send(twiml.toString());
+      }
+    }
+
     const { conversationId } = await getOrCreateConversation(business.id, fromPhone);
     console.log('Conversación:', conversationId);
 
@@ -135,7 +150,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
       console.log('Escalación detectada');
       await updateConversationStatus(conversationId, 'pending');
       const matchedKw = business.escalation_keywords?.find((kw: string) => messageBody.toLowerCase().includes(kw.toLowerCase()));
-      sendEscalationEmail({ to: business.escalation_email, businessName: business.name, botName: business.bot_name, clientPhone: from, reason: 'keyword', keyword: matchedKw }).catch(console.error);
+      sendEscalationEmail({ to: business.escalation_email, businessName: business.name, botName: business.bot_name, clientPhone: fromPhone, reason: 'keyword', keyword: matchedKw }).catch(console.error);
       const escalMsg = `Entendido! Te voy a comunicar con un miembro de nuestro equipo lo antes posible. Por favor esperá unos momentos.`;
       await saveMessage(conversationId, 'assistant', escalMsg);
       const twiml = new (require('twilio').twiml.MessagingResponse)();
@@ -152,7 +167,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
     if (msgCount >= maxMsgs) {
       console.log('Límite de mensajes alcanzado, escalando');
       await updateConversationStatus(conversationId, 'pending');
-      sendEscalationEmail({ to: business.escalation_email, businessName: business.name, botName: business.bot_name, clientPhone: from, reason: 'limit' }).catch(console.error);
+      sendEscalationEmail({ to: business.escalation_email, businessName: business.name, botName: business.bot_name, clientPhone: fromPhone, reason: 'limit' }).catch(console.error);
       const limitMsg = `Gracias por tu paciencia! Para darte una mejor atención, voy a derivarte con uno de nuestros agentes.`;
       await saveMessage(conversationId, 'assistant', limitMsg);
       const twiml = new (require('twilio').twiml.MessagingResponse)();
@@ -286,21 +301,29 @@ router.get('/sheets/callback', async (req: any, res: any) => {
   try {
     const { tokens } = await oauth2.getToken(code);
     await saveSheetsTokens(businessId, tokens);
-    res.send('<script>window.close()</script><p>✅ Google Sheets conectado. Podés cerrar esta ventana.</p>');
+    res.send('<script>window.close()<\/script><p>✅ Google Sheets conectado. Podés cerrar esta ventana.<\/p>');
   } catch (err) {
-    res.status(500).send('Error conectando Sheets');
+    res.status(500).send('Error conectando Google Sheets');
   }
 });
 
+// Exportar data a Google Sheets
 router.post('/sheets/export/:businessId', async (req: any, res: any) => {
-  const { supabase } = require('../config/supabase');
-  const { data: business } = await supabase.from('businesses').select('*').eq('id', req.params.businessId).single();
-  if (!business) return res.status(404).json({ error: 'Business not found' });
+  const { businessId } = req.params;
+  const { data: business, error } = await supabase
+    .from('businesses')
+    .select('*')
+    .eq('id', businessId)
+    .single();
+  if (error || !business) {
+    res.status(404).json({ error: 'Business no encontrado' });
+    return;
+  }
   try {
     const url = await exportToSheets(business);
     res.json({ url });
   } catch (err: any) {
-    console.error('[sheets export]', err.message);
+    console.error('Error exportando a Sheets:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

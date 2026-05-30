@@ -45,7 +45,30 @@ export default function Clients() {
   const [showSuspend, setShowSuspend] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [newForm, setNewForm] = useState({ name: '', email: '', plan: 'trial' })
+  const [createError, setCreateError] = useState('')
+  const [newForm, setNewForm] = useState({ name: '', email: '', plan: 'trial', trial_days: '14' })
+
+  async function handleCreateClient() {
+    if (!newForm.name || !newForm.email) { setCreateError('Nombre y email son requeridos'); return }
+    setSaving(true); setCreateError('')
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://automation-ai-system-production.up.railway.app'
+      const res = await fetch(backendUrl + '/api/admin/create-client', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': import.meta.env.VITE_ADMIN_SECRET || '' },
+        body: JSON.stringify({ name: newForm.name, email: newForm.email, plan: newForm.plan, trial_days: Number(newForm.trial_days) }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setCreateError(data.error || 'Error al crear cliente'); return }
+      setShowCreate(false)
+      setNewForm({ name: '', email: '', plan: 'trial', trial_days: '14' })
+      loadBusinesses()
+    } catch (e: any) {
+      setCreateError(e.message)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   useEffect(() => { loadBusinesses() }, [])
 
@@ -302,14 +325,21 @@ export default function Clients() {
                 {PLANS.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
               </select>
             </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: 5 }}>Días de trial</label>
+              <input type="number" value={newForm.trial_days} onChange={e => setNewForm(prev => ({ ...prev, trial_days: e.target.value }))}
+                min="1" max="90" disabled={newForm.plan !== 'trial'}
+                style={{ width: '100%', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: newForm.plan !== 'trial' ? 'var(--text-3)' : 'var(--text-1)', outline: 'none', fontFamily: 'inherit' }} />
+            </div>
+            {createError && <div style={{ background: '#ef444418', border: '1px solid #ef444440', borderRadius: 8, padding: '8px 12px', fontSize: 11, color: '#ef4444', marginBottom: 14 }}>{createError}</div>}
             <div style={{ background: 'var(--warn)18', border: '1px solid var(--warn)40', borderRadius: 8, padding: '10px 12px', fontSize: 11, color: 'var(--warn)', marginBottom: 20 }}>
               <i className="ti ti-info-circle" style={{ marginRight: 6 }} />
-              El cliente deberá completar la configuración desde su dashboard después de que crees su cuenta en Supabase Auth.
+              Se crea el usuario en Auth y el negocio en la DB. El cliente recibirá un email para configurar su contraseña.
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setShowCreate(false)} style={{ flex: 1, background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '9px', fontSize: 12, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
-              <button onClick={() => setShowCreate(false)} style={{ flex: 1, background: 'var(--accent)', border: 'none', borderRadius: 8, padding: '9px', fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
-                Crear en Supabase →
+              <button onClick={() => { setShowCreate(false); setCreateError('') }} disabled={saving} style={{ flex: 1, background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '9px', fontSize: 12, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+              <button onClick={handleCreateClient} disabled={saving} style={{ flex: 1, background: 'var(--accent)', border: 'none', borderRadius: 8, padding: '9px', fontSize: 12, fontWeight: 600, color: '#fff', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, fontFamily: 'inherit' }}>
+                {saving ? 'Creando...' : 'Crear cliente →'}
               </button>
             </div>
           </div>
