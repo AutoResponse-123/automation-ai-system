@@ -3,6 +3,13 @@ import { supabase } from './supabase'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+interface Contact {
+  name: string | null
+  phone: string
+  interaction_count: number
+  last_interaction: string | null
+}
+
 interface DayStat {
   date: string
   total: number
@@ -127,12 +134,28 @@ function StackedChart({ stats }: { stats: DayStat[] }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function Analytics() {
+export default function Analytics({ businessId }: { businessId: string | null }) {
   const [stats, setStats] = useState<DayStat[]>([])
   const [range, setRange] = useState<Range>('7d')
   const [loading, setLoading] = useState(true)
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [loadingContacts, setLoadingContacts] = useState(false)
 
   useEffect(() => { loadStats() }, [range])
+  useEffect(() => { if (businessId) loadContacts() }, [businessId])
+
+  async function loadContacts() {
+    if (!businessId) return
+    setLoadingContacts(true)
+    const { data } = await supabase
+      .from('contacts')
+      .select('name, phone, interaction_count, last_interaction')
+      .eq('business_id', businessId)
+      .order('interaction_count', { ascending: false })
+      .limit(10)
+    setContacts(data ?? [])
+    setLoadingContacts(false)
+  }
 
   async function loadStats() {
     setLoading(true)
@@ -235,6 +258,41 @@ export default function Analytics() {
             <BarChart stats={stats} valueKey="tokens" color="#a78bfa" label="Tokens por día"
               format={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v)} />
             <BarChart stats={stats} valueKey="assistant" color="#38bdf8" label="Respuestas de IA por día" />
+          </div>
+
+          {/* Top contacts */}
+          <div style={{ ...s.chartCard, marginTop: 10 }}>
+            <div style={s.chartTitle}>Clientes frecuentes — Top 10</div>
+            {loadingContacts ? (
+              <div style={{ fontSize: 12, color: '#4a4a6a' }}>Cargando...</div>
+            ) : contacts.length === 0 ? (
+              <div style={{ fontSize: 12, color: '#4a4a6a' }}>Sin datos aún</div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse' as const, fontSize: 12 }}>
+                <thead>
+                  <tr style={{ borderBottom: '0.5px solid #1e1e2e' }}>
+                    <th style={{ textAlign: 'left' as const, color: '#4a4a6a', fontWeight: 400, padding: '4px 8px 6px 0' }}>#</th>
+                    <th style={{ textAlign: 'left' as const, color: '#4a4a6a', fontWeight: 400, padding: '4px 8px 6px 0' }}>Nombre</th>
+                    <th style={{ textAlign: 'left' as const, color: '#4a4a6a', fontWeight: 400, padding: '4px 8px 6px 0' }}>Teléfono</th>
+                    <th style={{ textAlign: 'right' as const, color: '#4a4a6a', fontWeight: 400, padding: '4px 0 6px 8px' }}>Mensajes</th>
+                    <th style={{ textAlign: 'right' as const, color: '#4a4a6a', fontWeight: 400, padding: '4px 0 6px 8px' }}>Última interacción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contacts.map((c, i) => (
+                    <tr key={c.phone} style={{ borderBottom: '0.5px solid #0d0d20' }}>
+                      <td style={{ padding: '5px 8px 5px 0', color: '#3a3a5a' }}>{i + 1}</td>
+                      <td style={{ padding: '5px 8px 5px 0', color: '#c4c4d4' }}>{c.name || '—'}</td>
+                      <td style={{ padding: '5px 8px 5px 0', color: '#8b8baa', fontFamily: 'monospace' }}>{c.phone}</td>
+                      <td style={{ padding: '5px 0 5px 8px', color: '#a78bfa', fontWeight: 500, textAlign: 'right' as const }}>{c.interaction_count}</td>
+                      <td style={{ padding: '5px 0 5px 8px', color: '#4a4a6a', textAlign: 'right' as const }}>
+                        {c.last_interaction ? new Date(c.last_interaction).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </>
       )}

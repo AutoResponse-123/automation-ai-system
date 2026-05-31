@@ -81,6 +81,14 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
   const isMobile = useIsMobile()
   const [showSectionDropdown, setShowSectionDropdown] = useState(false)
   const [bgColor, setBgColor] = useState<string>(() => localStorage.getItem('ar_bg_color') ?? '#07070d')
+  const [userEmail, setUserEmail] = useState<string>('')
+  const [useAlternateEmail, setUseAlternateEmail] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user?.email) setUserEmail(data.user.email)
+    })
+  }, [])
 
   useEffect(() => { if (businessId) loadConfig() }, [businessId])
 
@@ -119,6 +127,10 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
         sheets_spreadsheet_id: data.sheets_spreadsheet_id ?? null,
         schedule: data.schedule ?? DEFAULT_SCHEDULE,
       })
+    }
+    // If saved escalation_email differs from auth email, show alternate email checkbox
+    if (data?.escalation_email && data.escalation_email !== '') {
+      setUseAlternateEmail(true)
     }
     setLoading(false)
   }
@@ -301,6 +313,10 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
                 <Field label="Máximo de tokens por respuesta" hint="Más tokens = respuestas más largas y costosas">
                   <input style={s.input} type="number" value={config.max_tokens} min={100} max={1000}
                     onChange={e => update('max_tokens', parseInt(e.target.value))} />
+                  <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 4 }}>
+                    Costo estimado: <span style={{ color: '#f59e0b' }}>${(config.max_tokens / 1_000_000 * 9).toFixed(4)} USD</span> por respuesta
+                    {' · '}<span style={{ color: '#8b8baa' }}>× 100 resp = ${(config.max_tokens / 1_000_000 * 9 * 100).toFixed(3)} USD/mes</span>
+                  </div>
                 </Field>
                 <div />
               </div>
@@ -475,9 +491,26 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
               <SectionHeader icon="ti-bell" title="Notificaciones" subtitle="Cómo y cuándo te avisamos sobre tu cuenta" />
 
               <Field label="Email para escalaciones" hint="Te mandamos un email cuando el bot derive una conversación a humano">
-                <input style={s.input} type="email" value={config.escalation_email}
-                  onChange={e => update('escalation_email', e.target.value)}
-                  placeholder="tu@email.com" />
+                <div style={{ fontSize: 12, color: '#8b8baa', marginBottom: 6 }}>
+                  Email de la cuenta: <strong style={{ color: '#c4c4d4' }}>{userEmail || '—'}</strong>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: useAlternateEmail ? 10 : 0 }}>
+                  <div
+                    style={{ ...s.toggleTrack, ...(useAlternateEmail ? s.toggleTrackOn : {}), width: 32, height: 18, flexShrink: 0 }}
+                    onClick={() => {
+                      const next = !useAlternateEmail
+                      setUseAlternateEmail(next)
+                      if (!next) update('escalation_email', '')
+                    }}>
+                    <div style={{ ...s.toggleThumb, ...(useAlternateEmail ? s.toggleThumbOn : {}) }} />
+                  </div>
+                  <span style={{ fontSize: 12, color: '#8b8baa' }}>Usar otro email para notificaciones</span>
+                </div>
+                {useAlternateEmail && (
+                  <input style={s.input} type="email" value={config.escalation_email}
+                    onChange={e => update('escalation_email', e.target.value)}
+                    placeholder="otro@email.com" />
+                )}
               </Field>
 
               <Field label="">

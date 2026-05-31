@@ -1116,7 +1116,7 @@ export default function App() {
           </div>
         )}
 
-        {tab === 'analytics' && <Analytics />}
+        {tab === 'analytics' && <Analytics businessId={businessId} />}
         {tab === 'contacts' && (
           <Contacts onOpenChat={contactId => {
             const conv = conversations.find(c => c.contact_id === contactId)

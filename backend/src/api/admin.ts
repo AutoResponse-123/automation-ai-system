@@ -23,7 +23,7 @@ function checkAdminSecret(req: Request, res: Response): boolean {
 router.post('/create-client', async (req: Request, res: Response) => {
   if (!checkAdminSecret(req, res)) return;
 
-  const { name, email, plan = 'trial', phone_whatsapp = '', trial_days = 14 } = req.body;
+  const { name, email, plan = 'trial', phone_whatsapp = '', trial_days = 7 } = req.body;
   if (!name || !email) {
     res.status(400).json({ error: 'name y email son requeridos' });
     return;
