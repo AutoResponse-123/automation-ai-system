@@ -1,6 +1,8 @@
 const { Resend } = require('resend');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY);
+}
 
 export async function sendEscalationEmail(opts: {
   to: string;
@@ -41,7 +43,7 @@ export async function sendEscalationEmail(opts: {
       </div>
     </div>`;
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: 'Napps <onboarding@resend.dev>',
     to: opts.to,
     subject,

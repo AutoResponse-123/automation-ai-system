@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import { useT } from './i18n'
 import { supabase } from './supabase'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -32,6 +33,7 @@ const EVENT_STYLES: Record<ActivityEvent['type'], { icon: string; color: string;
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Activity() {
+  const t = useT()
   const [events, setEvents] = useState<ActivityEvent[]>([])
   const [paused, setPaused] = useState(false)
   const pausedRef = useRef(false)
@@ -132,17 +134,17 @@ export default function Activity() {
       {/* Header */}
       <div style={s.header}>
         <div style={s.headerLeft}>
-          <span style={s.headerTitle}>Actividad en vivo</span>
+          <span style={s.headerTitle}>{t('activity_live')}</span>
           <div style={s.livePill}>
             <div style={{ ...s.liveDot, ...(paused ? s.liveDotPaused : {}) }} />
-            {paused ? 'Pausado' : 'En vivo'}
+            {paused ? t('activity_paused') : t('activity_live_pill')}
           </div>
-          <span style={s.eventCount}>{liveCount} eventos última hora</span>
+          <span style={s.eventCount}>{liveCount} {t('activity_events_hour')}</span>
         </div>
         <div style={s.headerActions}>
           <button onClick={() => setPaused(p => !p)} style={s.actionBtn}>
             <i className={`ti ${paused ? 'ti-player-play' : 'ti-player-pause'}`} style={{ fontSize: 13 }} aria-hidden="true" />
-            {paused ? 'Reanudar' : 'Pausar'}
+            {paused ? t('activity_resume') : t('activity_pause')}
           </button>
           <button onClick={clearEvents} style={s.actionBtn}>
             <i className="ti ti-trash" style={{ fontSize: 13 }} aria-hidden="true" /> Limpiar
@@ -156,11 +158,11 @@ export default function Activity() {
           const count = events.filter(e => e.type === type).length
           const style = EVENT_STYLES[type]
           const labels: Record<string, string> = {
-            new_message: 'Mensajes',
-            ai_response: 'Respuestas IA',
-            new_conversation: 'Nuevas convs.',
-            resolved: 'Resueltas',
-            error: 'Errores',
+            new_message: t('activity_stat_messages'),
+            ai_response: t('activity_stat_ai'),
+            new_conversation: t('activity_stat_new_convs'),
+            resolved: t('activity_stat_resolved'),
+            error: t('activity_stat_errors'),
           }
           return (
             <div key={type} style={s.statCard}>

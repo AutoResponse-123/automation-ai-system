@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useT } from './i18n'
 import { supabase } from './supabase'
 
 interface Appointment {
@@ -39,6 +40,7 @@ const pill = (label: string, color: string) => (
 )
 
 export default function Appointments({ businessId }: { businessId: string }) {
+  const t = useT()
   const [appts, setAppts] = useState<Appointment[]>([])
   const [filter, setFilter] = useState<Filter>('upcoming')
   const [loading, setLoading] = useState(true)
@@ -113,12 +115,12 @@ export default function Appointments({ businessId }: { businessId: string }) {
     <div style={s.wrap}>
       <div style={s.header}>
         <div>
-          <h2 style={s.title}>📅 Turnos</h2>
+          <h2 style={s.title}>📅 {t('appointments_title')}</h2>
         </div>
         <div style={s.filters}>
           {(['upcoming', 'today', 'past'] as Filter[]).map(f => (
             <button key={f} style={s.filterBtn(filter === f)} onClick={() => setFilter(f)}>
-              {f === 'upcoming' ? 'Próximos' : f === 'today' ? `Hoy (${todayCount})` : 'Pasados'}
+              {f === 'upcoming' ? t('appointments_upcoming') : f === 'today' ? `${t('appointments_today')} (${todayCount})` : t('appointments_past')}
             </button>
           ))}
         </div>
@@ -126,9 +128,9 @@ export default function Appointments({ businessId }: { businessId: string }) {
 
       {/* Stats row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
-        <div style={s.stat}><span style={s.statVal}>{todayCount}</span><span style={s.statLabel}>Turnos hoy</span></div>
-        <div style={s.stat}><span style={s.statVal}>{appts.filter(a => a.appointment_date >= today).length}</span><span style={s.statLabel}>Próximos</span></div>
-        <div style={s.stat}><span style={s.statVal}>{appts.filter(a => a.reminder_24h_sent).length}</span><span style={s.statLabel}>Recordatorios enviados</span></div>
+        <div style={s.stat}><span style={s.statVal}>{todayCount}</span><span style={s.statLabel}>{t('appointments_stat_today')}</span></div>
+        <div style={s.stat}><span style={s.statVal}>{appts.filter(a => a.appointment_date >= today).length}</span><span style={s.statLabel}>{t('appointments_stat_upcoming')}</span></div>
+        <div style={s.stat}><span style={s.statVal}>{appts.filter(a => a.reminder_24h_sent).length}</span><span style={s.statLabel}>{t('appointments_stat_reminders')}</span></div>
       </div>
 
       {/* Category filters */}
@@ -161,14 +163,14 @@ export default function Appointments({ businessId }: { businessId: string }) {
       {/* Search */}
       <div style={s.searchWrap}>
         <i className="ti ti-search" style={s.searchIcon} />
-        <input style={s.search} placeholder="Buscar por cliente, teléfono o servicio..." value={search} onChange={e => setSearch(e.target.value)} />
+        <input style={s.search} placeholder={t('appointments_search')} value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
       {loading ? (
-        <div style={s.empty}>Cargando...</div>
+        <div style={s.empty}>{t('loading')}</div>
       ) : filtered.length === 0 ? (
         <div style={s.empty}>
-          {filter === 'upcoming' ? '🗓️ No hay turnos próximos' : filter === 'today' ? '🗓️ No hay turnos hoy' : '📋 No hay turnos pasados'}
+          {filter === 'upcoming' ? t('appointments_no_upcoming') : filter === 'today' ? t('appointments_no_today') : t('appointments_no_past')}
         </div>
       ) : (
         filtered.map(appt => {
@@ -182,7 +184,7 @@ export default function Appointments({ businessId }: { businessId: string }) {
               </div>
               <div style={s.divider} />
               <div style={s.info}>
-                <div style={s.clientName}>{appt.client_name || 'Sin nombre'}</div>
+                <div style={s.clientName}>{appt.client_name || t('appointments_no_name')}</div>
                 <div style={s.meta}>
                   <span>🕐 {formatTime(appt.appointment_time)}</span>
                   {appt.duration_minutes && <span>⏱ {appt.duration_minutes}min</span>}
@@ -194,8 +196,8 @@ export default function Appointments({ businessId }: { businessId: string }) {
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-                {isToday && pill('Hoy', '#10b981')}
-                {isPast && pill('Pasado', '#6b7280')}
+                {isToday && pill(t('appointments_pill_today'), '#10b981')}
+                {isPast && pill(t('appointments_pill_past'), '#6b7280')}
                 {appt.reminder_24h_sent && pill('✓ 24h', '#7c3aed')}
                 {appt.reminder_1h_sent && pill('✓ 1h', '#7c3aed')}
               </div>

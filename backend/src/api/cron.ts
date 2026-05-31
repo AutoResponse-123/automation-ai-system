@@ -6,7 +6,8 @@ const { sendDailySummaries } = require('../services/summary');
 
 function checkSecret(req: Request, res: Response): boolean {
   const secret = req.headers['x-cron-secret'];
-  if (!secret || secret !== process.env.CRON_SECRET) {
+  const valid = process.env.CRON_SECRET || process.env.ADMIN_SECRET;
+  if (!secret || secret !== valid) {
     res.status(401).json({ error: 'Unauthorized' });
     return false;
   }
@@ -35,6 +36,18 @@ router.get('/daily-summary', async (req: Request, res: Response) => {
   if (!checkSecret(req, res)) return;
   try {
     await sendDailySummaries();
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/cron/send-reminders — disparar manualmente
+router.get('/send-reminders', async (req: Request, res: Response) => {
+  if (!checkSecret(req, res)) return;
+  try {
+    const { sendPendingReminders } = require('../services/reminders');
+    await sendPendingReminders();
     res.json({ ok: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

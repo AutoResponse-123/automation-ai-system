@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useT } from './i18n'
 import { supabase } from './supabase'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -47,6 +48,7 @@ function getInitials(phone: string, name?: string): string {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Contacts({ onOpenChat }: { onOpenChat?: (contactId: string) => void }) {
+  const t = useT()
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -128,7 +130,7 @@ export default function Contacts({ onOpenChat }: { onOpenChat?: (contactId: stri
       {/* Header */}
       <div style={s.header}>
         <div>
-          <span style={s.headerTitle}>Contactos</span>
+          <span style={s.headerTitle}>{t('contacts_title')}</span>
           <span style={s.headerCount}>{contacts.length} total · {totalActive} activos</span>
         </div>
         <div style={s.headerRight}>
@@ -136,16 +138,16 @@ export default function Contacts({ onOpenChat }: { onOpenChat?: (contactId: stri
             <i className="ti ti-search" style={{ fontSize: 13, color: '#4a4a6a' }} aria-hidden="true" />
             <input
               style={s.searchInput}
-              placeholder="Buscar por teléfono o nombre..."
+              placeholder={t('contacts_search')}
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
           <div style={s.sortGroup}>
             {([
-              { key: 'last_activity', label: 'Actividad' },
-              { key: 'interaction_count', label: 'Mensajes' },
-              { key: 'created_at', label: 'Nuevo' },
+              { key: 'last_activity', label: t('contacts_sort_activity') },
+              { key: 'interaction_count', label: t('contacts_sort_messages') },
+              { key: 'created_at', label: t('contacts_sort_new') },
             ] as const).map(o => (
               <button
                 key={o.key}
@@ -160,18 +162,18 @@ export default function Contacts({ onOpenChat }: { onOpenChat?: (contactId: stri
       </div>
 
       {loading ? (
-        <div style={s.loading}>Cargando contactos...</div>
+        <div style={s.loading}>{t('contacts_loading')}</div>
       ) : filtered.length === 0 ? (
-        <div style={s.loading}>No se encontraron contactos</div>
+        <div style={s.loading}>{t('contacts_empty')}</div>
       ) : (
         <>
           {/* Table header */}
           <div style={s.tableHeader}>
-            <span style={{ gridColumn: '1 / 3' }}>Contacto</span>
-            <span>Conversaciones</span>
-            <span>Último mensaje</span>
+            <span style={{ gridColumn: '1 / 3' }}>{t('contacts_col_contact')}</span>
+            <span>{t('contacts_col_conversations')}</span>
+            <span>{t('contacts_col_last_message')}</span>
             <span>Actividad</span>
-            <span>Estado</span>
+            <span>{t('contacts_col_status')}</span>
             <span></span>
           </div>
 
@@ -195,7 +197,7 @@ export default function Contacts({ onOpenChat }: { onOpenChat?: (contactId: stri
                   <div style={s.cell}>{timeAgo(c.last_activity)}</div>
                   <div style={s.cell}>
                     <span style={{ ...s.statusBadge, ...(c.status === 'active' ? s.statusActive : s.statusInactive) }}>
-                      {c.status === 'active' ? 'Activo' : 'Inactivo'}
+                      {c.status === 'active' ? t('contacts_active') : t('contacts_inactive')}
                     </span>
                   </div>
                   <div style={s.cell}>

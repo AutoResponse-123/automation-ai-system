@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useT } from './i18n'
 import { supabase } from './supabase'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -177,6 +178,7 @@ function HourlyChart({ hours }: { hours: HourStat[] }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Analytics({ businessId }: { businessId: string | null }) {
+  const t = useT()
   const [stats, setStats] = useState<DayStat[]>([])
   const [range, setRange] = useState<Range>('7d')
   const [loading, setLoading] = useState(true)
@@ -339,18 +341,18 @@ export default function Analytics({ businessId }: { businessId: string | null })
         <>
           {/* Summary */}
           <div style={s.summaryGrid}>
-            <SummaryCard label="Mensajes en período" value={totalMsgs.toLocaleString()} />
-            <SummaryCard label="Automatización promedio" value={`${avgAutomation}%`} color="#22c55e" />
-            <SummaryCard label="Turnos agendados" value={String(apptTotal)} color="#38bdf8" />
-            <SummaryCard label="Tasa de escalación" value={escalationRate > 0 ? `${escalationRate}%` : '0%'} color={escalationRate > 20 ? '#f87171' : '#4a4a6a'} sub={`${escalationCount} de ${totalConvs} convs`} />
-            <SummaryCard label="Hora pico" value={peakHour.count > 0 ? `${peakHour.hour.toString().padStart(2,'0')}:00` : '—'} color="#f59e0b" sub={peakHour.count > 0 ? `${peakHour.count} msgs` : ''} />
-            <SummaryCard label="Costo estimado" value={`$${estimatedCost.toFixed(3)}`} color="#f59e0b" sub={`${(totalTokens/1000).toFixed(1)}k tokens`} />
+            <SummaryCard label={t('analytics_messages_period')} value={totalMsgs.toLocaleString()} />
+            <SummaryCard label={t('analytics_avg_automation')} value={`${avgAutomation}%`} color="#22c55e" />
+            <SummaryCard label={t('analytics_appts_total')} value={String(apptTotal)} color="#38bdf8" />
+            <SummaryCard label={t('analytics_escalation_rate')} value={escalationRate > 0 ? `${escalationRate}%` : '0%'} color={escalationRate > 20 ? '#f87171' : '#4a4a6a'} sub={`${escalationCount} de ${totalConvs} convs`} />
+            <SummaryCard label={t('analytics_peak_hour')} value={peakHour.count > 0 ? `${peakHour.hour.toString().padStart(2,'0')}:00` : '—'} color="#f59e0b" sub={peakHour.count > 0 ? `${peakHour.count} msgs` : ''} />
+            <SummaryCard label={t('analytics_cost')} value={`$${estimatedCost.toFixed(3)}`} color="#f59e0b" sub={`${(totalTokens/1000).toFixed(1)}k tokens`} />
           </div>
 
           {/* Charts row 1 */}
           <div style={s.chartsGrid}>
             <StackedChart stats={stats} />
-            <BarChart stats={stats} valueKey="automationRate" color="#22c55e" label="Tasa de automatización (%)" format={v => `${v}%`} />
+            <BarChart stats={stats} valueKey="automationRate" color="#22c55e" label={t('analytics_chart_automation')} format={v => `${v}%`} />
           </div>
 
           {/* Horario pico — full width */}
@@ -360,8 +362,8 @@ export default function Analytics({ businessId }: { businessId: string | null })
 
           {/* Charts row 2 */}
           <div style={{ ...s.chartsGrid, marginTop: 10 }}>
-            <BarChart stats={stats} valueKey="tokens" color="#a78bfa" label="Tokens por día" format={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v)} />
-            <BarChart stats={stats} valueKey="assistant" color="#38bdf8" label="Respuestas de IA por día" />
+            <BarChart stats={stats} valueKey="tokens" color="#a78bfa" label={t('analytics_chart_tokens')} format={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v)} />
+            <BarChart stats={stats} valueKey="assistant" color="#38bdf8" label={t('analytics_chart_ai_responses')} />
           </div>
 
           {/* Turnos por categoría + Top contacts */}
@@ -369,11 +371,11 @@ export default function Analytics({ businessId }: { businessId: string | null })
 
             {/* Turnos por categoría */}
             <div style={s.chartCard}>
-              <div style={s.chartTitle}>Turnos agendados — por categoría</div>
+              <div style={s.chartTitle}>{t('analytics_by_category_title')}</div>
               {apptTotal === 0 ? (
-                <div style={{ fontSize: 12, color: '#4a4a6a', padding: '16px 0' }}>Sin turnos en este período</div>
+                <div style={{ fontSize: 12, color: '#4a4a6a', padding: '16px 0' }}>{t('analytics_no_appts')}</div>
               ) : apptCategories.length === 0 ? (
-                <div style={{ fontSize: 12, color: '#4a4a6a' }}>Sin categorías configuradas</div>
+                <div style={{ fontSize: 12, color: '#4a4a6a' }}>{t('analytics_no_categories')}</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {apptCategories.map(cat => (
