@@ -365,4 +365,49 @@ router.post('/send-manual', async (req: any, res: any) => {
   }
 });
 
+// POST /api/webhooks/appointments/:id/cancel
+// Cancela un turno desde el dashboard y avisa al cliente por WhatsApp
+router.post('/appointments/:id/cancel', async (req: any, res: any) => {
+  const { id } = req.params;
+
+  try {
+    const { data: appt, error } = await supabase
+      .from('appointments')
+      .select('*, businesses(name, bot_name, bot_emoji, language, phone_whatsapp)')
+      .eq('id', id)
+      .single();
+
+    if (error || !appt) { res.status(404).json({ error: 'Turno no encontrado' }); return; }
+    if (appt.status === 'cancelled') { res.status(400).json({ error: 'El turno ya está cancelado' }); return; }
+
+    await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', id);
+
+    const business = appt.businesses;
+    const isSpanish = (business?.language || 'es') === 'es';
+    const botEmoji = business?.bot_emoji || '🤖';
+    const timeStr = String(appt.appointment_time).slice(0, 5);
+    const dateStr = new Date(appt.appointment_date + 'T12:00:00').toLocaleDateString(
+      isSpanish ? 'es-AR' : 'en-US',
+      { weekday: 'long', day: 'numeric', month: 'long' }
+    );
+
+    const message = isSpanish
+      ? `${botEmoji} Hola ${appt.client_name}! Te informamos que tu turno de *${appt.title}* del *${dateStr}* a las *${timeStr}* fue cancelado.\n\nSi querés reprogramar, escribinos por acá.`
+      : `${botEmoji} Hi ${appt.client_name}! Your *${appt.title}* appointment on *${dateStr}* at *${timeStr}* has been cancelled.\n\nTo reschedule, message us here.`;
+
+    if (appt.client_phone) {
+      const { sendWhatsAppMessage } = require('../services/twilio');
+      await sendWhatsAppMessage(
+        appt.client_phone, message,
+        process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!
+      );
+    }
+
+    res.json({ ok: true });
+  } catch (err: any) {
+    console.error('[cancel appointment]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

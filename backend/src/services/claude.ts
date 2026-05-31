@@ -3,6 +3,7 @@ const Anthropic = require('@anthropic-ai/sdk').default;
 const { getAvailableSlots, createEvent } = require('./calendar');
 const { supabase } = require('../config/supabase');
 const { createPaymentLink } = require('./mercadopago');
+const { sendCancellationEmail } = require('./email');
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -33,6 +34,20 @@ const calendarTools = [
         amount: { type: 'number', description: 'Monto a cobrar en la moneda local (ej: 5000)' },
       },
       required: ['title', 'amount'],
+    },
+  },
+  {
+    name: 'cancel_appointment',
+    description: 'Cancela un turno existente del cliente. Usalo cuando el cliente pida cancelar o anular su turno.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        reason: {
+          type: 'string',
+          description: 'Motivo de cancelación mencionado por el cliente (opcional)',
+        },
+      },
+      required: [],
     },
   },
   {
@@ -82,6 +97,7 @@ async function callClaude(
   const hasMP = !!business?.mp_access_token;
   const activeTools = calendarTools.filter((t: any) => {
     if (t.name === 'create_payment_link') return hasMP;
+    if (t.name === 'cancel_appointment') return true; // siempre disponible
     return hasCalendar;
   });
   const tools = (hasCalendar || hasMP) ? activeTools : undefined;
@@ -149,6 +165,40 @@ async function callClaude(
         if (insertErr) console.error('[appointments insert]', insertErr.message);
         toolResult = `Turno creado exitosamente. ID: ${eventId}`;
         console.log(`[create_appointment] OK — Event ID: ${eventId}`);
+      } else if (toolUseBlock.name === 'cancel_appointment') {
+        // Buscar el próximo turno activo del cliente
+        const today = new Date().toISOString().split('T')[0];
+        const { data: appts } = await supabase
+          .from('appointments')
+          .select('*')
+          .eq('business_id', business.id)
+          .eq('client_phone', clientPhone || '')
+          .eq('status', 'scheduled')
+          .gte('appointment_date', today)
+          .order('appointment_date').order('appointment_time')
+          .limit(1);
+
+        if (!appts || appts.length === 0) {
+          toolResult = 'No se encontró ningún turno activo para cancelar.';
+        } else {
+          const appt = appts[0];
+          await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', appt.id);
+
+          // Email al dueño
+          sendCancellationEmail({
+            to: business.escalation_email,
+            businessName: business.name,
+            botName: business.bot_name || 'Bot',
+            clientPhone: clientPhone || '',
+            clientName: appt.client_name,
+            appointmentDate: appt.appointment_date,
+            appointmentTime: String(appt.appointment_time).slice(0, 5),
+            title: appt.title,
+          }).catch((e: any) => console.error('[cancel email]', e.message));
+
+          toolResult = `Turno cancelado: ${appt.title} del ${appt.appointment_date} a las ${String(appt.appointment_time).slice(0, 5)}.`;
+          console.log(`[cancel_appointment] Cancelado turno ${appt.id} de ${clientPhone}`);
+        }
       } else if (toolUseBlock.name === 'create_payment_link') {
         if (!business.mp_access_token) {
           toolResult = 'Mercado Pago no está configurado en este negocio.';

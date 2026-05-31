@@ -13,6 +13,7 @@ interface Appointment {
   duration_minutes: number
   reminder_24h_sent: boolean
   reminder_1h_sent: boolean
+  status: string
   created_at: string
 }
 
@@ -39,6 +40,8 @@ const pill = (label: string, color: string) => (
   </span>
 )
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
+
 export default function Appointments({ businessId }: { businessId: string }) {
   const t = useT()
   const [appts, setAppts] = useState<Appointment[]>([])
@@ -47,6 +50,21 @@ export default function Appointments({ businessId }: { businessId: string }) {
   const [search, setSearch] = useState('')
   const [categories, setCategories] = useState<AppointmentCategory[]>([])
   const [activeCat, setActiveCat] = useState<string | null>(null)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
+
+  async function cancelAppt(appt: Appointment) {
+    if (!confirm(`¿Cancelar el turno de ${appt.client_name}?`)) return
+    setCancellingId(appt.id)
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/webhooks/appointments/${appt.id}/cancel`, { method: 'POST' })
+      if (!res.ok) throw new Error('Error cancelando')
+      setAppts(prev => prev.map(a => a.id === appt.id ? { ...a, status: 'cancelled' } : a))
+    } catch (e: any) {
+      alert('No se pudo cancelar: ' + e.message)
+    } finally {
+      setCancellingId(null)
+    }
+  }
 
   useEffect(() => {
     if (!businessId) return
@@ -196,10 +214,19 @@ export default function Appointments({ businessId }: { businessId: string }) {
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-                {isToday && pill(t('appointments_pill_today'), '#10b981')}
-                {isPast && pill(t('appointments_pill_past'), '#6b7280')}
+                {appt.status === 'cancelled' && pill('❌ Cancelado', '#dc2626')}
+                {appt.status !== 'cancelled' && isToday && pill(t('appointments_pill_today'), '#10b981')}
+                {appt.status !== 'cancelled' && isPast && pill(t('appointments_pill_past'), '#6b7280')}
                 {appt.reminder_24h_sent && pill('✓ 24h', '#7c3aed')}
                 {appt.reminder_1h_sent && pill('✓ 1h', '#7c3aed')}
+                {appt.status !== 'cancelled' && !isPast && (
+                  <button
+                    onClick={() => cancelAppt(appt)}
+                    disabled={cancellingId === appt.id}
+                    style={{ marginTop: 4, padding: '4px 10px', borderRadius: 6, border: '1px solid #dc262644', background: '#2e0a0a', color: '#f87171', fontSize: 11, cursor: 'pointer', opacity: cancellingId === appt.id ? 0.5 : 1 }}>
+                    {cancellingId === appt.id ? '...' : 'Cancelar'}
+                  </button>
+                )}
               </div>
             </div>
           )
