@@ -18,6 +18,8 @@ app.use(generalLimiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get('/', (_req: any, res: any) => { res.redirect(301, 'https://autoresponse-landing.vercel.app') })
+
 app.get('/health', (_req: any, res: any) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), environment: process.env.NODE_ENV });
 });
