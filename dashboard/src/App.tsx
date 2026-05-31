@@ -49,7 +49,7 @@ const TAG_PRESETS: { label: string; color: string }[] = [
   { label: 'Venta',        color: '#22c55e' },
   { label: 'Soporte',      color: '#38bdf8' },
   { label: 'Urgente',      color: '#f87171' },
-  { label: 'Turno',        color: '#a78bfa' },
+  { label: 'Turno',        color: '#3b82f6' },
   { label: 'Consulta',     color: '#f59e0b' },
   { label: 'Seguimiento',  color: '#fb923c' },
   { label: 'Reclamo',      color: '#e879f9' },
@@ -117,7 +117,7 @@ function lightenHex(hex: string, amount: number): string {
   return '#' + l(r) + l(g) + l(b)
 }
 
-const AVATAR_COLORS = ['#a78bfa','#f59e0b','#22c55e','#f87171','#38bdf8','#fb923c','#e879f9','#34d399']
+const AVATAR_COLORS = ['#3b82f6','#f59e0b','#22c55e','#f87171','#38bdf8','#fb923c','#e879f9','#34d399']
 function avatarColor(id: string): string {
   let hash = 0
   for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash)
@@ -544,7 +544,7 @@ export default function App() {
 
   if (authLoading) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#07070d', flexDirection: 'column', gap: 12, fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #7c3aed, #a78bfa)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', boxShadow: '0 4px 16px #7c3aed44' }}>AR</div>
+      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #1d4ed8, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', boxShadow: '0 4px 16px #1d4ed844' }}>N</div>
       <div style={{ fontSize: 12, color: '#5a5a7a' }}>Cargando...</div>
     </div>
   )
@@ -558,12 +558,12 @@ export default function App() {
 
       {/* Sidebar */}
       <nav style={{ ...s.sidebar, ...(isMobile ? { display: 'none' } : {}) }} className="desktop-sidebar">
-        <div style={s.logo}>AR</div>
+        <div style={s.logo}>N</div>
         {navItems.map(n => (
           <button key={n.id} onClick={() => setTab(n.id)} title={n.label}
             style={{ ...s.sIcon, ...(tab === n.id ? s.sIconActive : {}) }}>
             <i className={`ti ${n.icon}`} style={{ fontSize: 18 }} aria-hidden="true" />
-            <span style={{ ...s.sLabel, ...(tab === n.id ? { color: '#a78bfa' } : {}) }}>{n.label}</span>
+            <span style={{ ...s.sLabel, ...(tab === n.id ? { color: '#3b82f6' } : {}) }}>{n.label}</span>
             {n.id === 'inbox' && unreadCount > 0 && (
               <span style={s.badge}>{unreadCount > 9 ? '9+' : unreadCount}</span>
             )}
@@ -588,7 +588,7 @@ export default function App() {
             <i className={`ti ${n.icon}`} />
             <span>{n.label}</span>
             {n.id === 'inbox' && unreadCount > 0 && (
-              <span style={{ position: 'absolute', top: 6, width: 6, height: 6, borderRadius: '50%', background: '#a78bfa' }} />
+              <span style={{ position: 'absolute', top: 6, width: 6, height: 6, borderRadius: '50%', background: '#3b82f6' }} />
             )}
           </button>
         ))}
@@ -629,7 +629,7 @@ export default function App() {
           {isMobile && tab === 'inbox' && mobileShowChat && (
             <button className="mobile-back-btn"
               onClick={() => setMobileShowChat(false)}
-              style={{ background: 'none', border: 'none', color: '#a78bfa', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, padding: '0 4px 0 0', fontFamily: "'Inter', system-ui, sans-serif" }}>
+              style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, padding: '0 4px 0 0', fontFamily: "'Inter', system-ui, sans-serif" }}>
               <i className="ti ti-chevron-left" style={{ fontSize: 18 }} />
             </button>
           )}
@@ -686,7 +686,7 @@ export default function App() {
                   value={metrics.todayMessages.toLocaleString()}
                   sub={`${metrics.totalMessages.toLocaleString()} total`}
                   trend={todayTrend} trendDetail={`período anterior: ${yesterdayMsgCount}`}
-                  icon="ti-message-2" iconColor="#a78bfa" />
+                  icon="ti-message-2" iconColor="#3b82f6" />
                 <MetricCard label="Tokens / costo" value={`${(metrics.totalTokens / 1000).toFixed(1)}k`}
                   sub={`~$${metrics.estimatedCost.toFixed(2)} USD`} color="#f59e0b"
                   icon="ti-coins" iconColor="#f59e0b" />
@@ -742,7 +742,7 @@ export default function App() {
                   {showTagFilterPopover && (
                     <div className="popover-enter" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, background: 'var(--bg-card)', border: '1px solid var(--border-mid)', borderRadius: 10, padding: 6, zIndex: 100, boxShadow: '0 8px 24px rgba(0,0,0,0.6)', minWidth: 160 }}>
                       <button onClick={() => { setTagFilter(null); setShowTagFilterPopover(false) }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: !tagFilter ? '#1a1a2e' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: !tagFilter ? '#a78bfa' : '#6a6a8a', fontSize: 12, fontFamily: "'Inter', system-ui, sans-serif" }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: !tagFilter ? '#1a1a2e' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: !tagFilter ? '#3b82f6' : '#6a6a8a', fontSize: 12, fontFamily: "'Inter', system-ui, sans-serif" }}>
                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4a4a6a', flexShrink: 0 }} />
                         Todas
                         {!tagFilter && <i className="ti ti-check" style={{ fontSize: 11, marginLeft: 'auto' }} />}
@@ -766,8 +766,8 @@ export default function App() {
                     {f === 'all' ? 'Todas' : f === 'active' ? 'Activas' : f === 'pending' ? 'Pendientes' : 'Resueltas'}
                     <span style={{
                       marginLeft: 4, borderRadius: 10, padding: '0 5px', fontSize: 10,
-                      background: convFilter === f ? '#a78bfa22' : '#1e1e2e',
-                      color: convFilter === f ? '#a78bfa' : '#4a4a6a',
+                      background: convFilter === f ? '#3b82f622' : '#1e1e2e',
+                      color: convFilter === f ? '#3b82f6' : '#4a4a6a',
                     }}>
                       {filterCounts[f]}
                     </span>
@@ -805,7 +805,7 @@ export default function App() {
                       </span>
                       {' · '}{selectedConv.status}
                       {selectedConv.contact?.interaction_count != null && (
-                        <> · <span style={{ color: '#a78bfa' }}>{selectedConv.contact.interaction_count} interacciones</span></>
+                        <> · <span style={{ color: '#3b82f6' }}>{selectedConv.contact.interaction_count} interacciones</span></>
                       )}
                     </div>
                   </div>
@@ -848,7 +848,7 @@ export default function App() {
 
                     {/* Resumen IA */}
                     <button onClick={generateSummary} disabled={summaryLoading}
-                      style={{ ...s.chip, color: summaryLoading ? '#4a4a6a' : '#a78bfa' }}
+                      style={{ ...s.chip, color: summaryLoading ? '#4a4a6a' : '#3b82f6' }}
                       title="Generar resumen IA">
                       <i className={`ti ${summaryLoading ? 'ti-loader-2 ti-spin' : 'ti-sparkles'}`} style={{ fontSize: 11 }} />
                       {summaryLoading ? 'Resumiendo...' : 'resumen'}
@@ -1051,7 +1051,7 @@ export default function App() {
 
                     <div style={{ position: 'relative' as const }} ref={quickRepliesRef}>
                       <button onClick={() => { setShowQuickReplies(p => !p); if (noteMode) setNoteMode(false) }}
-                        style={{ ...s.iconBtn, ...(showQuickReplies ? { color: '#a78bfa', background: '#1a1a2e' } : {}) }}
+                        style={{ ...s.iconBtn, ...(showQuickReplies ? { color: '#3b82f6', background: '#1a1a2e' } : {}) }}
                         title="Respuestas rápidas">
                         <i className="ti ti-bolt" style={{ fontSize: 14 }} aria-hidden="true" />
                       </button>
@@ -1173,7 +1173,7 @@ function MetricCard({ label, value, sub, color, trend, trendDetail, onClick, ico
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={s.metricLabel}>{label}</div>
         {icon && (
-          <div style={{ ...s.metricIcon, color: accent || '#a78bfa', background: (accent || '#a78bfa') + '18' }}>
+          <div style={{ ...s.metricIcon, color: accent || '#3b82f6', background: (accent || '#3b82f6') + '18' }}>
             <i className={`ti ${icon}`} style={{ fontSize: 14 }} aria-hidden="true" />
           </div>
         )}
@@ -1376,3 +1376,4 @@ const s: Record<string, React.CSSProperties> = {
   noteModeBar: { fontSize: 11, color: '#d97706', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, padding: '0 2px', fontWeight: 500 },
   textareaNote: { borderColor: '#3a2500', background: '#100b00' },
 }
+  
