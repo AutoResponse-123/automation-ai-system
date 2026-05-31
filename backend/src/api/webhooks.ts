@@ -399,4 +399,48 @@ router.post('/sheets/export/:businessId', async (req: any, res: any) => {
   }
 });
 
+// POST /api/webhooks/send-manual
+// Envía un mensaje manual desde el dashboard al cliente por WhatsApp
+router.post('/send-manual', async (req: any, res: any) => {
+  const { conversationId, text } = req.body;
+  if (!conversationId || !text?.trim()) {
+    res.status(400).json({ error: 'conversationId y text son requeridos' });
+    return;
+  }
+
+  try {
+    // Obtener conversación + contacto + business
+    const { data: conv, error: convErr } = await supabase
+      .from('conversations')
+      .select('id, business_id, contact:contacts(phone), ai_enabled')
+      .eq('id', conversationId)
+      .single();
+
+    if (convErr || !conv) { res.status(404).json({ error: 'Conversación no encontrada' }); return; }
+
+    const { data: business } = await supabase.from('businesses').select('*').eq('id', conv.business_id).single();
+    if (!business) { res.status(404).json({ error: 'Negocio no encontrado' }); return; }
+
+    const phone = (conv.contact as any)?.phone;
+    if (!phone) { res.status(400).json({ error: 'Sin teléfono de contacto' }); return; }
+
+    // Enviar por Twilio
+    const { sendWhatsAppMessage } = require('../services/twilio');
+    await sendWhatsAppMessage(phone, text.trim(), process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
+
+    // Guardar en messages
+    await supabase.from('messages').insert({
+      conversation_id: conversationId,
+      sender: 'assistant',
+      content: text.trim(),
+      tokens_used: 0,
+    });
+
+    res.json({ ok: true });
+  } catch (err: any) {
+    console.error('[send-manual]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

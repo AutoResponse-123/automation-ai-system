@@ -440,7 +440,21 @@ export default function App() {
     const text = replyText.trim()
     if (!text || !selectedConv || sending) return
     setSending(true)
-    await supabase.from('messages').insert([{ conversation_id: selectedConv.id, sender: 'assistant', content: text }])
+    try {
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/send-manual`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: selectedConv.id, text }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        console.error('[send-manual]', err.error)
+        await supabase.from('messages').insert([{ conversation_id: selectedConv.id, sender: 'assistant', content: text }])
+      }
+    } catch (e) {
+      console.error('[send-manual]', e)
+      await supabase.from('messages').insert([{ conversation_id: selectedConv.id, sender: 'assistant', content: text }])
+    }
     setReplyText('')
     setSending(false)
     textareaRef.current?.focus()
