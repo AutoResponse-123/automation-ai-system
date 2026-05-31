@@ -51,14 +51,15 @@ export default function Appointments({ businessId }: { businessId: string }) {
   const [categories, setCategories] = useState<AppointmentCategory[]>([])
   const [activeCat, setActiveCat] = useState<string | null>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
-  async function cancelAppt(appt: Appointment) {
-    if (!confirm(`¿Cancelar el turno de ${appt.client_name}?`)) return
-    setCancellingId(appt.id)
+  async function cancelAppt(apptId: string) {
+    setCancellingId(apptId)
+    setConfirmingId(null)
     try {
-      const res = await fetch(`${BACKEND_URL}/api/webhooks/appointments/${appt.id}/cancel`, { method: 'POST' })
+      const res = await fetch(`${BACKEND_URL}/api/webhooks/appointments/${apptId}/cancel`, { method: 'POST' })
       if (!res.ok) throw new Error('Error cancelando')
-      setAppts(prev => prev.map(a => a.id === appt.id ? { ...a, status: 'cancelled' } : a))
+      setAppts(prev => prev.map(a => a.id === apptId ? { ...a, status: 'cancelled' } : a))
     } catch (e: any) {
       alert('No se pudo cancelar: ' + e.message)
     } finally {
@@ -220,12 +221,24 @@ export default function Appointments({ businessId }: { businessId: string }) {
                 {appt.reminder_24h_sent && pill('✓ 24h', '#7c3aed')}
                 {appt.reminder_1h_sent && pill('✓ 1h', '#7c3aed')}
                 {appt.status !== 'cancelled' && !isPast && (
-                  <button
-                    onClick={() => cancelAppt(appt)}
-                    disabled={cancellingId === appt.id}
-                    style={{ marginTop: 4, padding: '4px 10px', borderRadius: 6, border: '1px solid #dc262644', background: '#2e0a0a', color: '#f87171', fontSize: 11, cursor: 'pointer', opacity: cancellingId === appt.id ? 0.5 : 1 }}>
-                    {cancellingId === appt.id ? '...' : 'Cancelar'}
-                  </button>
+                  confirmingId === appt.id ? (
+                    <div style={{ display: 'flex', gap: 4, marginTop: 4, alignItems: 'center' }}>
+                      <span style={{ fontSize: 11, color: '#f87171' }}>¿Confirmar?</span>
+                      <button onClick={() => cancelAppt(appt.id)} disabled={cancellingId === appt.id}
+                        style={{ padding: '3px 8px', borderRadius: 5, border: 'none', background: '#dc2626', color: '#fff', fontSize: 11, cursor: 'pointer' }}>
+                        {cancellingId === appt.id ? '...' : 'Sí'}
+                      </button>
+                      <button onClick={() => setConfirmingId(null)}
+                        style={{ padding: '3px 8px', borderRadius: 5, border: '1px solid #3a3a5a', background: 'transparent', color: '#8080a0', fontSize: 11, cursor: 'pointer' }}>
+                        No
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmingId(appt.id)}
+                      style={{ marginTop: 4, padding: '4px 10px', borderRadius: 6, border: '1px solid #dc262644', background: '#2e0a0a', color: '#f87171', fontSize: 11, cursor: 'pointer' }}>
+                      Cancelar
+                    </button>
+                  )
                 )}
               </div>
             </div>
