@@ -38,7 +38,7 @@ export default function AdminLogin() {
               fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: 'JetBrains Mono, monospace'
             }}>A</div>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-1)' }}>AutoResponse</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-1)' }}>Napps</div>
               <div style={{ fontSize: 11, color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Admin Console</div>
             </div>
           </div>
@@ -52,7 +52,7 @@ export default function AdminLogin() {
               <input
                 type="email" value={email} onChange={e => setEmail(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                placeholder="admin@autoresponse.app" autoFocus
+                placeholder="admin@napps.app" autoFocus
                 style={{
                   width: '100%', background: 'var(--bg-raised)', border: '1px solid var(--border)',
                   borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--text-1)',
@@ -121,7 +121,7 @@ export default function AdminLogin() {
 
         {/* Footer */}
         <div style={{ textAlign: 'center', marginTop: 20, fontSize: 11, color: 'var(--text-3)' }}>
-          Acceso restringido · AutoResponse SaaS
+          Acceso restringido · Napps SaaS
         </div>
       </div>
     </div>

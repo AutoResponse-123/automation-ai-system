@@ -40,12 +40,12 @@ export async function sendEscalationEmail(opts: {
         </a>
       </div>
       <div style="padding:16px 28px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;">
-        AutoResponse · Sistema automático de atención por WhatsApp
+        Napps · Sistema automático de atención por WhatsApp
       </div>
     </div>`;
 
   await transporter.sendMail({
-    from: `"AutoResponse" <${process.env.EMAIL_USER}>`,
+    from: `"Napps" <${process.env.EMAIL_USER}>`,
     to: opts.to,
     subject,
     html,

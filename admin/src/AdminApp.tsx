@@ -96,7 +96,7 @@ export default function AdminApp() {
               flexShrink: 0
             }}>A</div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', lineHeight: 1.2 }}>AutoResponse</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', lineHeight: 1.2 }}>Napps</div>
               <div style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Admin</div>
             </div>
           </div>
