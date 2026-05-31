@@ -545,7 +545,7 @@ export default function App() {
     { id: 'contacts',     icon: 'ti-users',            label: 'Contactos' },
     { id: 'appointments', icon: 'ti-calendar',        label: 'Turnos' },
     { id: 'activity',  icon: 'ti-activity',         label: 'Actividad' },
-    { id: 'settings',  icon: 'ti-settings',         label: 'Config' },
+    { id: 'settings',  icon: 'ti-settings',         label: 'Configuración' },
   ]
 
   const filteredConvs = conversations
