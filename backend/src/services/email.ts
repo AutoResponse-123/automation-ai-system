@@ -1,9 +1,6 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendEscalationEmail(opts: {
   to: string;
@@ -13,7 +10,7 @@ export async function sendEscalationEmail(opts: {
   reason: 'keyword' | 'limit';
   keyword?: string;
 }) {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) return;
+  if (!process.env.RESEND_API_KEY) return;
   if (!opts.to) return;
 
   const subject = `🔔 ${opts.botName} necesita tu atención — ${opts.businessName}`;
@@ -44,8 +41,8 @@ export async function sendEscalationEmail(opts: {
       </div>
     </div>`;
 
-  await transporter.sendMail({
-    from: `"Napps" <${process.env.EMAIL_USER}>`,
+  await resend.emails.send({
+    from: 'Napps <onboarding@resend.dev>',
     to: opts.to,
     subject,
     html,

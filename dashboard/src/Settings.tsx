@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
 import { useNotifications } from './hooks/useNotifications'
 import { useIsMobile } from './hooks/useIsMobile'
+import { useLang } from './i18n'
 
 
 interface BusinessConfig {
@@ -32,6 +33,7 @@ interface BusinessConfig {
   google_calendar_id: string | null
   google_refresh_token: string | null
   reminders_enabled: boolean
+  reminder_hours_before: number[]
   mp_access_token: string | null
   sheets_refresh_token: string | null
   sheets_spreadsheet_id: string | null
@@ -78,6 +80,7 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
   businessId: string | null
   onThemeChange?: (accent?: string, bg?: string) => void
 }) {
+  const { lang, setLang } = useLang()
   const { permission, enabled: notifEnabled, setEnabled: setNotifEnabled, requestPermission, sendNotification, isSupported } = useNotifications()
   const [config, setConfig] = useState<BusinessConfig | null>(null)
   const [loading, setLoading] = useState(true)
@@ -136,6 +139,7 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
         google_calendar_id: data.google_calendar_id ?? null,
         google_refresh_token: data.google_refresh_token ?? null,
         reminders_enabled: data.reminders_enabled ?? false,
+        reminder_hours_before: data.reminder_hours_before ?? [24],
         mp_access_token: data.mp_access_token ?? null,
         sheets_refresh_token: data.sheets_refresh_token ?? null,
         sheets_spreadsheet_id: data.sheets_spreadsheet_id ?? null,
@@ -687,6 +691,19 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
                 <i className="ti ti-info-circle" style={{ marginRight: 6 }} />
                 Los cambios de color se aplican en vivo. Guardá para que persistan al recargar.
               </div>
+
+              {/* Idioma de la interfaz */}
+              <Field label="Idioma de la interfaz" hint="Cambia el idioma del dashboard (no afecta al bot)">
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {(['es', 'en'] as const).map(l => (
+                    <button key={l}
+                      onClick={() => setLang(l)}
+                      style={{ padding: '6px 18px', borderRadius: 8, border: `1px solid ${lang === l ? 'var(--accent)' : '#2d2d3d'}`, background: lang === l ? 'var(--accent-dim)' : '#1a1a2e', color: lang === l ? 'var(--accent)' : '#6b7280', fontSize: 13, cursor: 'pointer', fontWeight: lang === l ? 600 : 400 }}>
+                      {l === 'es' ? '🇦🇷 Español' : '🇺🇸 English'}
+                    </button>
+                  ))}
+                </div>
+              </Field>
             </div>
           )}
 
@@ -712,28 +729,50 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
               />
 
               {/* Recordatorios automáticos */}
-              <IntegrationCard
-                icon="ti-bell-ringing" iconColor="#f59e0b"
-                name="Recordatorios automáticos"
-                description={
-                  !config.google_refresh_token
-                    ? 'Requiere Google Calendar conectado'
-                    : config.reminders_enabled
-                      ? 'Enviando recordatorios 24h y 1h antes de cada turno'
-                      : 'Activá para enviar recordatorios de turno por WhatsApp'
-                }
-                status={!config.google_refresh_token ? 'disabled' : config.reminders_enabled ? 'connected' : 'disconnected'}
-                connectLabel="Activar"
-                disconnectLabel="Desactivar"
-                onConnect={async () => {
-                  await supabase.from('businesses').update({ reminders_enabled: true }).eq('id', businessId!)
-                  update('reminders_enabled', true)
-                }}
-                onDisconnect={async () => {
-                  await supabase.from('businesses').update({ reminders_enabled: false }).eq('id', businessId!)
-                  update('reminders_enabled', false)
-                }}
-              />
+              <div style={{ background: '#0d0d14', border: `0.5px solid ${config.reminders_enabled ? '#2a3a2a' : '#1e1e2e'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <i className="ti ti-bell-ringing" style={{ fontSize: 18, color: '#f59e0b' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>Recordatorios automáticos</div>
+                    <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
+                      {!config.google_refresh_token ? 'Requiere Google Calendar conectado' : 'Enviá recordatorios de turno por WhatsApp'}
+                    </div>
+                  </div>
+                  <div style={{ ...s.toggleTrack, ...(config.reminders_enabled ? s.toggleTrackOn : {}), opacity: !config.google_refresh_token ? 0.4 : 1, cursor: !config.google_refresh_token ? 'not-allowed' : 'pointer' }}
+                    onClick={async () => {
+                      if (!config.google_refresh_token) return
+                      const val = !config.reminders_enabled
+                      await supabase.from('businesses').update({ reminders_enabled: val }).eq('id', businessId!)
+                      update('reminders_enabled', val)
+                    }}>
+                    <div style={{ ...s.toggleThumb, ...(config.reminders_enabled ? s.toggleThumbOn : {}) }} />
+                  </div>
+                </div>
+                {config.reminders_enabled && config.google_refresh_token && (
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #1e1e2e' }}>
+                    <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 8 }}>¿Cuándo enviar el recordatorio?</div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {[{ label: '2 horas antes', value: 2 }, { label: '24 horas antes', value: 24 }, { label: '48 horas antes', value: 48 }].map(opt => {
+                        const active = (config.reminder_hours_before || []).includes(opt.value)
+                        return (
+                          <button key={opt.value}
+                            style={{ padding: '5px 12px', borderRadius: 6, border: `1px solid ${active ? '#7c3aed' : '#2d2d3d'}`, background: active ? '#3b1f6e' : '#1a1a2e', color: active ? '#c4b5fd' : '#6b7280', fontSize: 12, cursor: 'pointer' }}
+                            onClick={async () => {
+                              const current = config.reminder_hours_before || []
+                              const next = active ? current.filter((h: number) => h !== opt.value) : [...current, opt.value]
+                              await supabase.from('businesses').update({ reminder_hours_before: next }).eq('id', businessId!)
+                              update('reminder_hours_before', next)
+                            }}>
+                            {opt.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Mercado Pago */}
               <IntegrationCard

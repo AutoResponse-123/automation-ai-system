@@ -1,6 +1,8 @@
 export {};
 import './App.css'
 import { useEffect, useState, useRef } from 'react'
+import { LangContext } from './i18n'
+import type { Lang } from './i18n'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
@@ -129,6 +131,7 @@ const DEFAULT_QUICK_REPLIES: string[] = []
 // ── Main App ──────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const [lang, setLang] = useState<Lang>(() => (localStorage.getItem('ui_lang') as Lang) || 'es')
   const [tab, setTab] = useState<Tab>('dashboard')
   const [session, setSession] = useState<Session | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
@@ -568,6 +571,7 @@ export default function App() {
   // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
+    <LangContext.Provider value={{ lang, setLang: (l) => { setLang(l); localStorage.setItem('ui_lang', l) } }}>
     <div style={{ ...s.shell, ...(isMobile ? { display: 'flex', flexDirection: 'column', gridTemplateColumns: 'none' } : {}) }} className="app-shell">
 
       {/* Sidebar */}
@@ -1169,6 +1173,7 @@ export default function App() {
         />
       )}
     </div>
+    </LangContext.Provider>
   )
 }
 

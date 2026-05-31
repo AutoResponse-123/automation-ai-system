@@ -7,12 +7,13 @@ async function getOrCreateConversation(
 ) {
   const { data: contact, error: contactError } = await supabase
     .from('contacts')
-    .select('id')
+    .select('id, summary')
     .eq('business_id', businessId)
     .eq('phone', contactPhone)
     .single();
 
   let contactId: string;
+  let contactSummary: string | null = null;
 
   if (contactError || !contact) {
     const { data: newContact, error: createError } = await supabase
@@ -25,6 +26,7 @@ async function getOrCreateConversation(
     contactId = newContact.id;
   } else {
     contactId = contact.id;
+    contactSummary = contact.summary || null;
   }
 
   const { data: conversation, error: convError } = await supabase
@@ -50,7 +52,44 @@ async function getOrCreateConversation(
     conversationId = conversation.id;
   }
 
-  return { contactId, conversationId };
+  return { contactId, conversationId, contactSummary };
+}
+
+async function updateContactSummary(contactId: string, conversationId: string, business: any) {
+  // Traer los últimos 40 mensajes de la conversación actual
+  const { data: messages } = await supabase
+    .from('messages')
+    .select('sender, content, created_at')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: true })
+    .limit(40);
+
+  if (!messages || messages.length < 3) return;
+
+  const transcript = messages.map((m: any) =>
+    `${m.sender === 'user' ? 'Cliente' : 'Bot'}: ${m.content}`
+  ).join('\n');
+
+  const { callClaude } = require('./claude');
+  const systemPrompt = `Sos un asistente que genera resúmenes concisos de conversaciones de atención al cliente para que el bot tenga contexto en futuras interacciones. Respondé SOLO con el resumen, sin preámbulos.`;
+  const userPrompt = `Resumí en 3-5 puntos breves lo más relevante de esta conversación: qué consultó el cliente, qué se acordó o resolvió, preferencias o datos importantes (nombre, servicio preferido, etc.). Será usado como contexto en próximas conversaciones con este cliente.
+
+Conversación:
+${transcript}`;
+
+  try {
+    const { text } = await callClaude(
+      [{ role: 'user', content: userPrompt }],
+      systemPrompt,
+      300
+    );
+    if (text) {
+      await supabase.from('contacts').update({ summary: text }).eq('id', contactId);
+      console.log(`[summary] Actualizado para contacto ${contactId}`);
+    }
+  } catch (err: any) {
+    console.error('[updateContactSummary]', err.message);
+  }
 }
 
 async function saveMessage(
@@ -128,4 +167,5 @@ module.exports = {
   getBusiness,
   getBusinessByPhone,
   updateConversationStatus,
+  updateContactSummary,
 };
