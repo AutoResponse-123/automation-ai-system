@@ -21,6 +21,10 @@ function buildSystemPrompt(business: any): string {
   parts.push(`Tu tono de comunicación es ${tone}. Respondé siempre en ${language === 'es' ? 'español' : language === 'en' ? 'inglés' : 'portugués'}.`);
   parts.push(`Respondé de manera breve y clara. Máximo 2-3 oraciones por respuesta salvo que sea necesario más detalle.`);
 
+  const tz = business.schedule?.timezone || 'America/Argentina/Buenos_Aires';
+  const nowStr = new Date().toLocaleDateString('es-AR', { timeZone: tz, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  parts.push(`\nFecha y hora actual (${tz}): ${nowStr}. Usá esta fecha como referencia para interpretar palabras como "hoy", "mañana", "pasado mañana", etc.`);
+
   if (business.business_description) parts.push(`\nSobre el negocio: ${business.business_description}`);
   if (business.services) parts.push(`\nServicios que ofrecemos: ${business.services}`);
   if (business.prices) parts.push(`\nPrecios: ${business.prices}`);
@@ -56,6 +60,7 @@ function buildSystemPrompt(business: any): string {
 
   parts.push(`\nSi no sabés algo, decilo honestamente y ofrecé derivar al equipo humano.`);
   parts.push(`No inventes información sobre precios, disponibilidad o servicios que no se mencionan arriba.`);
+  parts.push(`IMPORTANTE: Cuando haya un error técnico o necesites derivar a un humano, NUNCA menciones datos de contacto (Instagram, dirección, teléfono). Solo decí que vas a derivar al equipo y que alguien se va a comunicar.`);
 
   return parts.join('\n');
 }

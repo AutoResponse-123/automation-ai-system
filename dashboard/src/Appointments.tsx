@@ -4,6 +4,7 @@ import { supabase } from './supabase'
 interface Appointment {
   id: string
   title: string
+  category: string | null
   client_name: string
   client_phone: string
   appointment_date: string
@@ -12,6 +13,13 @@ interface Appointment {
   reminder_24h_sent: boolean
   reminder_1h_sent: boolean
   created_at: string
+}
+
+interface AppointmentCategory {
+  id: string
+  name: string
+  duration_minutes: number
+  color: string
 }
 
 type Filter = 'upcoming' | 'past' | 'today'
@@ -35,11 +43,19 @@ export default function Appointments({ businessId }: { businessId: string }) {
   const [filter, setFilter] = useState<Filter>('upcoming')
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [categories, setCategories] = useState<AppointmentCategory[]>([])
+  const [activeCat, setActiveCat] = useState<string | null>(null)
 
   useEffect(() => {
     if (!businessId) return
     loadAppts()
+    loadCategories()
   }, [businessId, filter])
+
+  async function loadCategories() {
+    const { data } = await supabase.from('businesses').select('appointment_categories').eq('id', businessId).single()
+    setCategories(data?.appointment_categories ?? [])
+  }
 
   async function loadAppts() {
     setLoading(true)
@@ -53,12 +69,15 @@ export default function Appointments({ businessId }: { businessId: string }) {
     setLoading(false)
   }
 
-  const filtered = appts.filter(a =>
-    !search ||
-    a.client_name?.toLowerCase().includes(search.toLowerCase()) ||
-    a.client_phone?.includes(search) ||
-    a.title?.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = appts.filter(a => {
+    const matchSearch = !search ||
+      a.client_name?.toLowerCase().includes(search.toLowerCase()) ||
+      a.client_phone?.includes(search) ||
+      a.title?.toLowerCase().includes(search.toLowerCase())
+    const matchCat = !activeCat || a.category === activeCat ||
+      (!a.category && a.title?.toLowerCase() === activeCat.toLowerCase())
+    return matchSearch && matchCat
+  })
 
   const today = new Date().toISOString().split('T')[0]
   const todayCount = appts.filter(a => a.appointment_date === today).length
@@ -112,6 +131,33 @@ export default function Appointments({ businessId }: { businessId: string }) {
         <div style={s.stat}><span style={s.statVal}>{appts.filter(a => a.reminder_24h_sent).length}</span><span style={s.statLabel}>Recordatorios enviados</span></div>
       </div>
 
+      {/* Category filters */}
+      {categories.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' as const }}>
+          <button
+            style={{ ...s.filterBtn(activeCat === null), fontSize: 11 }}
+            onClick={() => setActiveCat(null)}>
+            Todas
+          </button>
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCat(activeCat === cat.name ? null : cat.name)}
+              style={{
+                padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                border: activeCat === cat.name ? 'none' : `1px solid ${cat.color}44`,
+                background: activeCat === cat.name ? cat.color : cat.color + '18',
+                color: activeCat === cat.name ? '#fff' : cat.color,
+              }}>
+              {cat.name}
+              <span style={{ marginLeft: 5, opacity: 0.7, fontSize: 10 }}>
+                {appts.filter(a => a.category === cat.name || (!a.category && a.title?.toLowerCase() === cat.name.toLowerCase())).length}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Search */}
       <div style={s.searchWrap}>
         <i className="ti ti-search" style={s.searchIcon} />
@@ -141,7 +187,10 @@ export default function Appointments({ businessId }: { businessId: string }) {
                   <span>🕐 {formatTime(appt.appointment_time)}</span>
                   {appt.duration_minutes && <span>⏱ {appt.duration_minutes}min</span>}
                   {appt.client_phone && <span>📱 {appt.client_phone}</span>}
-                  {appt.title && <span style={{ color: 'var(--accent)' }}>• {appt.title}</span>}
+                  {appt.title && (() => {
+                    const cat = categories.find(c => c.name === (appt.category || appt.title))
+                    return <span style={{ color: cat?.color ?? 'var(--accent)', fontWeight: 500 }}>• {appt.title}</span>
+                  })()}
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>

@@ -35,6 +35,7 @@ interface BusinessConfig {
   mp_access_token: string | null
   sheets_refresh_token: string | null
   sheets_spreadsheet_id: string | null
+  appointment_categories: AppointmentCategory[]
   schedule: {
     enabled: boolean
     timezone: string
@@ -63,7 +64,14 @@ const LANGUAGES = [
   { code: 'pt', label: 'Português' },
 ]
 
-type Section = 'personalidad' | 'negocio' | 'escalacion' | 'horarios' | 'notificaciones' | 'apariencia' | 'integraciones'
+type Section = 'personalidad' | 'negocio' | 'escalacion' | 'horarios' | 'notificaciones' | 'apariencia' | 'integraciones' | 'turnos'
+
+interface AppointmentCategory {
+  id: string
+  name: string
+  duration_minutes: number
+  color: string
+}
 
 export default function Settings({ onSave, businessId, onThemeChange }: {
   onSave?: () => void
@@ -82,6 +90,10 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
   const isMobile = useIsMobile()
   const [showSectionDropdown, setShowSectionDropdown] = useState(false)
   const [bgColor, setBgColor] = useState<string>(() => localStorage.getItem('ar_bg_color') ?? '#07070d')
+  const [newCatName, setNewCatName] = useState('')
+  const [newCatDuration, setNewCatDuration] = useState(30)
+  const [newCatColor, setNewCatColor] = useState('#a78bfa')
+  const [editingCatId, setEditingCatId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string>('')
   const [useAlternateEmail, setUseAlternateEmail] = useState(false)
 
@@ -127,6 +139,7 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
         mp_access_token: data.mp_access_token ?? null,
         sheets_refresh_token: data.sheets_refresh_token ?? null,
         sheets_spreadsheet_id: data.sheets_spreadsheet_id ?? null,
+        appointment_categories: data.appointment_categories ?? [],
         schedule: data.schedule ?? DEFAULT_SCHEDULE,
       })
     }
@@ -164,6 +177,7 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
       max_messages_before_escalation: config.max_messages_before_escalation,
       accent_color: config.accent_color,
       schedule: config.schedule,
+      appointment_categories: config.appointment_categories,
       updated_at: new Date().toISOString(),
     }).eq('id', businessId!)
     localStorage.setItem('ar_bg_color', bgColor)
@@ -203,6 +217,7 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
     { id: 'notificaciones', icon: 'ti-bell',         label: 'Notificaciones' },
     { id: 'apariencia',     icon: 'ti-palette',      label: 'Apariencia' },
     { id: 'integraciones',  icon: 'ti-plug',         label: 'Integraciones' },
+    { id: 'turnos',         icon: 'ti-calendar-event', label: 'Turnos' },
   ]
 
   return (
@@ -826,6 +841,103 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
             </div>
           )}
 
+          {/* ── Turnos ── */}
+          {activeSection === 'turnos' && (
+            <div style={s.section}>
+              <SectionHeader icon="ti-calendar-event" title="Configuración de turnos" subtitle="Definí las categorías de servicio y su duración por defecto" />
+
+              {/* Lista de categorías */}
+              <div style={{ marginBottom: 20 }}>
+                {(config.appointment_categories ?? []).length === 0 && (
+                  <div style={{ fontSize: 13, color: '#4a4a6a', padding: '16px 0' }}>No hay categorías todavía. Agregá una abajo.</div>
+                )}
+                {(config.appointment_categories ?? []).map((cat) => (
+                  <div key={cat.id} style={{ background: '#0d0d14', border: `0.5px solid ${editingCatId === cat.id ? cat.color + '88' : '#1e1e2e'}`, borderRadius: 10, padding: '12px 16px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 14, height: 14, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
+                    {editingCatId === cat.id ? (
+                      <div style={{ flex: 1, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' as const }}>
+                        <input
+                          style={{ ...s.input, flex: 1, minWidth: 120 }}
+                          value={cat.name}
+                          onChange={e => update('appointment_categories', config.appointment_categories.map(c => c.id === cat.id ? { ...c, name: e.target.value } : c))}
+                        />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <input
+                            style={{ ...s.input, width: 70 }}
+                            type="number" min={5} max={480} step={5}
+                            value={cat.duration_minutes}
+                            onChange={e => update('appointment_categories', config.appointment_categories.map(c => c.id === cat.id ? { ...c, duration_minutes: parseInt(e.target.value) } : c))}
+                          />
+                          <span style={{ fontSize: 12, color: '#4a4a6a', whiteSpace: 'nowrap' as const }}>min</span>
+                        </div>
+                        <input type="color" value={cat.color}
+                          onChange={e => update('appointment_categories', config.appointment_categories.map(c => c.id === cat.id ? { ...c, color: e.target.value } : c))}
+                          style={{ width: 32, height: 32, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 6, padding: 2 }} />
+                        <button onClick={() => setEditingCatId(null)} style={{ ...s.addBtn, fontSize: 12 }}>✓ Listo</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>{cat.name}</span>
+                          <span style={{ fontSize: 12, color: '#4a4a6a', marginLeft: 10 }}>⏱ {cat.duration_minutes} min</span>
+                        </div>
+                        <button onClick={() => setEditingCatId(cat.id)} style={{ background: 'none', border: 'none', color: '#6a6a8a', cursor: 'pointer', fontSize: 13, padding: '4px 6px' }}>
+                          <i className="ti ti-pencil" />
+                        </button>
+                        <button onClick={() => update('appointment_categories', config.appointment_categories.filter(c => c.id !== cat.id))}
+                          style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: 13, padding: '4px 6px' }}>
+                          <i className="ti ti-trash" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Agregar categoría */}
+              <div style={{ background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 10, padding: '14px 16px' }}>
+                <div style={{ fontSize: 12, color: '#8b8baa', marginBottom: 10, fontWeight: 500 }}>Nueva categoría</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'center' }}>
+                  <input
+                    style={{ ...s.input, flex: 1, minWidth: 140 }}
+                    placeholder="Nombre del servicio (ej: Corte, Consulta)"
+                    value={newCatName}
+                    onChange={e => setNewCatName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && newCatName.trim()) {
+                        update('appointment_categories', [...(config.appointment_categories ?? []), { id: crypto.randomUUID(), name: newCatName.trim(), duration_minutes: newCatDuration, color: newCatColor }])
+                        setNewCatName(''); setNewCatDuration(30)
+                      }
+                    }}
+                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <input
+                      style={{ ...s.input, width: 70 }}
+                      type="number" min={5} max={480} step={5}
+                      value={newCatDuration}
+                      onChange={e => setNewCatDuration(parseInt(e.target.value))}
+                    />
+                    <span style={{ fontSize: 12, color: '#4a4a6a', whiteSpace: 'nowrap' as const }}>min</span>
+                  </div>
+                  <input type="color" value={newCatColor} onChange={e => setNewCatColor(e.target.value)}
+                    style={{ width: 36, height: 36, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 6, padding: 2 }} />
+                  <button
+                    onClick={() => {
+                      if (!newCatName.trim()) return
+                      update('appointment_categories', [...(config.appointment_categories ?? []), { id: crypto.randomUUID(), name: newCatName.trim(), duration_minutes: newCatDuration, color: newCatColor }])
+                      setNewCatName(''); setNewCatDuration(30)
+                    }}
+                    style={s.addBtn}>
+                    + Agregar
+                  </button>
+                </div>
+                <div style={{ fontSize: 11, color: '#3a3a5a', marginTop: 8 }}>
+                  Las categorías aparecerán como filtros en la sección Turnos y definen la duración por defecto de cada servicio.
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* Save bar */}
@@ -934,10 +1046,10 @@ function TagInput({ tags, value, onChange, onAdd, onRemove, placeholder, color }
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
 const s: Record<string, React.CSSProperties> = {
-  container: { display: 'grid', gridTemplateColumns: '220px 1fr', height: '100%', overflow: 'hidden' },
-  sectNav: { background: '#0d0d14', borderRight: '0.5px solid #1e1e2e', padding: '20px 10px', display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' },
-  sectNavTitle: { fontSize: 9.5, color: '#3a3a5a', textTransform: 'uppercase', letterSpacing: 0, fontWeight: 600, padding: 0, marginBottom: 10, whiteSpace: 'nowrap' as const },
-  sectBtn: { display: 'flex', alignItems: 'center', gap: 9, padding: '9px 10px', borderRadius: 8, border: 'none', background: 'transparent', color: '#7a7a9a', fontSize: 13, fontWeight: 500, cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'color 0.15s, background 0.15s', letterSpacing: '0.01em' },
+  container: { display: 'grid', gridTemplateColumns: '200px 1fr', height: '100%', overflow: 'hidden' },
+  sectNav: { background: '#0d0d14', borderRight: '0.5px solid #1e1e2e', padding: '16px 8px', display: 'flex', flexDirection: 'column', gap: 1, overflowY: 'auto', overflowX: 'hidden' as const },
+  sectNavTitle: { fontSize: 8.5, color: '#3a3a5a', textTransform: 'uppercase', letterSpacing: 0, fontWeight: 600, padding: '0 4px', marginBottom: 8, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' },
+  sectBtn: { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 7, border: 'none', background: 'transparent', color: '#7a7a9a', fontSize: 12, fontWeight: 500, cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'color 0.15s, background 0.15s', letterSpacing: '0.01em' },
   sectBtnActive: { background: '#16162a', color: '#c4b5fd' },
   content: { display: 'grid', gridTemplateRows: '1fr auto', overflow: 'hidden' },
   contentInner: { overflowY: 'auto', padding: 24 },

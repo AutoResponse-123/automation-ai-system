@@ -131,7 +131,7 @@ async function callClaude(
           durationMinutes: toolUseBlock.input.duration_minutes,
         });
         // Guardar en Supabase para recordatorios
-        await supabase.from('appointments').insert({
+        const { error: insertErr } = await supabase.from('appointments').insert({
           business_id: business.id,
           google_event_id: eventId,
           title: toolUseBlock.input.title,
@@ -140,7 +140,8 @@ async function callClaude(
           appointment_date: toolUseBlock.input.date,
           appointment_time: toolUseBlock.input.time + ':00',
           duration_minutes: toolUseBlock.input.duration_minutes || 60,
-        }).catch((e: any) => console.error('[appointments insert]', e.message));
+        });
+        if (insertErr) console.error('[appointments insert]', insertErr.message);
         toolResult = `Turno creado exitosamente. ID: ${eventId}`;
         console.log(`[create_appointment] OK — Event ID: ${eventId}`);
       } else if (toolUseBlock.name === 'create_payment_link') {

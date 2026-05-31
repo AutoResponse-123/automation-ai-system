@@ -1290,7 +1290,7 @@ const s: Record<string, React.CSSProperties> = {
   logo: { width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, var(--accent-dark), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 10, flexShrink: 0, letterSpacing: '0.03em', boxShadow: '0 4px 12px var(--accent-glow)' },
   sIcon: { width: 52, borderRadius: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '7px 0', cursor: 'pointer', color: '#3a3a5a', background: 'transparent', border: 'none', position: 'relative', transition: 'color 0.15s, background 0.15s' },
   sIconActive: { background: 'var(--accent-dim)', color: 'var(--accent)' },
-  sLabel: { fontSize: 9, fontWeight: 500, letterSpacing: '0.02em', color: '#3a3a5a', textTransform: 'uppercase' as const },
+  sLabel: { fontSize: 8, fontWeight: 500, letterSpacing: '0.01em', color: '#3a3a5a', textTransform: 'uppercase' as const, maxWidth: 52, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
   badge: { position: 'absolute', top: 5, right: 5, background: '#f87171', borderRadius: 10, fontSize: 9, color: '#fff', padding: '1px 4px', fontWeight: 700, lineHeight: 1.4 },
   userAvatar: { width: 30, height: 30, borderRadius: '50%', background: 'var(--accent-dim)', border: '1px solid var(--border-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'var(--accent)', fontWeight: 600, marginTop: 4, cursor: 'pointer' },
 
@@ -1376,4 +1376,3 @@ const s: Record<string, React.CSSProperties> = {
   noteModeBar: { fontSize: 11, color: '#d97706', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, padding: '0 2px', fontWeight: 500 },
   textareaNote: { borderColor: '#3a2500', background: '#100b00' },
 }
-  
