@@ -150,7 +150,7 @@ export default function App() {
   const [convSearch, setConvSearch] = useState('')
   const [tagFilter, setTagFilter] = useState<string | null>(null)
   const [showTagFilterPopover, setShowTagFilterPopover] = useState(false)
-  const [dashScale, setDashScale] = useState<'day' | 'week' | 'month' | 'year'>('day')
+  const [dashScale, setDashScale] = useState<'day' | 'week' | 'month' | '6months' | 'year'>('day')
   const [reservations, setReservations] = useState(0)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
@@ -369,13 +369,14 @@ export default function App() {
     showToast('📝 Nota guardada', 'info')
   }
 
-  async function loadMetrics(scale: 'day' | 'week' | 'month' | 'year' = dashScale) {
+  async function loadMetrics(scale: 'day' | 'week' | 'month' | '6months' | 'year' = dashScale) {
     if (!businessId) return
     const now = new Date()
     const periodStart = new Date(now)
     if (scale === 'day')   { periodStart.setHours(0, 0, 0, 0) }
     if (scale === 'week')  { periodStart.setDate(now.getDate() - 7); periodStart.setHours(0,0,0,0) }
     if (scale === 'month') { periodStart.setDate(1); periodStart.setHours(0,0,0,0) }
+    if (scale === '6months') { periodStart.setMonth(now.getMonth() - 6); periodStart.setHours(0,0,0,0) }
     if (scale === 'year')  { periodStart.setMonth(0, 1); periodStart.setHours(0,0,0,0) }
     const prevStart = new Date(periodStart)
     const diff = now.getTime() - periodStart.getTime()
@@ -665,13 +666,13 @@ export default function App() {
             <Onboarding business={businessData} onGoToSettings={() => setTab('settings')} />
             {/* Selector de escala */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-              {(['day', 'week', 'month', 'year'] as const).map(sc => (
+              {(['day', 'week', 'month', '6months', 'year'] as const).map(sc => (
                 <button key={sc} onClick={() => { setDashScale(sc); loadMetrics(sc) }}
                   style={{ padding: '5px 14px', borderRadius: 8, border: '0.5px solid', fontSize: 12, fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s',
                     background: dashScale === sc ? 'var(--accent-dim)' : 'transparent',
                     borderColor: dashScale === sc ? 'var(--accent)' : '#2e2e4e',
                     color: dashScale === sc ? 'var(--accent)' : '#5a5a7a' }}>
-                  {sc === 'day' ? 'Hoy' : sc === 'week' ? 'Semana' : sc === 'month' ? 'Mes' : 'Año'}
+                  {sc === 'day' ? 'Hoy' : sc === 'week' ? 'Semana' : sc === 'month' ? 'Mes' : sc === '6months' ? '6M' : 'Año'}
                 </button>
               ))}
             </div>
@@ -681,7 +682,7 @@ export default function App() {
               </div>
             ) : (
               <div style={s.metricsGrid} className="metrics-grid">
-                <MetricCard label={dashScale === 'day' ? 'Mensajes hoy' : dashScale === 'week' ? 'Mensajes esta semana' : dashScale === 'month' ? 'Mensajes este mes' : 'Mensajes este año'}
+                <MetricCard label={dashScale === 'day' ? 'Mensajes hoy' : dashScale === 'week' ? 'Mensajes esta semana' : dashScale === 'month' ? 'Mensajes este mes' : dashScale === '6months' ? 'Últimos 6 meses' : 'Mensajes este año'}
                   value={metrics.todayMessages.toLocaleString()}
                   sub={`${metrics.totalMessages.toLocaleString()} total`}
                   trend={todayTrend} trendDetail={`período anterior: ${yesterdayMsgCount}`}
@@ -690,7 +691,7 @@ export default function App() {
                   sub={`~$${metrics.estimatedCost.toFixed(2)} USD`} color="#f59e0b"
                   icon="ti-coins" iconColor="#f59e0b" />
                 <MetricCard label="Reservas realizadas" value={reservations.toString()}
-                  sub={dashScale === 'day' ? 'hoy' : dashScale === 'week' ? 'esta semana' : dashScale === 'month' ? 'este mes' : 'este año'}
+                  sub={dashScale === 'day' ? 'hoy' : dashScale === 'week' ? 'esta semana' : dashScale === 'month' ? 'este mes' : dashScale === '6months' ? 'últimos 6 meses' : 'este año'}
                   color="#22c55e" icon="ti-calendar-check" iconColor="#22c55e" />
                 <MetricCard label="Contactos únicos" value={metrics.uniqueContacts.toLocaleString()} sub="registrados"
                   icon="ti-users" iconColor="#e879f9" />

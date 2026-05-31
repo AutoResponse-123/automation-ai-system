@@ -19,7 +19,7 @@ interface DayStat {
   automationRate: number
 }
 
-type Range = '7d' | '14d' | '30d'
+type Range = '7d' | '14d' | '30d' | '90d' | '6m' | '1y'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -159,7 +159,7 @@ export default function Analytics({ businessId }: { businessId: string | null })
 
   async function loadStats() {
     setLoading(true)
-    const days = range === '7d' ? 7 : range === '14d' ? 14 : 30
+    const days = range === '7d' ? 7 : range === '14d' ? 14 : range === '30d' ? 30 : range === '90d' ? 90 : range === '6m' ? 182 : 365
     const from = new Date()
     from.setDate(from.getDate() - days)
     from.setHours(0, 0, 0, 0)
@@ -196,7 +196,7 @@ export default function Analytics({ businessId }: { businessId: string | null })
         user: v.user,
         assistant: v.assistant,
         tokens: v.tokens,
-        automationRate: v.user > 0 ? Math.round((v.assistant / v.user) * 100) : 0
+        automationRate: v.user > 0 ? Math.min(100, Math.round((v.assistant / v.user) * 100)) : 0
       }))
 
     setStats(result)
@@ -218,10 +218,10 @@ export default function Analytics({ businessId }: { businessId: string | null })
       <div style={s.header}>
         <span style={s.headerTitle}>Analytics</span>
         <div style={s.rangeGroup}>
-          {(['7d', '14d', '30d'] as Range[]).map(r => (
+          {(['7d', '14d', '30d', '90d', '6m', '1y'] as Range[]).map(r => (
             <button key={r} onClick={() => setRange(r)}
               style={{ ...s.rangeBtn, ...(range === r ? s.rangeBtnActive : {}) }}>
-              {r === '7d' ? '7 días' : r === '14d' ? '14 días' : '30 días'}
+              {r === '7d' ? '7d' : r === '14d' ? '14d' : r === '30d' ? '30d' : r === '90d' ? '90d' : r === '6m' ? '6 meses' : '1 año'}
             </button>
           ))}
         </div>

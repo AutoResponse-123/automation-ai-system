@@ -104,8 +104,8 @@ export default function Onboarding({ business, onGoToSettings }: OnboardingProps
           <div key={step.id} style={{
             display: 'flex', alignItems: 'center', gap: 10,
             padding: '8px 12px', borderRadius: 8,
-            background: step.done ? 'var(--accent-dim)' : 'var(--bg)',
-            border: `1px solid ${step.done ? 'var(--accent)' : 'var(--border)'}`,
+            background: step.done ? 'var(--accent-dim)' : '#0d0d18',
+            border: `1px solid ${step.done ? 'var(--accent)' : '#2a2a3e'}`,
             opacity: step.done ? 0.8 : 1,
           }}>
             <div style={{

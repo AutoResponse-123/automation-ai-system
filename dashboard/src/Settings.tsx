@@ -26,6 +26,7 @@ interface BusinessConfig {
   max_tokens: number
   escalation_email: string
   daily_summary: boolean
+  summary_frequency: string
   max_messages_before_escalation: number
   accent_color: string
   google_calendar_id: string | null
@@ -117,6 +118,7 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
         max_tokens: data.max_tokens ?? 300,
         escalation_email: data.escalation_email ?? '',
         daily_summary: data.daily_summary ?? false,
+        summary_frequency: data.summary_frequency ?? 'daily',
         max_messages_before_escalation: data.max_messages_before_escalation ?? 10,
         accent_color: data.accent_color ?? '#a78bfa',
         google_calendar_id: data.google_calendar_id ?? null,
@@ -158,6 +160,7 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
       max_tokens: config.max_tokens,
       escalation_email: config.escalation_email,
       daily_summary: config.daily_summary,
+      summary_frequency: config.summary_frequency,
       max_messages_before_escalation: config.max_messages_before_escalation,
       accent_color: config.accent_color,
       schedule: config.schedule,
@@ -315,7 +318,7 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
                     onChange={e => update('max_tokens', parseInt(e.target.value))} />
                   <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 4 }}>
                     Costo estimado: <span style={{ color: '#f59e0b' }}>${(config.max_tokens / 1_000_000 * 9).toFixed(4)} USD</span> por respuesta
-                    {' · '}<span style={{ color: '#8b8baa' }}>× 100 resp = ${(config.max_tokens / 1_000_000 * 9 * 100).toFixed(3)} USD/mes</span>
+                    {' · '}<span style={{ color: '#8b8baa' }}>× 100 resp = ${(config.max_tokens / 1_000_000 * 9 * 100).toFixed(3)} USD</span>
                   </div>
                 </Field>
                 <div />
@@ -516,12 +519,22 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
               <Field label="">
                 <div style={s.toggleRow}>
                   <div>
-                    <div style={{ fontSize: 13, color: '#c4c4d4', fontWeight: 500 }}>Resumen diario</div>
-                    <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 2 }}>Recibí un resumen por email con las métricas del día</div>
+                    <div style={{ fontSize: 13, color: '#c4c4d4', fontWeight: 500 }}>Resumen por email</div>
+                    <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 2 }}>Recibí un resumen con las métricas de tu negocio</div>
                   </div>
-                  <div style={{ ...s.toggleTrack, ...(config.daily_summary ? s.toggleTrackOn : {}) }}
-                    onClick={() => update('daily_summary', !config.daily_summary)}>
-                    <div style={{ ...s.toggleThumb, ...(config.daily_summary ? s.toggleThumbOn : {}) }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {config.daily_summary && (
+                      <select value={config.summary_frequency}
+                        onChange={e => update('summary_frequency', e.target.value)}
+                        style={{ background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 6, padding: '4px 8px', color: '#c4c4d4', fontSize: 11, cursor: 'pointer' }}>
+                        <option value="daily">Diario</option>
+                        <option value="weekly">Semanal</option>
+                      </select>
+                    )}
+                    <div style={{ ...s.toggleTrack, ...(config.daily_summary ? s.toggleTrackOn : {}) }}
+                      onClick={() => update('daily_summary', !config.daily_summary)}>
+                      <div style={{ ...s.toggleThumb, ...(config.daily_summary ? s.toggleThumbOn : {}) }} />
+                    </div>
                   </div>
                 </div>
               </Field>
@@ -601,9 +614,12 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
               {/* Color de acento */}
               <Field label="Color de acento" hint="Afecta botones, íconos activos, badges y acentos en todo el dashboard">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' as const }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 3 }}>
                   <input type="color" value={config.accent_color}
                     onChange={e => { update('accent_color', e.target.value); onThemeChange?.(e.target.value, bgColor) }}
                     style={{ width: 44, height: 44, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 10, padding: 2 }} />
+                  <span style={{ fontSize: 9, color: '#4a4a6a' }}>click para personalizar</span>
+                  </div>
                   <input style={{ ...s.input, width: 110, fontFamily: 'monospace', fontSize: 12 }}
                     value={config.accent_color}
                     onChange={e => { update('accent_color', e.target.value); onThemeChange?.(e.target.value, bgColor) }} />
@@ -622,9 +638,12 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
               {/* Color de fondo */}
               <Field label="Color de fondo" hint="Cambia el tono base del dashboard — usá colores muy oscuros para mejores resultados">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' as const }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 3 }}>
                   <input type="color" value={bgColor}
                     onChange={e => { setBgColor(e.target.value); onThemeChange?.(config.accent_color, e.target.value) }}
                     style={{ width: 44, height: 44, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 10, padding: 2 }} />
+                  <span style={{ fontSize: 9, color: '#4a4a6a' }}>click para personalizar</span>
+                  </div>
                   <input style={{ ...s.input, width: 110, fontFamily: 'monospace', fontSize: 12 }}
                     value={bgColor}
                     onChange={e => { setBgColor(e.target.value); onThemeChange?.(config.accent_color, e.target.value) }} />
