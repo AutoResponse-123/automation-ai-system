@@ -45,6 +45,10 @@ const calendarTools = [
           type: 'string',
           description: 'Tipo de servicio o motivo del turno (ej: Corte de cabello)',
         },
+        category: {
+          type: 'string',
+          description: 'Categoría del servicio, debe coincidir exactamente con una de las categorías configuradas',
+        },
         date: {
           type: 'string',
           description: 'Fecha en formato YYYY-MM-DD',
@@ -59,7 +63,7 @@ const calendarTools = [
         },
         duration_minutes: {
           type: 'number',
-          description: 'Duración del turno en minutos (default: 60)',
+          description: 'Duración del turno en minutos — usá la duración de la categoría si está disponible',
         },
       },
       required: ['title', 'date', 'time', 'client_name'],
@@ -135,6 +139,7 @@ async function callClaude(
           business_id: business.id,
           google_event_id: eventId,
           title: toolUseBlock.input.title,
+          category: toolUseBlock.input.category || null,
           client_name: toolUseBlock.input.client_name,
           client_phone: clientPhone || '',
           appointment_date: toolUseBlock.input.date,

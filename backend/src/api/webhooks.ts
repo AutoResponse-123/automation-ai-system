@@ -48,6 +48,11 @@ function buildSystemPrompt(business: any): string {
     parts.push(`\nAl cerrar una conversación, usá esta frase: "${randomClosing}"`);
   }
 
+  if (business.appointment_categories?.length > 0) {
+    const cats = business.appointment_categories.map((c: any) => `- ${c.name} (${c.duration_minutes} min)`).join('\n');
+    parts.push(`\nCategorías de servicio disponibles:\n${cats}\nUsá estas categorías y duraciones al crear turnos.`);
+  }
+
   if (business.google_refresh_token) {
     parts.push(`\nTenés acceso al calendario del negocio. SIEMPRE seguí este flujo para agendar turnos:
 1) Preguntá qué fecha prefiere el cliente

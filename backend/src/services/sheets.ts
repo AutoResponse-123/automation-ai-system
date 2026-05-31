@@ -20,6 +20,7 @@ function getSheetsAuthUrl(businessId: string): string {
 }
 
 async function saveSheetsTokens(businessId: string, tokens: any) {
+  if (!tokens.refresh_token) return; // Google no devuelve refresh_token si ya existe uno válido
   await supabase.from('businesses').update({
     sheets_refresh_token: tokens.refresh_token,
   }).eq('id', businessId);
