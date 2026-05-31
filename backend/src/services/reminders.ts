@@ -3,11 +3,33 @@ const cron = require('node-cron');
 const { supabase } = require('../config/supabase');
 const { sendWhatsAppMessage } = require('./twilio');
 
+async function autoCompleteAppointments() {
+  try {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const currentTime = now.toTimeString().slice(0, 5);
+
+    // Marcar como completed los turnos scheduled cuya fecha+hora ya pasó
+    const { data, error } = await supabase
+      .from('appointments')
+      .update({ status: 'completed' })
+      .eq('status', 'scheduled')
+      .or(`appointment_date.lt.${today},and(appointment_date.eq.${today},appointment_time.lt.${currentTime}:00)`);
+
+    if (!error && data?.length > 0) {
+      console.log(`[reminders] Auto-completados ${data.length} turnos pasados`);
+    }
+  } catch (err: any) {
+    console.error('[autoComplete]', err.message);
+  }
+}
+
 // Corre cada hora en punto
 function startReminderJob() {
   cron.schedule('0 * * * *', async () => {
     console.log('[reminders] Ejecutando chequeo de recordatorios...');
     await sendPendingReminders();
+    await autoCompleteAppointments();
   });
   console.log('[reminders] Job iniciado — corre cada hora');
 }

@@ -14,6 +14,7 @@ interface Appointment {
   reminder_24h_sent: boolean
   reminder_1h_sent: boolean
   status: string
+  notes: string | null
   created_at: string
 }
 
@@ -52,6 +53,14 @@ export default function Appointments({ businessId }: { businessId: string }) {
   const [activeCat, setActiveCat] = useState<string | null>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+  const [noteText, setNoteText] = useState('')
+
+  async function saveNote(apptId: string) {
+    await supabase.from('appointments').update({ notes: noteText || null }).eq('id', apptId)
+    setAppts(prev => prev.map(a => a.id === apptId ? { ...a, notes: noteText || null } : a))
+    setEditingNoteId(null)
+  }
 
   async function cancelAppt(apptId: string) {
     setCancellingId(apptId)
@@ -242,6 +251,33 @@ export default function Appointments({ businessId }: { businessId: string }) {
                 )}
               </div>
             </div>
+            {/* Nota interna */}
+            {appt.status !== 'cancelled' && (
+              <div style={{ padding: '6px 14px 10px', borderTop: '1px solid #1a1a2e' }}>
+                {editingNoteId === appt.id ? (
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <input
+                      autoFocus
+                      value={noteText}
+                      onChange={e => setNoteText(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') saveNote(appt.id); if (e.key === 'Escape') setEditingNoteId(null) }}
+                      placeholder="Nota interna..."
+                      style={{ flex: 1, background: '#0d0d14', border: '1px solid #2d2d4a', borderRadius: 6, padding: '4px 8px', color: '#e2e8f0', fontSize: 12, outline: 'none' }}
+                    />
+                    <button onClick={() => saveNote(appt.id)} style={{ padding: '3px 8px', borderRadius: 5, border: 'none', background: 'var(--accent-dark)', color: '#fff', fontSize: 11, cursor: 'pointer' }}>Guardar</button>
+                    <button onClick={() => setEditingNoteId(null)} style={{ padding: '3px 8px', borderRadius: 5, border: '1px solid #3a3a5a', background: 'transparent', color: '#8080a0', fontSize: 11, cursor: 'pointer' }}>✕</button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+                    onClick={() => { setEditingNoteId(appt.id); setNoteText(appt.notes || '') }}>
+                    <i className="ti ti-notes" style={{ fontSize: 12, color: '#4a4a6a' }} />
+                    <span style={{ fontSize: 11, color: appt.notes ? '#9ca3af' : '#3a3a5a', fontStyle: appt.notes ? 'normal' : 'italic' }}>
+                      {appt.notes || 'Agregar nota...'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           )
         })
       )}

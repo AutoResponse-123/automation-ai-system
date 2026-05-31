@@ -37,6 +37,20 @@ const calendarTools = [
     },
   },
   {
+    name: 'reschedule_appointment',
+    description: 'Reprograma el turno del cliente: cancela el actual y lo prepara para agendar uno nuevo. Usalo cuando el cliente pida cambiar, mover o reprogramar su turno. Después de llamar este tool, seguí el flujo normal de agendado: preguntá la nueva fecha y llamá get_available_slots.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        reason: {
+          type: 'string',
+          description: 'Motivo del cambio mencionado por el cliente (opcional)',
+        },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'cancel_appointment',
     description: 'Cancela un turno existente del cliente. Usalo cuando el cliente pida cancelar o anular su turno.',
     input_schema: {
@@ -165,6 +179,26 @@ async function callClaude(
         if (insertErr) console.error('[appointments insert]', insertErr.message);
         toolResult = `Turno creado exitosamente. ID: ${eventId}`;
         console.log(`[create_appointment] OK — Event ID: ${eventId}`);
+      } else if (toolUseBlock.name === 'reschedule_appointment') {
+        const today = new Date().toISOString().split('T')[0];
+        const { data: appts } = await supabase
+          .from('appointments')
+          .select('*')
+          .eq('business_id', business.id)
+          .eq('client_phone', clientPhone || '')
+          .eq('status', 'scheduled')
+          .gte('appointment_date', today)
+          .order('appointment_date').order('appointment_time')
+          .limit(1);
+
+        if (!appts || appts.length === 0) {
+          toolResult = 'No se encontró ningún turno activo para reprogramar.';
+        } else {
+          const appt = appts[0];
+          await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', appt.id);
+          toolResult = `Turno anterior cancelado: ${appt.title} del ${appt.appointment_date} a las ${String(appt.appointment_time).slice(0,5)}. Ahora preguntale al cliente qué nueva fecha prefiere y consultá disponibilidad con get_available_slots.`;
+          console.log(`[reschedule_appointment] Cancelado ${appt.id}, iniciando reagendado para ${clientPhone}`);
+        }
       } else if (toolUseBlock.name === 'cancel_appointment') {
         // Buscar el próximo turno activo del cliente
         const today = new Date().toISOString().split('T')[0];
