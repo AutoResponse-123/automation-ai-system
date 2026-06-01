@@ -54,6 +54,19 @@ export default function Contacts({ onOpenChat }: { onOpenChat?: (contactId: stri
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<'last_activity' | 'interaction_count' | 'created_at'>('last_activity')
 
+  function exportCSV() {
+    const rows = [['Nombre', 'Teléfono', 'Interacciones', 'Último contacto']]
+    filtered.forEach(c => rows.push([
+      c.name || '', c.phone, String(c.interaction_count ?? 0),
+      c.last_interaction ? new Date(c.last_interaction).toLocaleDateString('es-AR') : ''
+    ]))
+    const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n')
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    a.download = `contactos_${new Date().toISOString().slice(0,10)}.csv`
+    a.click()
+  }
+
   useEffect(() => {
     loadContacts()
   }, [])
@@ -143,6 +156,9 @@ export default function Contacts({ onOpenChat }: { onOpenChat?: (contactId: stri
               onChange={e => setSearch(e.target.value)}
             />
           </div>
+          <button onClick={exportCSV} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border-mid)', background: 'transparent', color: '#8b8baa', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <i className="ti ti-download" style={{ fontSize: 13 }} /> CSV
+          </button>
           <div style={s.sortGroup}>
             {([
               { key: 'last_activity', label: t('contacts_sort_activity') },

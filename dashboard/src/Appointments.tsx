@@ -62,6 +62,20 @@ export default function Appointments({ businessId }: { businessId: string }) {
     setEditingNoteId(null)
   }
 
+  function exportCSV() {
+    const rows = [['Cliente', 'Teléfono', 'Servicio', 'Categoría', 'Fecha', 'Hora', 'Estado', 'Notas']]
+    filtered.forEach(a => rows.push([
+      a.client_name || '', a.client_phone || '', a.title || '',
+      a.category || '', a.appointment_date, String(a.appointment_time).slice(0,5),
+      a.status || 'scheduled', a.notes || ''
+    ]))
+    const csv = rows.map(r => r.map(v => '"' + v + '"').join(',')).join('\n')
+    const el = document.createElement('a')
+    el.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    el.download = 'turnos_' + new Date().toISOString().slice(0,10) + '.csv'
+    el.click()
+  }
+
   async function cancelAppt(apptId: string) {
     setCancellingId(apptId)
     setConfirmingId(null)
@@ -145,7 +159,11 @@ export default function Appointments({ businessId }: { businessId: string }) {
         <div>
           <h2 style={s.title}>📅 {t('appointments_title')}</h2>
         </div>
-        <div style={s.filters}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={exportCSV} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-mid)', background: 'transparent', color: '#8b8baa', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <i className="ti ti-download" style={{ fontSize: 13 }} /> CSV
+          </button>
+          <div style={s.filters}>
           {(['upcoming', 'today', 'past'] as Filter[]).map(f => (
             <button key={f} style={s.filterBtn(filter === f)} onClick={() => setFilter(f)}>
               {f === 'upcoming' ? t('appointments_upcoming') : f === 'today' ? `${t('appointments_today')} (${todayCount})` : t('appointments_past')}

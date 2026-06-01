@@ -121,11 +121,15 @@ export default function Overview({ onNavigate, onAlertCount }: OverviewProps) {
     const userN = allM?.filter(x => x.sender === 'user').length ?? 0
     const automationRate = userN > 0 ? Math.min(100, Math.round((assistN / userN) * 100)) : 0
 
+    const PLAN_PRICE: Record<string, number> = { trial: 0, starter: 15, pro: 39, enterprise: 150 }
+    const { data: activeBizPlans } = await supabase.from('businesses').select('plan').eq('is_active', true)
+    const estimatedMRR = (activeBizPlans ?? []).reduce((s: number, b: any) => s + (PLAN_PRICE[b.plan] || 0), 0)
+
     setM({
       totalBusinesses: totalB ?? 0, activeBusinesses: activeB ?? 0,
       totalMessages: totalMsg ?? 0, todayMessages: todayMsg ?? 0,
       totalContacts: totalC ?? 0, totalTokens, estimatedCost: totalTokens * 0.000003,
-      estimatedMRR: (activeB ?? 0) * 39,
+      estimatedMRR,
       automationRate, activeConversations: activeConv ?? 0, pendingConversations: pendConv ?? 0
     })
 

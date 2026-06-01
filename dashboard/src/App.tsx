@@ -158,6 +158,7 @@ export default function App() {
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [todayAppts, setTodayAppts] = useState<any[]>([])
   const [notes, setNotes] = useState<Note[]>([])
   const [noteMode, setNoteMode] = useState(false)
   const [hoveredTime, setHoveredTime] = useState<string | null>(null)
@@ -248,6 +249,16 @@ export default function App() {
       setBusinessData(data)
       const bg = localStorage.getItem('ar_bg_color') ?? undefined
       applyTheme(data.accent_color ?? undefined, bg)
+      // Cargar turnos de hoy
+      const today = new Date().toISOString().split('T')[0]
+      const { data: appts } = await supabase.from('appointments')
+        .select('id, client_name, appointment_time, title, status')
+        .eq('business_id', data.id)
+        .eq('appointment_date', today)
+        .eq('status', 'scheduled')
+        .order('appointment_time')
+        .limit(5)
+      setTodayAppts(appts ?? [])
     }
   }
 
@@ -722,6 +733,30 @@ export default function App() {
                   icon="ti-alert-triangle" iconColor={metrics.escalations > 0 ? '#f87171' : '#4a4a6a'} />
               </div>
             )}
+            {/* Turnos de hoy */}
+            {todayAppts.length > 0 && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, marginTop: 4 }}>
+                  <div style={s.sectionTitle}>Turnos de hoy</div>
+                  <button onClick={() => setTab('appointments')} style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--accent)', cursor: 'pointer', fontFamily: 'inherit' }}>Ver todos →</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
+                  {todayAppts.map(a => (
+                    <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <i className="ti ti-calendar" style={{ fontSize: 16, color: 'var(--accent)' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>{a.client_name}</div>
+                        <div style={{ fontSize: 11, color: '#6b7280' }}>{a.title} · {String(a.appointment_time).slice(0, 5)}</div>
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>{String(a.appointment_time).slice(0, 5)}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
             <div style={s.sectionTitle}>Conversaciones recientes</div>
             {loading
               ? <SkeletonList count={5} />

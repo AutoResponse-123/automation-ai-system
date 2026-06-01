@@ -75,15 +75,15 @@ export default function System() {
         icon: 'ti-calendar'
       },
       {
-        name: 'Email (nodemailer / Gmail)',
+        name: 'Email (Resend)',
         status: 'ok', value: 'Configurado',
-        detail: 'EMAIL_USER + EMAIL_PASS configurados en Railway',
+        detail: 'RESEND_API_KEY configurado · onboarding@resend.dev',
         icon: 'ti-mail'
       },
       {
         name: 'RLS Supabase',
         status: 'ok', value: 'Habilitado',
-        detail: 'Row Level Security activo en todas las tablas',
+        detail: 'RLS activo en todas las tablas con políticas por usuario',
         icon: 'ti-shield-check'
       },
       {

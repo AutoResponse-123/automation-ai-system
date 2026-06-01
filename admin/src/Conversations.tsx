@@ -35,8 +35,15 @@ export default function Conversations() {
   const [loadingMsgs, setLoadingMsgs] = useState(false)
   const [filter, setFilter] = useState<string>('all')
   const [search, setSearch] = useState('')
+  const [bizFilter, setBizFilter] = useState<string>('all')
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    const ch = supabase.channel('admin-convs-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversations' }, load)
+      .subscribe()
+    return () => { ch.unsubscribe() }
+  }, [])
 
   useEffect(() => {
     if (!selected) return
@@ -100,8 +107,10 @@ export default function Conversations() {
   const filtered = convs.filter(c => {
     const matchF = filter === 'all' || c.status === filter
     const matchS = !search || (c.business?.name || '').toLowerCase().includes(search.toLowerCase()) || (c.contact?.phone || '').includes(search)
-    return matchF && matchS
+    const matchB = bizFilter === 'all' || c.business_id === bizFilter
+    return matchF && matchS && matchB
   })
+  const businesses = Array.from(new Map(convs.filter(c => c.business).map(c => [c.business_id, c.business!])).entries()).map(([id, b]) => ({ id, name: b.name }))
 
   const pendingCount = convs.filter(c => c.status === 'pending').length
 
@@ -115,6 +124,13 @@ export default function Conversations() {
             <i className="ti ti-search" style={{ fontSize: 13, color: 'var(--text-3)' }} />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar negocio o teléfono..."
               style={{ background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-1)', flex: 1, fontFamily: 'inherit' }} />
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <select value={bizFilter} onChange={e => setBizFilter(e.target.value)}
+              style={{ width: '100%', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 7, padding: '6px 8px', fontSize: 11, color: 'var(--text-1)', cursor: 'pointer', outline: 'none', fontFamily: 'inherit' }}>
+              <option value="all">Todos los negocios</option>
+              {businesses.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
           </div>
           <div style={{ display: 'flex', gap: 4 }}>
             {['all','pending','active','resolved'].map(s => (

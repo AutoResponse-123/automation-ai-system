@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Napps — IA para tu negocio en WhatsApp</title>
   <meta name="description" content="Automatizá la atención al cliente de tu negocio con inteligencia artificial. Bot para WhatsApp que responde, agenda turnos y nunca duerme." />
-  <link rel="preconnect" href="https://fonts.googlheapis.com" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,7 +17,7 @@
       --border: #1e1e2e;
       --text-1: #f0f0ff;
       --text-2: #9090b0;
-      --text-3: #5050708;
+      --text-3: #505070;
       --green: #10b981;
     }
     html { scroll-behavior: smooth; }
@@ -209,6 +209,7 @@
     <a href="#features">Funcionalidades</a>
     <a href="#pricing">Precios</a>
     <a href="#faq">FAQ</a>
+    <a href="#contacto">Contacto</a>
   </div>
   <a href="https://automation-ai-dashboard.vercel.app" class="btn btn-primary">Empezar gratis →</a>
 </nav>
@@ -285,7 +286,7 @@
     <div class="feature-card">
       <div class="feature-icon">🔒</div>
       <h3>Multi-tenant seguro</h3>
-      <p>Cada negocio tiene su propio bot con datos completamente aislados. Cumplimiento con Row Level Security.</p>
+      <p>Cada negocio tiene su propio bot con datos completamente aislados. Lo que un cliente ve nunca lo ve otro.</p>
     </div>
   </div>
 </section>
@@ -306,7 +307,7 @@
     <div class="step">
       <div class="step-num">2</div>
       <h3>Conectás WhatsApp</h3>
-      <p>Usamos Twilio Sandbox para el número. Produción con API de Meta disponible.</p>
+      <p>Te conectamos al número de WhatsApp de tu negocio. Sin tecnicismos, lo gestionamos juntos.</p>
     </div>
     <div class="step">
       <div class="step-num">3</div>
@@ -325,53 +326,46 @@
 <section id="pricing" class="center">
   <div class="section-label">Precios</div>
   <h2 class="section-title">Simple y transparente</h2>
-  <p class="section-sub">Empezá gratis, escalá cuando tu negocio lo necesite.</p>
+  <p class="section-sub">Empezá gratis. <strong style="color: var(--accent-light);">Precio de lanzamiento bloqueado para siempre</strong> para quienes entren ahora.</p>
 
-  <div class="pricing-grid">
+  <div class="pricing-grid" style="max-width: 780px;">
     <div class="plan-card">
-      <div class="plan-name">Trial</div>
-      <div class="plan-price">$0 <span>/mes</span></div>
-      <div class="plan-desc">7 días gratis para probar todo</div>
+      <div class="plan-badge" style="background: #059669;">🚀 Precio de lanzamiento</div>
+      <div class="plan-name" style="margin-top: 16px;">Starter</div>
+      <div class="plan-price">$19 <span>USD/mes</span></div>
+      <div class="plan-desc">Ideal para empezar a automatizar</div>
       <ul class="plan-features">
-        <li>200 mensajes/mes</li>
-        <li>1 número WhatsApp</li>
-        <li>Dashboard completo</li>
+        <li>500 mensajes/mes</li>
+        <li>Bot con IA (Claude)</li>
+        <li>Dashboard en tiempo real</li>
+        <li>Gestión de contactos</li>
         <li>Soporte por email</li>
         <li class="no">Google Calendar</li>
         <li class="no">Recordatorios automáticos</li>
       </ul>
-      <a href="https://automation-ai-dashboard.vercel.app" class="btn btn-outline">Empezar gratis</a>
+      <a href="https://automation-ai-dashboard.vercel.app" class="btn btn-outline">Empezar gratis 7 días →</a>
     </div>
     <div class="plan-card featured">
-      <div class="plan-badge">⭐ Más popular</div>
-      <div class="plan-name">Basic</div>
-      <div class="plan-price">$29 <span>USD/mes</span></div>
-      <div class="plan-desc">Para tu negocio</div>
+      <div class="plan-badge">🚀 Precio de lanzamiento · ⭐ Más popular</div>
+      <div class="plan-name" style="margin-top: 16px;">Pro</div>
+      <div class="plan-price">$39 <span>USD/mes</span></div>
+      <div class="plan-desc">Todo incluido para tu negocio</div>
       <ul class="plan-features">
-        <li>1.000 mensajes/mes</li>
-        <li>1 número WhatsApp</li>
-        <li>Dashboard completo</li>
+        <li>Mensajes ilimitados</li>
+        <li>Bot con IA (Claude)</li>
         <li>Google Calendar integrado</li>
-        <li>Recordatorios WhatsApp</li>
+        <li>Recordatorios por WhatsApp</li>
+        <li>Cancelación y reprogramación</li>
+        <li>MercadoPago integrado</li>
         <li>Soporte prioritario</li>
       </ul>
-      <a href="https://automation-ai-dashboard.vercel.app" class="btn btn-primary">Empezar →</a>
-    </div>
-    <div class="plan-card">
-      <div class="plan-name">Pro</div>
-      <div class="plan-price">$79 <span>USD/mes</span></div>
-      <div class="plan-desc">Para negocios con alto volumen</div>
-      <ul class="plan-features">
-        <li>5.000 mensajes/mes</li>
-        <li>Múltiples números</li>
-        <li>Dashboard completo</li>
-        <li>Google Calendar + Sheets</li>
-        <li>Recordatorios WhatsApp</li>
-        <li>MercadoPago integrado</li>
-      </ul>
-      <a href="https://automation-ai-dashboard.vercel.app" class="btn btn-outline">Empezar →</a>
+      <a href="https://automation-ai-dashboard.vercel.app" class="btn btn-primary">Empezar gratis 7 días →</a>
     </div>
   </div>
+
+  <p style="margin-top: 24px; font-size: 13px; color: var(--text-2);">
+    ✓ 7 días gratis · ✓ Sin tarjeta de crédito · ✓ Cancelá cuando quieras · ✓ Precio bloqueado para siempre para quienes entren ahora
+  </p>
 </section>
 
 <!-- Testimonials -->
@@ -457,7 +451,56 @@
       </button>
       <div class="faq-a" style="display:none">Sí, sin contratos ni penalidades. Si cancelás, tu bot sigue activo hasta el fin del período ya pagado.</div>
     </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        ¿El precio de lanzamiento se mantiene para siempre?
+        <span>+</span>
+      </button>
+      <div class="faq-a" style="display:none">Sí. Los clientes que entren durante el período de lanzamiento mantienen ese precio de por vida, sin importar los aumentos futuros. Es nuestra forma de agradecer a los primeros en apostar por Napps.</div>
+    </div>
   </div>
+</section>
+
+
+<!-- Contacto -->
+<section id="contacto" style="background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+  <div class="center">
+    <div class="section-label">Contacto</div>
+    <h2 class="section-title">¿Tenés preguntas?</h2>
+    <p class="section-sub">Escribinos y te respondemos en menos de 24 horas.</p>
+  </div>
+  <form id="contact-form" style="max-width: 540px; margin: 40px auto 0; display: flex; flex-direction: column; gap: 16px;" onsubmit="submitContact(event)">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+      <div>
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-2); display: block; margin-bottom: 6px;">Nombre</label>
+        <input id="cf-name" type="text" required placeholder="Tu nombre"
+          style="width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: 14px; color: var(--text-1); outline: none; font-family: inherit; transition: border-color 0.2s;"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
+      </div>
+      <div>
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-2); display: block; margin-bottom: 6px;">Email</label>
+        <input id="cf-email" type="email" required placeholder="tu@email.com"
+          style="width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: 14px; color: var(--text-1); outline: none; font-family: inherit; transition: border-color 0.2s;"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
+      </div>
+    </div>
+    <div>
+      <label style="font-size: 12px; font-weight: 600; color: var(--text-2); display: block; margin-bottom: 6px;">Tipo de negocio <span style="font-weight:400;color:var(--text-3)">(opcional)</span></label>
+      <input id="cf-biz" type="text" placeholder="Ej: Peluquería, Consultorio, Gimnasio..."
+        style="width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: 14px; color: var(--text-1); outline: none; font-family: inherit; transition: border-color 0.2s;"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
+    </div>
+    <div>
+      <label style="font-size: 12px; font-weight: 600; color: var(--text-2); display: block; margin-bottom: 6px;">Mensaje</label>
+      <textarea id="cf-msg" required rows="4" placeholder="¿Qué querés saber?"
+        style="width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; font-size: 14px; color: var(--text-1); outline: none; font-family: inherit; resize: vertical; transition: border-color 0.2s;"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+    </div>
+    <div id="cf-feedback" style="display:none; padding: 10px 14px; border-radius: 8px; font-size: 13px;"></div>
+    <button type="submit" id="cf-btn" class="btn btn-primary" style="width: 100%; justify-content: center; font-size: 15px; padding: 13px;">
+      Enviar mensaje →
+    </button>
+  </form>
 </section>
 
 <!-- CTA -->
@@ -473,12 +516,49 @@
 <footer>
   <div class="logo" style="font-size: 15px;"><span>Na</span>pps</div>
   <div>Bot WhatsApp con IA para tu negocio</div>
+  <div style="display:flex;gap:16px;"><a href="/terms.html" style="color:var(--text-2)">Términos</a><a href="/privacy.html" style="color:var(--text-2)">Privacidad</a><a href="#contacto" style="color:var(--text-2)">Contacto</a></div>
   <div>
     <a href="https://automation-ai-dashboard.vercel.app" style="color: var(--accent-light);">Iniciar sesión</a>
   </div>
 </footer>
 
 <script>
+  const BACKEND = 'https://automation-ai-system-production.up.railway.app'
+
+  async function submitContact(e) {
+    e.preventDefault()
+    const btn = document.getElementById('cf-btn')
+    const feedback = document.getElementById('cf-feedback')
+    btn.disabled = true
+    btn.textContent = 'Enviando...'
+    feedback.style.display = 'none'
+    try {
+      const res = await fetch(BACKEND + '/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('cf-name').value,
+          email: document.getElementById('cf-email').value,
+          business_type: document.getElementById('cf-biz').value,
+          message: document.getElementById('cf-msg').value,
+        })
+      })
+      if (res.ok) {
+        feedback.style.cssText = 'display:block;background:#10b98118;border:1px solid #10b98140;color:#10b981;padding:10px 14px;border-radius:8px;font-size:13px;'
+        feedback.textContent = '✓ Mensaje enviado. Te respondemos en menos de 24 horas.'
+        document.getElementById('contact-form').reset()
+      } else {
+        throw new Error('Error')
+      }
+    } catch {
+      feedback.style.cssText = 'display:block;background:#ef444418;border:1px solid #ef444440;color:#f87171;padding:10px 14px;border-radius:8px;font-size:13px;'
+      feedback.textContent = 'No se pudo enviar. Escribinos directamente a napps@gmail.com'
+    } finally {
+      btn.disabled = false
+      btn.textContent = 'Enviar mensaje →'
+    }
+  }
+
   function toggle(btn) {
     const answer = btn.nextElementSibling
     const icon = btn.querySelector('span')
