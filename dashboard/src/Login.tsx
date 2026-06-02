@@ -20,8 +20,8 @@ export default function Login() {
   return (
     <div style={s.shell}>
       <div style={s.card}>
-        <div style={s.logo}>AR</div>
-        <div style={s.title}>Wasso</div>
+        <div style={s.logo}>W</div>
+        <div style={s.title}><span style={{ color: 'var(--accent)' }}>Was</span>so</div>
         <div style={s.subtitle}>Ingresá a tu dashboard</div>
 
         <div style={s.fields}>

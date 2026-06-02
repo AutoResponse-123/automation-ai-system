@@ -587,7 +587,7 @@ export default function App() {
 
       {/* Sidebar */}
       <nav style={{ ...s.sidebar, ...(isMobile ? { display: 'none' } : {}) }} className="desktop-sidebar">
-        <div style={s.logo}>N</div>
+        <div style={s.logo}>W</div>
         {navItems.map(n => (
           <button key={n.id} onClick={() => setTab(n.id)} title={n.label}
             style={{ ...s.sIcon, ...(tab === n.id ? s.sIconActive : {}) }}>
