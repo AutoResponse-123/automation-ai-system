@@ -21,7 +21,7 @@ export default function Login() {
     <div style={s.shell}>
       <div style={s.card}>
         <div style={s.logo}>W</div>
-        <div style={s.title}><span style={{ color: 'var(--accent)' }}>Was</span>so</div>
+        <div style={s.title}>Wasso</div>
         <div style={s.subtitle}>Ingresá a tu dashboard</div>
 
         <div style={s.fields}>
@@ -78,7 +78,7 @@ const s: Record<string, React.CSSProperties> = {
   shell: { height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0a0a0f' },
   card: { background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 16, padding: '40px 36px', width: 360, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 },
   logo: { width: 44, height: 44, borderRadius: 12, background: '#a78bfa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 600, color: '#fff', letterSpacing: '.05em', marginBottom: 16 },
-  title: { fontSize: 20, fontWeight: 500, color: '#e2e8f0', marginBottom: 6 },
+  title: { fontSize: 20, fontWeight: 500, color: '#60a5fa', marginBottom: 6 },
   subtitle: { fontSize: 13, color: '#4a4a6a', marginBottom: 28 },
   fields: { display: 'flex', flexDirection: 'column', gap: 14, width: '100%', marginBottom: 8 },
   field: { display: 'flex', flexDirection: 'column', gap: 6 },

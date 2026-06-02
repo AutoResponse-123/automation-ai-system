@@ -5,7 +5,7 @@ interface Business {
   id: string; name: string; type: string; is_active: boolean; plan: string
   trial_ends_at: string | null; suspended_at: string | null; suspension_reason: string | null
   created_at: string; user_id: string; phone_whatsapp: string; escalation_email: string
-  msg_count?: number; contact_count?: number; token_count?: number; conv_count?: number; appt_count?: number
+  msg_count?: number; contact_count?: number; token_count?: number; conv_count?: number
 }
 
 function timeAgo(d: string) {
@@ -49,33 +49,6 @@ export default function Clients() {
   const [newForm, setNewForm] = useState({ name: '', email: '', phone: '', plan: 'trial', trial_days: '14' })
   const [setupLink, setSetupLink] = useState('')
   const [resendLink, setResendLink] = useState('')
-  const [editing, setEditing] = useState(false)
-  const [editForm, setEditForm] = useState({ name: '', phone_whatsapp: '', escalation_email: '' })
-  const [events, setEvents] = useState<{ id: string; event_type: string; description: string; created_at: string }[]>([])
-
-  async function logEvent(businessId: string, event_type: string, description: string, metadata?: any) {
-    await supabase.from('admin_events').insert({ business_id: businessId, event_type, description, metadata: metadata || null })
-  }
-
-  async function loadEvents(businessId: string) {
-    const { data } = await supabase.from('admin_events').select('id, event_type, description, created_at')
-      .eq('business_id', businessId).order('created_at', { ascending: false }).limit(20)
-    setEvents(data ?? [])
-  }
-
-  async function saveClientEdits() {
-    if (!selected) return
-    setSaving(true)
-    await supabase.from('businesses').update({
-      name: editForm.name,
-      phone_whatsapp: editForm.phone_whatsapp,
-      escalation_email: editForm.escalation_email,
-    }).eq('id', selected.id)
-    await logEvent(selected.id, 'edited', 'Datos del cliente editados')
-    await loadBusinesses()
-    setEditing(false)
-    setSaving(false)
-  }
 
   async function handleCreateClient() {
     if (!newForm.name || !newForm.email) { setCreateError('Nombre y email son requeridos'); return }
@@ -126,20 +99,13 @@ export default function Clients() {
     if (!data) { setLoading(false); return }
 
     const enriched = await Promise.all(data.map(async b => {
-      const { data: convs } = await supabase.from('conversations').select('id').eq('business_id', b.id)
-      const convIds = (convs ?? []).map((c: any) => c.id)
-      const [{ count: contact_count }, { count: conv_count }, { count: appt_count }] = await Promise.all([
+      const [{ count: msg_count }, { count: contact_count }, { count: conv_count }, { data: tokens }] = await Promise.all([
+        supabase.from('messages').select('id', { count: 'exact' }),
         supabase.from('contacts').select('id', { count: 'exact' }).eq('business_id', b.id),
-        Promise.resolve({ count: convIds.length }),
-        supabase.from('appointments').select('id', { count: 'exact' }).eq('business_id', b.id),
+        supabase.from('conversations').select('id', { count: 'exact' }).eq('business_id', b.id),
+        supabase.from('messages').select('tokens_used').eq('sender', 'assistant').not('tokens_used', 'is', null)
       ])
-      let msg_count = 0, token_count = 0
-      if (convIds.length > 0) {
-        const { data: msgs } = await supabase.from('messages').select('tokens_used, sender').in('conversation_id', convIds)
-        msg_count = msgs?.length ?? 0
-        token_count = msgs?.filter((m: any) => m.sender === 'assistant').reduce((s: number, m: any) => s + (m.tokens_used || 0), 0) ?? 0
-      }
-      return { ...b, msg_count, contact_count: contact_count ?? 0, conv_count: conv_count ?? 0, token_count, appt_count: appt_count ?? 0 }
+      return { ...b, msg_count: msg_count ?? 0, contact_count: contact_count ?? 0, conv_count: conv_count ?? 0, token_count: tokens?.reduce((s, r) => s + (r.tokens_used || 0), 0) ?? 0 }
     }))
 
     setBusinesses(enriched)
@@ -151,7 +117,6 @@ export default function Clients() {
     if (!b.is_active) {
       setSaving(true)
       await supabase.from('businesses').update({ is_active: true, suspended_at: null, suspension_reason: null }).eq('id', b.id)
-      await logEvent(b.id, 'reactivated', 'Servicio reactivado')
       await loadBusinesses(); setSaving(false)
     } else {
       setSuspendReason(''); setShowSuspend(true)
@@ -161,19 +126,15 @@ export default function Clients() {
   async function confirmSuspend() {
     if (!selected) return
     setSaving(true)
-    const reason = suspendReason || 'Suspendido por administrador'
     await supabase.from('businesses').update({
       is_active: false, suspended_at: new Date().toISOString(),
-      suspension_reason: reason
+      suspension_reason: suspendReason || 'Suspendido por administrador'
     }).eq('id', selected.id)
-    await logEvent(selected.id, 'suspended', `Servicio suspendido: ${reason}`)
     setShowSuspend(false); await loadBusinesses(); setSaving(false)
   }
 
   async function updatePlan(b: Business, plan: string) {
-    const oldPlan = b.plan
     await supabase.from('businesses').update({ plan }).eq('id', b.id)
-    await logEvent(b.id, 'plan_changed', `Plan cambiado: ${oldPlan} → ${plan}`)
     await loadBusinesses()
   }
 
@@ -216,7 +177,7 @@ export default function Clients() {
             const color = seedColor(b.id)
             const active = selected?.id === b.id
             return (
-              <div key={b.id} onClick={() => { setSelected(b); loadEvents(b.id); setEditing(false) }}
+              <div key={b.id} onClick={() => setSelected(b)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '10px 14px', cursor: 'pointer',
@@ -284,22 +245,21 @@ export default function Clients() {
                 {selected.is_active ? 'Suspender' : 'Reactivar'}
               </button>
               <button onClick={handleResendLink} disabled={saving}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg-raised)', color: 'var(--text-2)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--text-2)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
                 <i className="ti ti-link" style={{ fontSize: 12 }} />
                 Link acceso
               </button>
             </div>
-          </div>
-
-          {resendLink && (
-            <div style={{ marginBottom: 16, background: '#10b98112', border: '1px solid #10b98130', borderRadius: 8, padding: '10px 12px' }}>
-              <div style={{ fontSize: 10, color: '#10b981', fontWeight: 600, marginBottom: 6 }}>Link de acceso para {selected.escalation_email}:</div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <input readOnly value={resendLink} style={{ flex: 1, fontSize: 10, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-raised)', color: 'var(--text-2)', fontFamily: 'monospace' }} onClick={e => (e.target as HTMLInputElement).select()} />
-                <button onClick={() => { navigator.clipboard.writeText(resendLink); setResendLink('') }} style={{ padding: '5px 10px', borderRadius: 6, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 10, cursor: 'pointer', fontWeight: 600 }}>Copiar</button>
+            {resendLink && (
+              <div style={{ margin: '8px 0', background: '#10b98112', border: '1px solid #10b98130', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ fontSize: 10, color: '#10b981', fontWeight: 600, marginBottom: 6 }}>Link de acceso para {selected.escalation_email}:</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <input readOnly value={resendLink} style={{ flex: 1, fontSize: 10, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-2)', fontFamily: 'monospace' }} onClick={e => (e.target as HTMLInputElement).select()} />
+                  <button onClick={() => { navigator.clipboard.writeText(resendLink); setResendLink('') }} style={{ padding: '5px 10px', borderRadius: 6, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 10, cursor: 'pointer', fontWeight: 600 }}>Copiar</button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Suspension alert */}
           {!selected.is_active && (
@@ -314,12 +274,11 @@ export default function Clients() {
           )}
 
           {/* Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
             {[
               { label: 'Mensajes', value: (selected.msg_count || 0).toLocaleString(), icon: 'ti-message-2', color: 'var(--accent-2)' },
               { label: 'Contactos', value: (selected.contact_count || 0).toLocaleString(), icon: 'ti-users', color: 'var(--accent)' },
               { label: 'Conversaciones', value: (selected.conv_count || 0).toLocaleString(), icon: 'ti-messages', color: 'var(--purple)' },
-              { label: 'Turnos', value: (selected.appt_count || 0).toLocaleString(), icon: 'ti-calendar', color: '#38bdf8' },
               { label: 'Costo API', value: `$${((selected.token_count || 0) * 0.000003).toFixed(4)}`, icon: 'ti-currency-dollar', color: 'var(--warn)' },
             ].map((s, i) => (
               <div key={i} style={{ background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
@@ -334,79 +293,20 @@ export default function Clients() {
 
           {/* Info */}
           <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)' }}>Información</span>
-              {!editing ? (
-                <button onClick={() => { setEditing(true); setEditForm({ name: selected.name, phone_whatsapp: selected.phone_whatsapp || '', escalation_email: selected.escalation_email || '' }) }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', fontSize: 11, color: 'var(--text-3)', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  <i className="ti ti-pencil" style={{ fontSize: 12 }} /> Editar
-                </button>
-              ) : (
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={saveClientEdits} disabled={saving} style={{ background: 'var(--accent)', border: 'none', borderRadius: 6, padding: '4px 12px', fontSize: 11, fontWeight: 600, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    {saving ? '...' : 'Guardar'}
-                  </button>
-                  <button onClick={() => setEditing(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', fontSize: 11, color: 'var(--text-3)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
-                </div>
-              )}
-            </div>
-            {editing ? (
-              <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {[
-                  { label: 'Nombre del negocio', key: 'name' },
-                  { label: 'WhatsApp', key: 'phone_whatsapp' },
-                  { label: 'Email escalación', key: 'escalation_email' },
-                ].map(f => (
-                  <div key={f.key}>
-                    <label style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>{f.label}</label>
-                    <input value={(editForm as any)[f.key]} onChange={e => setEditForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                      style={{ width: '100%', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 7, padding: '7px 10px', fontSize: 12, color: 'var(--text-1)', outline: 'none', fontFamily: 'inherit' }} />
-                  </div>
-                ))}
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--text-2)' }}>Información técnica</div>
+            {[
+              { label: 'Business ID', value: selected.id, mono: true },
+              { label: 'User ID', value: selected.user_id || '—', mono: true },
+              { label: 'WhatsApp', value: selected.phone_whatsapp || '—', mono: true },
+              { label: 'Email escalación', value: selected.escalation_email || '—' },
+              { label: 'Trial vence', value: selected.trial_ends_at ? new Date(selected.trial_ends_at).toLocaleDateString('es-AR') : '—' },
+              { label: 'Creado hace', value: timeAgo(selected.created_at) },
+            ].map((r, i, arr) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-3)', width: 140, flexShrink: 0 }}>{r.label}</span>
+                <span className={r.mono ? 'mono' : ''} style={{ fontSize: 11, color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.value}</span>
               </div>
-            ) : (
-              <>
-                {[
-                  { label: 'Business ID', value: selected.id, mono: true },
-                  { label: 'User ID', value: selected.user_id || '—', mono: true },
-                  { label: 'WhatsApp', value: selected.phone_whatsapp || '—', mono: true },
-                  { label: 'Email escalación', value: selected.escalation_email || '—' },
-                  { label: 'Trial vence', value: selected.trial_ends_at ? new Date(selected.trial_ends_at).toLocaleDateString('es-AR') : '—' },
-                  { label: 'Creado hace', value: timeAgo(selected.created_at) },
-                ].map((r, i, arr) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                    <span style={{ fontSize: 12, color: 'var(--text-3)', width: 140, flexShrink: 0 }}>{r.label}</span>
-                    <span className={r.mono ? 'mono' : ''} style={{ fontSize: 11, color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.value}</span>
-                  </div>
-                ))}
-              </>
-            )}
-          </div>
-
-          {/* Historial */}
-          <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginTop: 14 }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--text-2)' }}>Historial de cambios</div>
-            {events.length === 0 ? (
-              <div style={{ padding: '16px', fontSize: 12, color: 'var(--text-3)', textAlign: 'center' }}>Sin eventos registrados</div>
-            ) : events.map((ev, i) => {
-              const iconMap: Record<string, string> = { suspended: 'ti-player-pause', reactivated: 'ti-player-play', plan_changed: 'ti-exchange', edited: 'ti-pencil' }
-              const colorMap: Record<string, string> = { suspended: 'var(--danger)', reactivated: 'var(--accent)', plan_changed: 'var(--purple)', edited: 'var(--text-3)' }
-              const icon = iconMap[ev.event_type] || 'ti-circle'
-              const color = colorMap[ev.event_type] || 'var(--text-3)'
-              return (
-                <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: i < events.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <div style={{ width: 24, height: 24, borderRadius: 6, background: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <i className={`ti ${icon}`} style={{ fontSize: 11, color }} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, color: 'var(--text-1)' }}>{ev.description}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>
-                      {new Date(ev.created_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+            ))}
           </div>
         </div>
       ) : (
@@ -482,4 +382,19 @@ export default function Clients() {
               Se crea el usuario en Auth y el negocio en la DB. El cliente recibirá un email para configurar su contraseña.
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => { setShowCreate(false); setCreateError(''); setSetupLink(''); setNewForm({ name: '', email: '', phone: '', plan: 'trial', trial_days: '14' }) }} disabled={saving} style={{ flex: 1, background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '9px', fontSize: 12, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar
+              <button
+                onClick={() => { setShowCreate(false); setCreateError(''); setSetupLink(''); setNewForm({ name: '', email: '', phone: '', plan: 'trial', trial_days: '14' }) }}
+                disabled={saving}
+                style={{ flex: 1, background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '9px', fontSize: 12, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'inherit' }}>
+                Cancelar
+              </button>
+              <button onClick={handleCreateClient} disabled={saving} style={{ flex: 1, background: 'var(--accent)', border: 'none', borderRadius: 8, padding: '9px', fontSize: 12, fontWeight: 600, color: '#fff', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, fontFamily: 'inherit' }}>
+                {saving ? 'Creando...' : 'Crear cliente →'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

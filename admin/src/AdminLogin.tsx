@@ -38,7 +38,7 @@ export default function AdminLogin() {
               fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: 'JetBrains Mono, monospace'
             }}>A</div>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-1)' }}><span style={{ color: 'var(--accent)' }}>Was</span>so</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--accent)' }}>Wasso</div>
               <div style={{ fontSize: 11, color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Admin Console</div>
             </div>
           </div>

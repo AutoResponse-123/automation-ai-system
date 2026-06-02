@@ -269,7 +269,6 @@ export default function Appointments({ businessId }: { businessId: string }) {
                 )}
               </div>
             </div>
-            {/* Nota interna */}
             {appt.status !== 'cancelled' && (
               <div style={{ padding: '6px 14px 10px', borderTop: '1px solid #1a1a2e' }}>
                 {editingNoteId === appt.id ? (
