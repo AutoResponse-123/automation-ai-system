@@ -1,6 +1,6 @@
 {
-  "name": "Napps",
-  "short_name": "Napps",
+  "name": "Wasso",
+  "short_name": "Wasso",
   "description": "Gestión de tu bot de WhatsApp",
   "start_url": "/",
   "display": "standalone",

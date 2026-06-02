@@ -84,12 +84,12 @@ export async function sendDailySummary(business: any) {
       </a>
     </div>
     <div style="padding:14px 28px;background:#0a0a12;border-top:1px solid #1e1e2e;font-size:11px;color:#4b5563;">
-      Napps · Podés desactivar este resumen desde Configuración → Notificaciones
+      Wasso · Podés desactivar este resumen desde Configuración → Notificaciones
     </div>
   </div>`;
 
   await transporter.sendMail({
-    from: `"Napps" <${process.env.EMAIL_USER}>`,
+    from: `"Wasso" <${process.env.EMAIL_USER}>`,
     to: business.escalation_email,
     subject: `📊 Resumen de hoy — ${business.name} (${totalConvs} conv, ${totalAppts} turnos)`,
     html,

@@ -68,7 +68,7 @@ async function exportToSheets(business: any): Promise<string> {
   if (!spreadsheetId) {
     const { data: ss } = await sheets.spreadsheets.create({
       requestBody: {
-        properties: { title: `${business.name} — Napps` },
+        properties: { title: `${business.name} — Wasso` },
         sheets: [
           { properties: { title: 'Contactos' } },
           { properties: { title: 'Turnos' } },

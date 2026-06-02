@@ -21,7 +21,7 @@ export default function Login() {
     <div style={s.shell}>
       <div style={s.card}>
         <div style={s.logo}>AR</div>
-        <div style={s.title}>Napps</div>
+        <div style={s.title}>Wasso</div>
         <div style={s.subtitle}>Ingresá a tu dashboard</div>
 
         <div style={s.fields}>

@@ -37,10 +37,10 @@ router.post('/', async (req: Request, res: Response) => {
     if (process.env.RESEND_API_KEY) {
       const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
-        from: 'Napps <onboarding@resend.dev>',
+        from: 'Wasso <onboarding@resend.dev>',
         to: process.env.CONTACT_EMAIL || 'zaza42069zaza69@gmail.com',
         replyTo: email,
-        subject: `📩 Consulta de ${safeName} — Napps`,
+        subject: `📩 Consulta de ${safeName} — Wasso`,
         html: `
           <div style="font-family:sans-serif;max-width:520px;margin:0 auto;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
             <div style="background:#7c3aed;padding:24px 28px;">
@@ -56,7 +56,7 @@ router.post('/', async (req: Request, res: Response) => {
               <p style="font-size:12px;color:#9ca3af;">Respondé a este email para contactar directamente a ${safeName}.</p>
             </div>
             <div style="padding:16px 28px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;">
-              Napps · Formulario de contacto
+              Wasso · Formulario de contacto
             </div>
           </div>`,
       });

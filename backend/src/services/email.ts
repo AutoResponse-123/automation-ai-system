@@ -36,12 +36,12 @@ export async function sendCancellationEmail(opts: {
         </a>
       </div>
       <div style="padding:16px 28px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;">
-        Napps · Sistema automático de atención por WhatsApp
+        Wasso · Sistema automático de atención por WhatsApp
       </div>
     </div>`;
 
   await getResend().emails.send({
-    from: 'Napps <onboarding@resend.dev>',
+    from: 'Wasso <onboarding@resend.dev>',
     to: opts.to,
     subject: `❌ Turno cancelado — ${opts.clientName} (${opts.appointmentDate})`,
     html,
@@ -83,12 +83,12 @@ export async function sendEscalationEmail(opts: {
         </a>
       </div>
       <div style="padding:16px 28px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;">
-        Napps · Sistema automático de atención por WhatsApp
+        Wasso · Sistema automático de atención por WhatsApp
       </div>
     </div>`;
 
   await getResend().emails.send({
-    from: 'Napps <onboarding@resend.dev>',
+    from: 'Wasso <onboarding@resend.dev>',
     to: opts.to,
     subject,
     html,

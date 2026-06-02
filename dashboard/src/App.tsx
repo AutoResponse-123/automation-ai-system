@@ -203,7 +203,7 @@ export default function App() {
 
   // Window title badge
   useEffect(() => {
-    document.title = unreadCount > 0 ? `(${unreadCount}) Napps` : 'Napps'
+    document.title = unreadCount > 0 ? `(${unreadCount}) Wasso` : 'Wasso'
   }, [unreadCount])
 
   // Close quick replies on outside click
