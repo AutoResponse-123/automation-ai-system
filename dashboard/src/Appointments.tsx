@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useT } from './i18n'
 import { supabase } from './supabase'
 
@@ -42,6 +42,105 @@ const pill = (label: string, color: string) => (
 )
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'
+
+
+interface ApptCardProps {
+  appt: Appointment
+  today: string
+  categories: AppointmentCategory[]
+  confirmingId: string | null
+  setConfirmingId: (id: string | null) => void
+  cancellingId: string | null
+  cancelAppt: (id: string) => void
+  editingNoteId: string | null
+  setEditingNoteId: (id: string | null) => void
+  noteText: string
+  setNoteText: (t: string) => void
+  saveNote: (id: string) => void
+  t: (k: string) => string
+  s: any
+}
+
+function ApptCard({ appt, today, categories, confirmingId, setConfirmingId, cancellingId, cancelAppt, editingNoteId, setEditingNoteId, noteText, setNoteText, saveNote, t, s }: ApptCardProps) {
+  const isToday = appt.appointment_date === today
+  const isPast = appt.appointment_date < today
+  return (
+    <React.Fragment>
+      <div style={{ ...s.card, borderLeft: isToday ? '3px solid var(--accent)' : '3px solid transparent' }}>
+        <div style={s.date}>
+          <div style={s.dateDay}>{new Date(appt.appointment_date + 'T00:00:00').getDate()}</div>
+          <div style={s.dateLabel}>{formatDate(appt.appointment_date).split(' ').slice(1).join(' ')}</div>
+        </div>
+        <div style={s.divider} />
+        <div style={s.info}>
+          <div style={s.clientName}>{appt.client_name || t('appointments_no_name')}</div>
+          <div style={s.meta}>
+            <span>🕐 {formatTime(appt.appointment_time)}</span>
+            {appt.duration_minutes && <span>⏱ {appt.duration_minutes}min</span>}
+            {appt.client_phone && <span>📱 {appt.client_phone}</span>}
+            {appt.title && (() => {
+              const cat = categories.find(c => c.name === (appt.category || appt.title))
+              return <span style={{ color: cat?.color ?? 'var(--accent)', fontWeight: 500 }}>• {appt.title}</span>
+            })()}
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+          {appt.status === 'cancelled' && pill('❌ Cancelado', '#dc2626')}
+          {appt.status !== 'cancelled' && isToday && pill(t('appointments_pill_today'), '#10b981')}
+          {appt.status !== 'cancelled' && isPast && pill(t('appointments_pill_past'), '#6b7280')}
+          {appt.reminder_24h_sent && pill('✓ 24h', '#7c3aed')}
+          {appt.reminder_1h_sent && pill('✓ 1h', '#7c3aed')}
+          {appt.status !== 'cancelled' && !isPast && (
+            confirmingId === appt.id ? (
+              <div style={{ display: 'flex', gap: 4, marginTop: 4, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: '#f87171' }}>¿Confirmar?</span>
+                <button onClick={() => cancelAppt(appt.id)} disabled={cancellingId === appt.id}
+                  style={{ padding: '3px 8px', borderRadius: 5, border: 'none', background: '#dc2626', color: '#fff', fontSize: 11, cursor: 'pointer' }}>
+                  {cancellingId === appt.id ? '...' : 'Sí'}
+                </button>
+                <button onClick={() => setConfirmingId(null)}
+                  style={{ padding: '3px 8px', borderRadius: 5, border: '1px solid #3a3a5a', background: 'transparent', color: '#8080a0', fontSize: 11, cursor: 'pointer' }}>
+                  No
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setConfirmingId(appt.id)}
+                style={{ marginTop: 4, padding: '4px 10px', borderRadius: 6, border: '1px solid #dc262644', background: '#2e0a0a', color: '#f87171', fontSize: 11, cursor: 'pointer' }}>
+                Cancelar
+              </button>
+            )
+          )}
+        </div>
+      </div>
+      {appt.status !== 'cancelled' && (
+        <div style={{ padding: '6px 14px 10px', borderTop: '1px solid #1a1a2e' }}>
+          {editingNoteId === appt.id ? (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                autoFocus
+                value={noteText}
+                onChange={e => setNoteText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveNote(appt.id); if (e.key === 'Escape') setEditingNoteId(null) }}
+                placeholder="Nota interna..."
+                style={{ flex: 1, background: '#0d0d14', border: '1px solid #2d2d4a', borderRadius: 6, padding: '4px 8px', color: '#e2e8f0', fontSize: 12, outline: 'none' }}
+              />
+              <button onClick={() => saveNote(appt.id)} style={{ padding: '3px 8px', borderRadius: 5, border: 'none', background: 'var(--accent-dark)', color: '#fff', fontSize: 11, cursor: 'pointer' }}>Guardar</button>
+              <button onClick={() => setEditingNoteId(null)} style={{ padding: '3px 8px', borderRadius: 5, border: '1px solid #3a3a5a', background: 'transparent', color: '#8080a0', fontSize: 11, cursor: 'pointer' }}>✕</button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+              onClick={() => { setEditingNoteId(appt.id); setNoteText(appt.notes || '') }}>
+              <i className="ti ti-notes" style={{ fontSize: 12, color: '#4a4a6a' }} />
+              <span style={{ fontSize: 11, color: appt.notes ? '#9ca3af' : '#3a3a5a', fontStyle: appt.notes ? 'normal' : 'italic' }}>
+                {appt.notes || 'Agregar nota...'}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+    </React.Fragment>
+  )
+}
 
 export default function Appointments({ businessId }: { businessId: string }) {
   const t = useT()
@@ -171,6 +270,7 @@ export default function Appointments({ businessId }: { businessId: string }) {
           ))}
         </div>
       </div>
+      </div>
 
       {/* Stats row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
@@ -219,84 +319,25 @@ export default function Appointments({ businessId }: { businessId: string }) {
           {filter === 'upcoming' ? t('appointments_no_upcoming') : filter === 'today' ? t('appointments_no_today') : t('appointments_no_past')}
         </div>
       ) : (
-        filtered.map(appt => {
-          const isToday = appt.appointment_date === today
-          const isPast = appt.appointment_date < today
-          return (
-            <div key={appt.id} style={{ ...s.card, borderLeft: isToday ? '3px solid var(--accent)' : '3px solid transparent' }}>
-              <div style={s.date}>
-                <div style={s.dateDay}>{new Date(appt.appointment_date + 'T00:00:00').getDate()}</div>
-                <div style={s.dateLabel}>{formatDate(appt.appointment_date).split(' ').slice(1).join(' ')}</div>
-              </div>
-              <div style={s.divider} />
-              <div style={s.info}>
-                <div style={s.clientName}>{appt.client_name || t('appointments_no_name')}</div>
-                <div style={s.meta}>
-                  <span>🕐 {formatTime(appt.appointment_time)}</span>
-                  {appt.duration_minutes && <span>⏱ {appt.duration_minutes}min</span>}
-                  {appt.client_phone && <span>📱 {appt.client_phone}</span>}
-                  {appt.title && (() => {
-                    const cat = categories.find(c => c.name === (appt.category || appt.title))
-                    return <span style={{ color: cat?.color ?? 'var(--accent)', fontWeight: 500 }}>• {appt.title}</span>
-                  })()}
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-                {appt.status === 'cancelled' && pill('❌ Cancelado', '#dc2626')}
-                {appt.status !== 'cancelled' && isToday && pill(t('appointments_pill_today'), '#10b981')}
-                {appt.status !== 'cancelled' && isPast && pill(t('appointments_pill_past'), '#6b7280')}
-                {appt.reminder_24h_sent && pill('✓ 24h', '#7c3aed')}
-                {appt.reminder_1h_sent && pill('✓ 1h', '#7c3aed')}
-                {appt.status !== 'cancelled' && !isPast && (
-                  confirmingId === appt.id ? (
-                    <div style={{ display: 'flex', gap: 4, marginTop: 4, alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, color: '#f87171' }}>¿Confirmar?</span>
-                      <button onClick={() => cancelAppt(appt.id)} disabled={cancellingId === appt.id}
-                        style={{ padding: '3px 8px', borderRadius: 5, border: 'none', background: '#dc2626', color: '#fff', fontSize: 11, cursor: 'pointer' }}>
-                        {cancellingId === appt.id ? '...' : 'Sí'}
-                      </button>
-                      <button onClick={() => setConfirmingId(null)}
-                        style={{ padding: '3px 8px', borderRadius: 5, border: '1px solid #3a3a5a', background: 'transparent', color: '#8080a0', fontSize: 11, cursor: 'pointer' }}>
-                        No
-                      </button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setConfirmingId(appt.id)}
-                      style={{ marginTop: 4, padding: '4px 10px', borderRadius: 6, border: '1px solid #dc262644', background: '#2e0a0a', color: '#f87171', fontSize: 11, cursor: 'pointer' }}>
-                      Cancelar
-                    </button>
-                  )
-                )}
-              </div>
-            </div>
-            {appt.status !== 'cancelled' && (
-              <div style={{ padding: '6px 14px 10px', borderTop: '1px solid #1a1a2e' }}>
-                {editingNoteId === appt.id ? (
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <input
-                      autoFocus
-                      value={noteText}
-                      onChange={e => setNoteText(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') saveNote(appt.id); if (e.key === 'Escape') setEditingNoteId(null) }}
-                      placeholder="Nota interna..."
-                      style={{ flex: 1, background: '#0d0d14', border: '1px solid #2d2d4a', borderRadius: 6, padding: '4px 8px', color: '#e2e8f0', fontSize: 12, outline: 'none' }}
-                    />
-                    <button onClick={() => saveNote(appt.id)} style={{ padding: '3px 8px', borderRadius: 5, border: 'none', background: 'var(--accent-dark)', color: '#fff', fontSize: 11, cursor: 'pointer' }}>Guardar</button>
-                    <button onClick={() => setEditingNoteId(null)} style={{ padding: '3px 8px', borderRadius: 5, border: '1px solid #3a3a5a', background: 'transparent', color: '#8080a0', fontSize: 11, cursor: 'pointer' }}>✕</button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
-                    onClick={() => { setEditingNoteId(appt.id); setNoteText(appt.notes || '') }}>
-                    <i className="ti ti-notes" style={{ fontSize: 12, color: '#4a4a6a' }} />
-                    <span style={{ fontSize: 11, color: appt.notes ? '#9ca3af' : '#3a3a5a', fontStyle: appt.notes ? 'normal' : 'italic' }}>
-                      {appt.notes || 'Agregar nota...'}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-          )
-        })
+        filtered.map(appt => (
+          <ApptCard
+            key={appt.id}
+            appt={appt}
+            today={today}
+            categories={categories}
+            confirmingId={confirmingId}
+            setConfirmingId={setConfirmingId}
+            cancellingId={cancellingId}
+            cancelAppt={cancelAppt}
+            editingNoteId={editingNoteId}
+            setEditingNoteId={setEditingNoteId}
+            noteText={noteText}
+            setNoteText={setNoteText}
+            saveNote={saveNote}
+            t={t}
+            s={s}
+          />
+        ))
       )}
     </div>
   )

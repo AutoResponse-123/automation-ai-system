@@ -36,7 +36,7 @@ export default function AdminLogin() {
               background: 'linear-gradient(135deg, #10b981, #059669)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 16, fontWeight: 700, color: '#fff', fontFamily: 'JetBrains Mono, monospace'
-            }}>A</div>
+            }}>W</div>
             <div>
               <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--accent)' }}>Wasso</div>
               <div style={{ fontSize: 11, color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Admin Console</div>

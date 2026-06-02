@@ -94,9 +94,9 @@ export default function AdminApp() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: 'JetBrains Mono, monospace',
               flexShrink: 0
-            }}>A</div>
+            }}>W</div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', lineHeight: 1.2, color: 'var(--accent)' }}>Wasso</div>
+              <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.2, color: 'var(--accent)' }}>Wasso</div>
               <div style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Admin</div>
             </div>
           </div>

@@ -572,7 +572,7 @@ export default function App() {
 
   if (authLoading) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#07070d', flexDirection: 'column', gap: 12, fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #1d4ed8, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', boxShadow: '0 4px 16px #1d4ed844' }}>N</div>
+      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #1d4ed8, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', boxShadow: '0 4px 16px #1d4ed844' }}>W</div>
       <div style={{ fontSize: 12, color: '#5a5a7a' }}>Cargando...</div>
     </div>
   )
@@ -587,7 +587,7 @@ export default function App() {
 
       {/* Sidebar */}
       <nav style={{ ...s.sidebar, ...(isMobile ? { display: 'none' } : {}) }} className="desktop-sidebar">
-        <div style={s.logo}>W</div>
+        <div style={s.logo}>{businessData?.name?.[0]?.toUpperCase() ?? '?'}</div>
         {navItems.map(n => (
           <button key={n.id} onClick={() => setTab(n.id)} title={n.label}
             style={{ ...s.sIcon, ...(tab === n.id ? s.sIconActive : {}) }}>
