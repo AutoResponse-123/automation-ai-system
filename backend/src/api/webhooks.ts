@@ -14,16 +14,19 @@ router.post('/whatsapp', async (req: any, res: any) => {
   try {
     // ── Validación firma Twilio ──────────────────────────────────────────────
     const authToken = process.env.TWILIO_AUTH_TOKEN || '';
-    if (authToken) {
-      const twilio = require('twilio');
-      const signature = req.headers['x-twilio-signature'] as string || '';
-      const webhookUrl = process.env.WEBHOOK_URL || `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-      const isValid = twilio.validateRequest(authToken, signature, webhookUrl, req.body);
-      if (!isValid) {
-        console.warn('[webhook] Firma Twilio inválida — rechazando');
-        res.status(403).send('Forbidden');
-        return;
-      }
+    if (!authToken) {
+      console.error('[webhook] TWILIO_AUTH_TOKEN no configurado — rechazando por seguridad');
+      res.status(403).send('Forbidden');
+      return;
+    }
+    const twilio = require('twilio');
+    const signature = req.headers['x-twilio-signature'] as string || '';
+    const webhookUrl = process.env.WEBHOOK_URL || `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+    const isValid = twilio.validateRequest(authToken, signature, webhookUrl, req.body);
+    if (!isValid) {
+      console.warn('[webhook] Firma Twilio inválida — rechazando');
+      res.status(403).send('Forbidden');
+      return;
     }
 
     console.log('Webhook recibido:', req.body);
@@ -265,8 +268,12 @@ router.post('/conversations/:id/summary', async (req: any, res: any) => {
   }
 });
 
-router.get('/calendar/connect/:businessId', (req: any, res: any) => {
-  const url = getAuthUrl(req.params.businessId);
+router.get('/calendar/connect/:businessId', async (req: any, res: any) => {
+  const { businessId } = req.params;
+  const token = req.query.token as string;
+  const authorized = await verifyBusinessOwner(token ? `Bearer ${token}` : undefined, businessId);
+  if (!authorized) { res.status(403).send('No autorizado'); return; }
+  const url = getAuthUrl(businessId);
   res.redirect(url);
 });
 
@@ -295,8 +302,12 @@ router.get('/calendar/callback', async (req: any, res: any) => {
 });
 
 // ── Google Sheets ──────────────────────────────────────────────────────────
-router.get('/sheets/connect/:businessId', (req: any, res: any) => {
-  const url = getSheetsAuthUrl(req.params.businessId);
+router.get('/sheets/connect/:businessId', async (req: any, res: any) => {
+  const { businessId } = req.params;
+  const token = req.query.token as string;
+  const authorized = await verifyBusinessOwner(token ? `Bearer ${token}` : undefined, businessId);
+  if (!authorized) { res.status(403).send('No autorizado'); return; }
+  const url = getSheetsAuthUrl(businessId);
   res.redirect(url);
 });
 
@@ -340,6 +351,10 @@ router.post('/send-manual', async (req: any, res: any) => {
 
     if (convErr || !conv) { res.status(404).json({ error: 'Conversación no encontrada' }); return; }
 
+    // Verificar que el caller es dueño del negocio
+    const authorized = await verifyBusinessOwner(req.headers['authorization'], conv.business_id);
+    if (!authorized) { res.status(403).json({ error: 'No autorizado' }); return; }
+
     const { data: business } = await supabase.from('businesses').select('*').eq('id', conv.business_id).single();
     if (!business) { res.status(404).json({ error: 'Negocio no encontrado' }); return; }
 
@@ -378,6 +393,11 @@ router.post('/appointments/:id/cancel', async (req: any, res: any) => {
       .single();
 
     if (error || !appt) { res.status(404).json({ error: 'Turno no encontrado' }); return; }
+
+    // Verificar que el caller es dueño del negocio
+    const authorized = await verifyBusinessOwner(req.headers['authorization'], appt.business_id);
+    if (!authorized) { res.status(403).json({ error: 'No autorizado' }); return; }
+
     if (appt.status === 'cancelled') { res.status(400).json({ error: 'El turno ya está cancelado' }); return; }
 
     await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', id);

@@ -179,7 +179,11 @@ export default function Appointments({ businessId }: { businessId: string }) {
     setCancellingId(apptId)
     setConfirmingId(null)
     try {
-      const res = await fetch(`${BACKEND_URL}/api/webhooks/appointments/${apptId}/cancel`, { method: 'POST' })
+      const { data: { session: _s } } = await supabase.auth.getSession()
+      const res = await fetch(`${BACKEND_URL}/api/webhooks/appointments/${apptId}/cancel`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${_s?.access_token ?? ''}` }
+      })
       if (!res.ok) throw new Error('Error cancelando')
       setAppts(prev => prev.map(a => a.id === apptId ? { ...a, status: 'cancelled' } : a))
     } catch (e: any) {

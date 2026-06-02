@@ -455,9 +455,10 @@ export default function App() {
     if (!text || !selectedConv || sending) return
     setSending(true)
     try {
+      const { data: { session: _sess } } = await supabase.auth.getSession()
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/send-manual`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_sess?.access_token ?? ''}` },
         body: JSON.stringify({ conversationId: selectedConv.id, text }),
       })
       if (!res.ok) {

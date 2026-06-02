@@ -723,8 +723,9 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
                   name="Google Calendar"
                   description={config.google_refresh_token ? 'El bot puede consultar disponibilidad y agendar turnos' : 'Conectá para que el bot pueda agendar turnos automáticamente'}
                   status={config.google_refresh_token ? 'connected' : 'disconnected'}
-                  onConnect={() => {
-                    const popup = window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/calendar/connect/${businessId}`, '_blank', 'width=600,height=700')
+                  onConnect={async () => {
+                    const { data: { session: _s } } = await supabase.auth.getSession()
+                    const popup = window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/calendar/connect/${businessId}?token=${_s?.access_token ?? ''}`, '_blank', 'width=600,height=700')
                     const timer = setInterval(() => { if (popup?.closed) { clearInterval(timer); loadConfig() } }, 1000)
                   }}
                   onDisconnect={async () => {
@@ -868,7 +869,7 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
                     ) : (
                       <button
                         onClick={() => {
-                          const popup = window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/sheets/connect/${businessId}`, '_blank', 'width=600,height=700')
+                          const popup = (async () => { const { data: { session: _ss } } = await supabase.auth.getSession(); window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/sheets/connect/${businessId}?token=${_ss?.access_token ?? ''}`, '_blank', 'width=600,height=700') })()
                           const timer = setInterval(() => { if (popup?.closed) { clearInterval(timer); loadConfig() } }, 1000)
                         }}
                         style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'Inter', system-ui, sans-serif" }}>
