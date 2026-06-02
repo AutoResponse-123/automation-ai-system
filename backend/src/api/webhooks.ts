@@ -92,7 +92,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
     }
 
     // ── Límite mensual de mensajes por plan ─────────────────────────────────
-    const PLAN_LIMITS: Record<string, number> = { trial: 200, basic: 1000, pro: 5000 };
+    const PLAN_LIMITS: Record<string, number> = { trial: 200, starter: 500, basic: 500, pro: -1, enterprise: -1 };
     const planLimit = PLAN_LIMITS[business.plan] ?? -1;
     if (planLimit > 0) {
       const monthStart = new Date();

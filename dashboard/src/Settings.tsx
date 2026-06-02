@@ -75,11 +75,13 @@ interface AppointmentCategory {
   color: string
 }
 
-export default function Settings({ onSave, businessId, onThemeChange }: {
+export default function Settings({ onSave, businessId, onThemeChange, plan = 'trial' }: {
   onSave?: () => void
   businessId: string | null
   onThemeChange?: (accent?: string, bg?: string) => void
+  plan?: string
 }) {
+  const isPro = plan === 'pro' || plan === 'enterprise'
   const { lang, setLang } = useLang()
   const { permission, enabled: notifEnabled, setEnabled: setNotifEnabled, requestPermission, sendNotification, isSupported } = useNotifications()
   const [config, setConfig] = useState<BusinessConfig | null>(null)
@@ -331,17 +333,6 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
                   placeholder="Ej: Sos un asistente amigable de una peluquería. Respondés consultas sobre turnos, precios y servicios. Siempre saludás con el nombre del negocio..." />
               </Field>
 
-              <div style={s.row2}>
-                <Field label="Máximo de tokens por respuesta" hint="Más tokens = respuestas más largas y costosas">
-                  <input style={s.input} type="number" value={config.max_tokens} min={100} max={1000}
-                    onChange={e => update('max_tokens', parseInt(e.target.value))} />
-                  <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 4 }}>
-                    Costo estimado: <span style={{ color: '#f59e0b' }}>${(config.max_tokens / 1_000_000 * 9).toFixed(4)} USD</span> por respuesta
-                    {' · '}<span style={{ color: '#8b8baa' }}>× 100 resp = ${(config.max_tokens / 1_000_000 * 9 * 100).toFixed(3)} USD</span>
-                  </div>
-                </Field>
-                <div />
-              </div>
 
               <Field label="Frases de cierre personalizadas" hint="El bot elegirá una aleatoriamente al cerrar una conversación">
                 <TagInput
@@ -713,20 +704,35 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
               <SectionHeader icon="ti-plug" title="Integraciones" subtitle="Conectá servicios externos a tu bot" />
 
               {/* Google Calendar */}
-              <IntegrationCard
-                icon="ti-calendar" iconColor="#4285f4"
-                name="Google Calendar"
-                description={config.google_refresh_token ? 'El bot puede consultar disponibilidad y agendar turnos' : 'Conectá para que el bot pueda agendar turnos automáticamente'}
-                status={config.google_refresh_token ? 'connected' : 'disconnected'}
-                onConnect={() => {
-                  const popup = window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/calendar/connect/${businessId}`, '_blank', 'width=600,height=700')
-                  const timer = setInterval(() => { if (popup?.closed) { clearInterval(timer); loadConfig() } }, 1000)
-                }}
-                onDisconnect={async () => {
-                  await supabase.from('businesses').update({ google_refresh_token: null, google_calendar_id: null }).eq('id', businessId!)
-                  update('google_refresh_token', null); update('google_calendar_id', null)
-                }}
-              />
+              {!isPro ? (
+                <div style={{ background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 10, padding: '14px 16px', marginBottom: 10, opacity: 0.6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <i className="ti ti-calendar" style={{ fontSize: 18, color: '#4285f4' }} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>Google Calendar</div>
+                      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Disponible en el plan Pro</div>
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 700, background: '#2563eb22', color: '#60a5fa', border: '1px solid #2563eb44', borderRadius: 4, padding: '2px 8px' }}>PRO</span>
+                  </div>
+                </div>
+              ) : (
+                <IntegrationCard
+                  icon="ti-calendar" iconColor="#4285f4"
+                  name="Google Calendar"
+                  description={config.google_refresh_token ? 'El bot puede consultar disponibilidad y agendar turnos' : 'Conectá para que el bot pueda agendar turnos automáticamente'}
+                  status={config.google_refresh_token ? 'connected' : 'disconnected'}
+                  onConnect={() => {
+                    const popup = window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/calendar/connect/${businessId}`, '_blank', 'width=600,height=700')
+                    const timer = setInterval(() => { if (popup?.closed) { clearInterval(timer); loadConfig() } }, 1000)
+                  }}
+                  onDisconnect={async () => {
+                    await supabase.from('businesses').update({ google_refresh_token: null, google_calendar_id: null }).eq('id', businessId!)
+                    update('google_refresh_token', null); update('google_calendar_id', null)
+                  }}
+                />
+              )}
 
               {/* Recordatorios automáticos */}
               <div style={{ background: '#0d0d14', border: `0.5px solid ${config.reminders_enabled ? '#2a3a2a' : '#1e1e2e'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
@@ -775,22 +781,37 @@ export default function Settings({ onSave, businessId, onThemeChange }: {
               </div>
 
               {/* Mercado Pago */}
-              <IntegrationCard
-                icon="ti-brand-mastercard" iconColor="#00b1ea"
-                name="Mercado Pago"
-                description={config.mp_access_token ? 'El bot puede generar links de pago automáticamente' : 'Ingresá tu Access Token para que el bot envíe links de cobro'}
-                status={config.mp_access_token ? 'connected' : 'disconnected'}
-                onConnect={async () => {
-                  const token = prompt('Pegá tu Mercado Pago Access Token:')
-                  if (!token) return
-                  await supabase.from('businesses').update({ mp_access_token: token }).eq('id', businessId!)
-                  update('mp_access_token', token)
-                }}
-                onDisconnect={async () => {
-                  await supabase.from('businesses').update({ mp_access_token: null }).eq('id', businessId!)
-                  update('mp_access_token', null)
-                }}
-              />
+              {!isPro ? (
+                <div style={{ background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 10, padding: '14px 16px', marginBottom: 10, opacity: 0.6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <i className="ti ti-brand-mastercard" style={{ fontSize: 18, color: '#00b1ea' }} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>Mercado Pago</div>
+                      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Disponible en el plan Pro</div>
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 700, background: '#2563eb22', color: '#60a5fa', border: '1px solid #2563eb44', borderRadius: 4, padding: '2px 8px' }}>PRO</span>
+                  </div>
+                </div>
+              ) : (
+                <IntegrationCard
+                  icon="ti-brand-mastercard" iconColor="#00b1ea"
+                  name="Mercado Pago"
+                  description={config.mp_access_token ? 'El bot puede generar links de pago automáticamente' : 'Ingresá tu Access Token para que el bot envíe links de cobro'}
+                  status={config.mp_access_token ? 'connected' : 'disconnected'}
+                  onConnect={async () => {
+                    const token = prompt('Pegá tu Mercado Pago Access Token:')
+                    if (!token) return
+                    await supabase.from('businesses').update({ mp_access_token: token }).eq('id', businessId!)
+                    update('mp_access_token', token)
+                  }}
+                  onDisconnect={async () => {
+                    await supabase.from('businesses').update({ mp_access_token: null }).eq('id', businessId!)
+                    update('mp_access_token', null)
+                  }}
+                />
+              )}
 
               {/* Google Sheets */}
               <div style={{ background: '#0d0d14', border: `0.5px solid ${config.sheets_refresh_token ? '#2a3a2a' : '#1e1e2e'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>

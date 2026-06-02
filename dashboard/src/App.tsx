@@ -1179,7 +1179,7 @@ export default function App() {
         )}
         {tab === 'appointments' && businessId && <Appointments businessId={businessId} />}
         {tab === 'activity' && <Activity />}
-        {tab === 'settings' && <Settings businessId={businessId} onThemeChange={applyTheme} />}
+        {tab === 'settings' && <Settings businessId={businessId} onThemeChange={applyTheme} plan={businessData?.plan ?? 'trial'} />}
       </div>
 
       {/* Toasts */}

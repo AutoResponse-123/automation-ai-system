@@ -138,6 +138,12 @@ export default function Clients() {
     await loadBusinesses()
   }
 
+  async function updateMaxTokens(b: Business, value: number) {
+    if (isNaN(value) || value < 100) return
+    await supabase.from('businesses').update({ max_tokens: value }).eq('id', b.id)
+    await loadBusinesses()
+  }
+
   const filtered = businesses.filter(b => {
     const matchSearch = b.name?.toLowerCase().includes(search.toLowerCase()) || (b.phone_whatsapp || '').includes(search)
     const matchPlan = filterPlan === 'all' || b.plan === filterPlan
@@ -307,6 +313,22 @@ export default function Clients() {
                 <span className={r.mono ? 'mono' : ''} style={{ fontSize: 11, color: 'var(--text-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.value}</span>
               </div>
             ))}
+            <div style={{ display: 'flex', alignItems: 'center', padding: '10px 16px' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-3)', width: 140, flexShrink: 0 }}>Máx. tokens/resp</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                <input
+                  type="number" min={100} max={4000}
+                  defaultValue={selected.max_tokens ?? 300}
+                  key={selected.id}
+                  onBlur={e => updateMaxTokens(selected, parseInt(e.target.value))}
+                  onKeyDown={e => e.key === 'Enter' && updateMaxTokens(selected, parseInt((e.target as HTMLInputElement).value))}
+                  style={{ width: 80, background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', fontSize: 12, color: 'var(--text-1)', outline: 'none', fontFamily: 'inherit' }}
+                />
+                <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                  ~${((selected.max_tokens ?? 300) / 1_000_000 * 9).toFixed(4)} USD/resp
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       ) : (
