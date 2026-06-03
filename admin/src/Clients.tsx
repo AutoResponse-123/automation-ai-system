@@ -16,9 +16,9 @@ function timeAgo(d: string) {
 }
 
 const PLAN_COLORS: Record<string, string> = {
-  trial: 'var(--warn)', starter: 'var(--accent-2)', pro: 'var(--accent)', enterprise: 'var(--purple)'
+  trial: 'var(--warn)', starter: 'var(--accent-2)', pro: 'var(--accent)'
 }
-const PLANS = ['trial', 'starter', 'pro', 'enterprise']
+const PLANS = ['trial', 'starter', 'pro']
 
 const SEED_COLORS = ['#10b981','#f59e0b','#3b82f6','#8b5cf6','#ef4444','#ec4899']
 function seedColor(id: string) {
@@ -100,10 +100,10 @@ export default function Clients() {
 
     const enriched = await Promise.all(data.map(async b => {
       const [{ count: msg_count }, { count: contact_count }, { count: conv_count }, { data: tokens }] = await Promise.all([
-        supabase.from('messages').select('id', { count: 'exact' }),
+        supabase.from('messages').select('id', { count: 'exact' }).in('conversation_id', (await supabase.from('conversations').select('id').eq('business_id', b.id)).data?.map(c => c.id) ?? []),
         supabase.from('contacts').select('id', { count: 'exact' }).eq('business_id', b.id),
         supabase.from('conversations').select('id', { count: 'exact' }).eq('business_id', b.id),
-        supabase.from('messages').select('tokens_used').eq('sender', 'assistant').not('tokens_used', 'is', null)
+        supabase.from('messages').select('tokens_used').eq('sender', 'assistant').not('tokens_used', 'is', null).in('conversation_id', (await supabase.from('conversations').select('id').eq('business_id', b.id)).data?.map(c => c.id) ?? [])
       ])
       return { ...b, msg_count: msg_count ?? 0, contact_count: contact_count ?? 0, conv_count: conv_count ?? 0, token_count: tokens?.reduce((s, r) => s + (r.tokens_used || 0), 0) ?? 0 }
     }))
@@ -201,6 +201,9 @@ export default function Clients() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.name}</div>
                   <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>{b.plan || 'trial'} · {b.msg_count || 0} msgs</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>
+                    {(b.token_count || 0).toLocaleString()} tok · <span style={{ color: '#f59e0b' }}>${((b.token_count || 0) * 0.000003).toFixed(3)}</span>
+                  </div>
                 </div>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: b.is_active ? 'var(--accent)' : 'var(--danger)', flexShrink: 0 }} />
               </div>
