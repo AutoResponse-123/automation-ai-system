@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 const { createClient } = require('@supabase/supabase-js');
+const { sendWelcomeEmail } = require('../services/email');
 
 const router = Router();
 
@@ -61,6 +62,9 @@ router.post('/signup', async (req: Request, res: Response) => {
     await adminSupabase.auth.admin.deleteUser(userId);
     res.status(500).json({ error: 'Error al crear tu cuenta. Intentá de nuevo.' }); return;
   }
+
+  // Enviar email de bienvenida con instrucciones del sandbox
+  sendWelcomeEmail({ to: email.toLowerCase().trim(), businessName: name.trim() }).catch(() => {});
 
   res.json({ ok: true });
 });
