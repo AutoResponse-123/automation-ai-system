@@ -243,7 +243,7 @@ export default function App() {
   useEffect(() => { if (session) loadBusiness() }, [session])
 
   async function loadBusiness() {
-    const { data } = await supabase.from('businesses').select('id, accent_color, name, business_description, phone_whatsapp, services, prices, schedule, escalation_email').eq('user_id', session!.user.id).single()
+    const { data } = await supabase.from('businesses').select('id, accent_color, name, business_description, phone_whatsapp, services, prices, schedule, escalation_email, plan, trial_ends_at').eq('user_id', session!.user.id).single()
     if (data) {
       setBusinessId(data.id)
       setBusinessData(data)
@@ -689,6 +689,20 @@ export default function App() {
             </span>
           </div>
         </div>
+
+        {/* Banner trial */}
+        {businessData?.plan === 'trial' && businessData?.trial_ends_at && (() => {
+          const daysLeft = Math.ceil((new Date(businessData.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+          if (daysLeft <= 0) return null
+          const urgent = daysLeft <= 2
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', fontSize: 12, fontWeight: 500, background: urgent ? 'rgba(251,146,60,0.08)' : 'rgba(167,139,250,0.07)', borderBottom: `1px solid ${urgent ? 'rgba(251,146,60,0.2)' : 'rgba(167,139,250,0.15)'}`, color: urgent ? '#fb923c' : '#a78bfa' }}>
+              <i className={`ti ${urgent ? 'ti-alarm' : 'ti-clock'}`} style={{ fontSize: 13 }} />
+              {daysLeft === 1 ? '⚠️ Tu prueba vence mañana.' : `Período de prueba: te quedan ${daysLeft} días.`}
+              <span style={{ color: urgent ? '#f97316' : '#818cf8', marginLeft: 2 }}>Contactanos para continuar.</span>
+            </div>
+          )
+        })()}
 
         {/* Dashboard */}
         {tab === 'dashboard' && (

@@ -6,6 +6,7 @@ const webhookRouter = require('./api/webhooks');
 const cronRouter = require('./api/cron');
 const adminRouter = require('./api/admin');
 const contactRouter = require('./api/contact');
+const authRouter = require('./api/auth').default;
 const { startRemindersJob } = require('./services/reminders');
 
 const app = express();
@@ -50,6 +51,10 @@ const contactLimiter = rateLimit({
   windowMs: 60_000 * 60, max: 5, standardHeaders: true, legacyHeaders: false,
   message: { error: 'Demasiados intentos. Esperá 1 hora.' }
 });
+const signupLimiter = rateLimit({
+  windowMs: 60_000 * 60, max: 3, standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Demasiados registros desde esta IP. Esperá 1 hora.' }
+});
 
 app.use(generalLimiter);
 app.use(express.json({ limit: '50kb' }));
@@ -65,6 +70,7 @@ app.use('/api/webhooks', webhookLimiter, webhookRouter);
 app.use('/api/cron', cronRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/contact', contactLimiter, contactRouter);
+app.use('/api/auth', signupLimiter, authRouter);
 
 app.listen(PORT, () => {
   console.log('Server running on http://localhost:' + PORT);
