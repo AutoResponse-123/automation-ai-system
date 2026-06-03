@@ -17,6 +17,7 @@ app.set('trust proxy', 1);
 // ── CORS restrictivo ──────────────────────────────────────────────────────────
 const ALLOWED_ORIGINS = [
   'https://automation-ai-dashboard.vercel.app',
+  'https://automation-ai-system.vercel.app',
   'https://automation-ai-admin.vercel.app',
   'https://landing-five-tau-86.vercel.app',
   'http://localhost:5173',
