@@ -10,6 +10,17 @@ const { buildSystemPrompt, checkEscalation, isOutsideHours } = require('../utils
 
 const router = express.Router();
 
+async function verifyBusinessOwner(authHeader: string | undefined, businessId: string): Promise<boolean> {
+  if (!authHeader) return false;
+  const token = authHeader.replace('Bearer ', '');
+  const { createClient } = require('@supabase/supabase-js');
+  const client = createClient(process.env.SUPABASE_URL || '', process.env.SUPABASE_ANON_KEY || '');
+  const { data: { user } } = await client.auth.getUser(token);
+  if (!user) return false;
+  const { data } = await client.from('businesses').select('id').eq('id', businessId).eq('user_id', user.id).single();
+  return !!data;
+}
+
 router.post('/whatsapp', async (req: any, res: any) => {
   try {
     // ── Validación firma Twilio ──────────────────────────────────────────────
