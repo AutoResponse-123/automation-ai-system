@@ -690,9 +690,9 @@ export default function App() {
           </div>
         </div>
 
-        {/* Banner trial */}
-        {businessData?.plan === 'trial' && businessData?.trial_ends_at && (() => {
-          const daysLeft = Math.ceil((new Date(businessData.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        {/* Banner trial — solo en dashboard */}
+        {tab === 'dashboard' && businessData?.plan === 'trial' && businessData?.trial_ends_at && (() => {
+          const daysLeft = Math.floor((new Date(businessData.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
           if (daysLeft <= 0) return null
           const urgent = daysLeft <= 2
           return (
