@@ -180,9 +180,14 @@ export default function AdminApp() {
           borderBottom: '1px solid var(--border)',
           display: 'flex', alignItems: 'center', padding: '0 20px', gap: 12
         }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)' }}>
-            {NAV.flatMap(g => g.items).find(n => n.id === tab)?.label}
-          </span>
+          {(() => { const item = NAV.flatMap(g => g.items).find(n => n.id === tab); return item ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className={`ti ${item.icon}`} style={{ fontSize: 15, color: 'var(--accent)' }} />
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-1)' }}>{item.label}</span>
+            </div>
+          ) : null })()}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 16 }}>
             <Clock />
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

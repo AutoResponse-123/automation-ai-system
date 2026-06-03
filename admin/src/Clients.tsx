@@ -201,9 +201,6 @@ export default function Clients() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.name}</div>
                   <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>{b.plan || 'trial'} · {b.msg_count || 0} msgs</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>
-                    {(b.token_count || 0).toLocaleString()} tok · <span style={{ color: '#f59e0b' }}>${((b.token_count || 0) * 0.000003).toFixed(3)}</span>
-                  </div>
                 </div>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: b.is_active ? 'var(--accent)' : 'var(--danger)', flexShrink: 0 }} />
               </div>
@@ -310,6 +307,8 @@ export default function Clients() {
               { label: 'Email escalación', value: selected.escalation_email || '—' },
               { label: 'Trial vence', value: selected.trial_ends_at ? new Date(selected.trial_ends_at).toLocaleDateString('es-AR') : '—' },
               { label: 'Creado hace', value: timeAgo(selected.created_at) },
+              { label: 'Tokens usados', value: (selected.token_count || 0).toLocaleString() },
+              { label: 'Costo estimado', value: `$${((selected.token_count || 0) * 0.000003).toFixed(4)} USD` },
             ].map((r, i, arr) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
                 <span style={{ fontSize: 12, color: 'var(--text-3)', width: 140, flexShrink: 0 }}>{r.label}</span>
