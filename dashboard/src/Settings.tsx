@@ -549,70 +549,6 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
                 </div>
               </Field>
 
-              {/* ── Notificaciones del browser ── */}
-              <div style={{ marginTop: 24, marginBottom: 8, fontSize: 10, color: '#4a4a6a', textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>
-                Notificaciones del navegador
-              </div>
-
-              {!isSupported && (
-                <div style={{ background: '#1a1000', border: '0.5px solid #5a3a00', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#fbbf24', marginBottom: 12 }}>
-                  Tu navegador no soporta notificaciones push.
-                </div>
-              )}
-
-              {isSupported && permission === 'denied' && (
-                <div style={{ background: '#1a0000', border: '0.5px solid #5a0000', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#f87171', marginBottom: 12 }}>
-                  Bloqueaste los permisos en este navegador. Hacé clic en el candado de la barra de direcciones y habilitá las notificaciones manualmente.
-                </div>
-              )}
-
-              {isSupported && permission === 'default' && (
-                <div style={{ background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 10, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-                  <div style={{ fontSize: 12, color: '#8b8baa' }}>Todavía no diste permiso para recibir notificaciones.</div>
-                  <button onClick={() => requestPermission()}
-                    style={{ ...s.saveBtn, padding: '6px 14px', fontSize: 12, flexShrink: 0 }}>
-                    Dar permiso
-                  </button>
-                </div>
-              )}
-
-              {isSupported && (
-                <Field label="">
-                  <div style={s.toggleRow}>
-                    <div>
-                      <div style={{ fontSize: 13, color: '#c4c4d4', fontWeight: 500 }}>Notificaciones de mensajes</div>
-                      <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 2 }}>Alerta en el navegador cuando un cliente te escribe</div>
-                    </div>
-                    <div
-                      style={{
-                        ...s.toggleTrack,
-                        ...(notifEnabled && permission === 'granted' ? s.toggleTrackOn : {}),
-                        ...(permission === 'denied' ? { opacity: 0.4, cursor: 'not-allowed' } : { cursor: 'pointer' }),
-                      }}
-                      onClick={() => permission !== 'denied' && setNotifEnabled(!notifEnabled)}
-                    >
-                      <div style={{ ...s.toggleThumb, ...(notifEnabled && permission === 'granted' ? s.toggleThumbOn : {}) }} />
-                    </div>
-                  </div>
-                </Field>
-              )}
-
-              {isSupported && notifEnabled && permission === 'granted' && (
-                <Field label="">
-                  <div style={{ ...s.toggleRow, justifyContent: 'space-between' }}>
-                    <div>
-                      <div style={{ fontSize: 13, color: '#c4c4d4', fontWeight: 500 }}>Probar notificación</div>
-                      <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 2 }}>Enviá una notificación de prueba para verificar que funciona</div>
-                    </div>
-                    <button
-                      onClick={() => sendNotification('💬 Mensaje de prueba', { body: 'Las notificaciones están funcionando correctamente.' })}
-                      style={{ ...s.addBtn, flexShrink: 0 }}
-                    >
-                      Enviar prueba
-                    </button>
-                  </div>
-                </Field>
-              )}
             </div>
           )}
 
@@ -1128,7 +1064,7 @@ const s: Record<string, React.CSSProperties> = {
   toggleRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 10, padding: '12px 14px' },
   toggleTrack: { width: 40, height: 22, borderRadius: 11, background: '#2e2e4e', position: 'relative' as const, cursor: 'pointer', transition: 'background 0.25s', flexShrink: 0 },
   toggleTrackOn: { background: '#7c3aed' },
-  toggleThumb: { position: 'absolute' as const, top: 3, left: 3, width: 16, height: 16, borderRadius: '50%', background: '#6a6a8a', transition: 'left 0.25s, background 0.25s' },
+  toggleThumb: { position: 'absolute' as const, top: '50%', transform: 'translateY(-50%)', left: 3, width: 16, height: 16, borderRadius: '50%', background: '#6a6a8a', transition: 'left 0.25s, background 0.25s' },
   toggleThumbOn: { left: 21, background: '#fff' },
   toggleTrackSm: { width: 32, height: 18, borderRadius: 9, background: '#2e2e4e', position: 'relative' as const, cursor: 'pointer', transition: 'background 0.25s', flexShrink: 0 },
   toggleThumbSm: { position: 'absolute' as const, top: 2, left: 2, width: 14, height: 14, borderRadius: '50%', background: '#6a6a8a', transition: 'left 0.25s, background 0.25s' },
