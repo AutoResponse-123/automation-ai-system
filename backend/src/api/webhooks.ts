@@ -453,7 +453,7 @@ router.post('/voice', async (req: any, res: any) => {
       const { Resend } = require('resend');
       const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
-        from: 'noreply@autoresponse-landing.vercel.app',
+        from: 'Wasso <onboarding@resend.dev>',
         to: 'zaza42069zaza69@gmail.com',
         subject: '🔑 Código de verificación Meta WhatsApp',
         html: `<h2>Código de verificación</h2><p>Escuchá la grabación con el código:</p><p><a href="${recordingUrl}">${recordingUrl}</a></p>`,
@@ -463,7 +463,7 @@ router.post('/voice', async (req: any, res: any) => {
     } else {
       // Primera llamada: grabar
       console.log('[voice webhook] Llamada entrante de:', req.body.From, '— grabando...');
-      twiml.record({ maxLength: 30, playBeep: false, action: '/api/webhooks/voice' });
+      twiml.record({ maxLength: 30, playBeep: false, action: 'https://automation-ai-system-production.up.railway.app/api/webhooks/voice' });
     }
 
     res.type('text/xml');
