@@ -441,4 +441,37 @@ router.post('/appointments/:id/cancel', async (req: any, res: any) => {
   }
 });
 
+// ── Verificación Meta/WhatsApp: graba llamada entrante y manda el audio por email ──
+router.post('/voice', async (req: any, res: any) => {
+  try {
+    const twilio = require('twilio');
+    const twiml = new twilio.twiml.VoiceResponse();
+
+    if (req.body.RecordingUrl) {
+      // Segunda llamada: llegó la grabación → mandar por email
+      const recordingUrl = req.body.RecordingUrl + '.mp3';
+      const { Resend } = require('resend');
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      await resend.emails.send({
+        from: 'noreply@autoresponse-landing.vercel.app',
+        to: 'zaza42069zaza69@gmail.com',
+        subject: '🔑 Código de verificación Meta WhatsApp',
+        html: `<h2>Código de verificación</h2><p>Escuchá la grabación con el código:</p><p><a href="${recordingUrl}">${recordingUrl}</a></p>`,
+      });
+      console.log('[voice webhook] Grabación enviada por email:', recordingUrl);
+      twiml.say('Gracias');
+    } else {
+      // Primera llamada: grabar
+      console.log('[voice webhook] Llamada entrante de:', req.body.From, '— grabando...');
+      twiml.record({ maxLength: 30, playBeep: false, action: '/api/webhooks/voice' });
+    }
+
+    res.type('text/xml');
+    res.send(twiml.toString());
+  } catch (err: any) {
+    console.error('[voice webhook]', err.message);
+    res.status(500).send('Error');
+  }
+});
+
 module.exports = router;
