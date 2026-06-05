@@ -447,29 +447,62 @@ router.post('/voice', async (req: any, res: any) => {
     const twilio = require('twilio');
     const twiml = new twilio.twiml.VoiceResponse();
 
-    if (req.body.RecordingUrl) {
-      // Segunda llamada: llegó la grabación → mandar por email
-      const recordingUrl = req.body.RecordingUrl + '.mp3';
+    if (req.body.RecordingSid) {
+      // Segunda llamada: llegó la grabación → mandar link proxy por email
+      const recordingSid = req.body.RecordingSid;
+      const listenUrl = `https://automation-ai-system-production.up.railway.app/api/webhooks/recording/${recordingSid}`;
+      console.log('[voice webhook] Grabación lista, SID:', recordingSid, '| URL proxy:', listenUrl);
+
       const { Resend } = require('resend');
       const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
         from: 'Wasso <onboarding@resend.dev>',
         to: 'zaza42069zaza69@gmail.com',
         subject: '🔑 Código de verificación Meta WhatsApp',
-        html: `<h2>Código de verificación</h2><p>Escuchá la grabación con el código:</p><p><a href="${recordingUrl}">${recordingUrl}</a></p>`,
+        html: `<h2>Código de verificación WhatsApp</h2>
+<p>Hace click en el botón para escuchar el código de 6 dígitos:</p>
+<p><a href="${listenUrl}" style="background:#25D366;color:white;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold;">▶ Escuchar código</a></p>
+<p style="color:#666;font-size:12px;">SID: ${recordingSid}</p>`,
       });
-      console.log('[voice webhook] Grabación enviada por email:', recordingUrl);
+      console.log('[voice webhook] Email enviado con link proxy');
       twiml.say('Gracias');
     } else {
       // Primera llamada: grabar
       console.log('[voice webhook] Llamada entrante de:', req.body.From, '— grabando...');
-      twiml.record({ maxLength: 30, playBeep: false, action: 'https://automation-ai-system-production.up.railway.app/api/webhooks/voice' });
+      twiml.record({
+        maxLength: 60,
+        playBeep: false,
+        action: 'https://automation-ai-system-production.up.railway.app/api/webhooks/voice',
+      });
     }
 
     res.type('text/xml');
     res.send(twiml.toString());
   } catch (err: any) {
     console.error('[voice webhook]', err.message);
+    res.status(500).send('Error');
+  }
+});
+
+// ── Proxy para escuchar grabación de Twilio sin auth ────────────────────────
+router.get('/recording/:sid', async (req: any, res: any) => {
+  try {
+    const { sid } = req.params;
+    const accountSid = process.env.TWILIO_ACCOUNT_SID!;
+    const authToken = process.env.TWILIO_AUTH_TOKEN!;
+    const https = require('https');
+    const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Recordings/${sid}.mp3`;
+    https.get(url, { headers: { Authorization: `Basic ${auth}` } }, (proxyRes: any) => {
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Content-Disposition', 'inline; filename="codigo.mp3"');
+      proxyRes.pipe(res);
+    }).on('error', (e: any) => {
+      console.error('[recording proxy]', e.message);
+      res.status(500).send('Error al obtener grabación');
+    });
+  } catch (err: any) {
+    console.error('[recording proxy]', err.message);
     res.status(500).send('Error');
   }
 });
