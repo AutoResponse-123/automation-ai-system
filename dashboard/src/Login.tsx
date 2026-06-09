@@ -198,7 +198,7 @@ const s: Record<string, React.CSSProperties> = {
   label: { fontSize: 11, fontWeight: 600, color: '#6a6290', letterSpacing: '.05em', textTransform: 'uppercase' as const },
   inputWrap: { position: 'relative', display: 'flex', alignItems: 'center' },
   inputIcon: { position: 'absolute', left: 11, fontSize: 15, color: '#4a4268', pointerEvents: 'none' },
-  input: { width: '100%', boxSizing: 'border-box' as const, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '10px 12px 10px 35px', color: '#e2e8f0', fontSize: 13, fontFamily: 'system-ui, sans-serif', outline: 'none', transition: 'border-color .2s' },
+  input: { width: '100%', boxSizing: 'border-box' as const, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '10px 12px 10px 35px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', transition: 'border-color .2s' },
   eyeBtn: { position: 'absolute', right: 10, background: 'none', border: 'none', cursor: 'pointer', color: '#4a4268', padding: 0, display: 'flex', alignItems: 'center' },
   alertError: { display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(248,113,113,0.07)', border: '1px solid rgba(248,113,113,0.18)', borderRadius: 9, padding: '8px 12px', fontSize: 12, color: '#f87171', width: '100%', boxSizing: 'border-box' as const, marginTop: 10 },
   alertSuccess: { display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.18)', borderRadius: 9, padding: '8px 12px', fontSize: 12, color: '#34d399', width: '100%', boxSizing: 'border-box' as const, marginTop: 10 },

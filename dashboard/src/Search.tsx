@@ -190,7 +190,7 @@ const s: Record<string, React.CSSProperties> = {
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 80, backdropFilter: 'blur(4px)' },
   modal: { width: '100%', maxWidth: 600, background: 'var(--bg-card)', border: '1px solid var(--border-mid)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.8)', display: 'flex', flexDirection: 'column' },
   inputRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderBottom: '1px solid var(--border)' },
-  input: { flex: 1, background: 'transparent', border: 'none', color: '#e2e8f0', fontSize: 15, outline: 'none', fontFamily: "'Inter', system-ui, sans-serif" },
+  input: { flex: 1, background: 'transparent', border: 'none', color: '#e2e8f0', fontSize: 15, outline: 'none', fontFamily: 'inherit' },
   esc: { background: 'var(--bg-panel)', border: '1px solid var(--border-mid)', borderRadius: 6, padding: '2px 7px', fontSize: 11, color: '#5a5a7a', cursor: 'pointer', fontFamily: 'inherit' },
   results: { maxHeight: 400, overflowY: 'auto', padding: '6px 0' },
   resultsHeader: { fontSize: 10, color: '#4a4a6a', padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600 },

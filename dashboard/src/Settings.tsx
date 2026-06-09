@@ -232,15 +232,27 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
   if (!businessId || loading) return <div style={s.loading}>Cargando configuración...</div>
   if (!config) return <div style={s.loading}>No se encontró la configuración</div>
 
+  const sectionLabels: Record<Section, [string, string]> = {
+    personalidad:   ['Personalidad IA',  'AI Personality'],
+    negocio:        ['Mi negocio',       'My Business'],
+    escalacion:     ['Escalación',       'Escalation'],
+    horarios:       ['Horarios',         'Schedule'],
+    notificaciones: ['Notificaciones',   'Notifications'],
+    apariencia:     ['Apariencia',       'Appearance'],
+    integraciones:  ['Integraciones',    'Integrations'],
+    turnos:         ['Turnos',           'Appointments'],
+  }
+  const sl = (id: Section) => lang === 'en' ? sectionLabels[id][1] : sectionLabels[id][0]
+
   const sections: { id: Section; icon: string; label: string }[] = [
-    { id: 'personalidad',   icon: 'ti-robot',        label: 'Personalidad IA' },
-    { id: 'negocio',        icon: 'ti-building-store', label: 'Mi negocio' },
-    { id: 'escalacion',     icon: 'ti-user-bolt',    label: 'Escalación' },
-    { id: 'horarios',       icon: 'ti-clock',        label: 'Horarios' },
-    { id: 'notificaciones', icon: 'ti-bell',         label: 'Notificaciones' },
-    { id: 'apariencia',     icon: 'ti-palette',      label: 'Apariencia' },
-    { id: 'integraciones',  icon: 'ti-plug',         label: 'Integraciones' },
-    { id: 'turnos',         icon: 'ti-calendar-event', label: 'Turnos' },
+    { id: 'personalidad',   icon: 'ti-robot',          label: sl('personalidad') },
+    { id: 'negocio',        icon: 'ti-building-store', label: sl('negocio') },
+    { id: 'escalacion',     icon: 'ti-user-bolt',      label: sl('escalacion') },
+    { id: 'horarios',       icon: 'ti-clock',          label: sl('horarios') },
+    { id: 'notificaciones', icon: 'ti-bell',           label: sl('notificaciones') },
+    { id: 'apariencia',     icon: 'ti-palette',        label: sl('apariencia') },
+    { id: 'integraciones',  icon: 'ti-plug',           label: sl('integraciones') },
+    { id: 'turnos',         icon: 'ti-calendar-event', label: sl('turnos') },
   ]
 
   return (
@@ -251,7 +263,7 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
         <div style={{ padding: '10px 14px', borderBottom: '0.5px solid #1e1e2e', position: 'relative' as const }}>
           <button
             onClick={() => setShowSectionDropdown(p => !p)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 10, padding: '10px 14px', cursor: 'pointer', color: '#e2e8f0', fontSize: 13, fontFamily: "'Inter', system-ui, sans-serif" }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 10, padding: '10px 14px', cursor: 'pointer', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit' }}
           >
             <i className={`ti ${sections.find(s => s.id === activeSection)?.icon}`} style={{ fontSize: 16, color: '#a78bfa' }} />
             <span style={{ flex: 1, textAlign: 'left' as const, fontWeight: 500 }}>
@@ -265,7 +277,7 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
                 const isActive = activeSection === sec.id
                 return (
                   <button key={sec.id} onClick={() => { setActiveSection(sec.id as Section); setShowSectionDropdown(false) }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: isActive ? '#16162a' : 'transparent', border: 'none', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', color: isActive ? '#c4b5fd' : '#8080a0', fontSize: 13, fontFamily: "'Inter', system-ui, sans-serif" }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: isActive ? '#16162a' : 'transparent', border: 'none', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', color: isActive ? '#c4b5fd' : '#8080a0', fontSize: 13, fontFamily: 'inherit' }}
                   >
                     <i className={`ti ${sec.icon}`} style={{ fontSize: 15 }} />
                     {sec.label}
@@ -279,7 +291,7 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
       ) : (
         /* Desktop: sidebar vertical */
         <div style={s.sectNav} className="settings-sidenav">
-          <div style={s.sectNavTitle} className="settings-sidenav-title">Configuración</div>
+          <div style={s.sectNavTitle} className="settings-sidenav-title">{lang === 'en' ? 'Settings' : 'Configuración'}</div>
           {sections.map(sec => {
             const isActive = activeSection === sec.id
             return (
@@ -873,13 +885,13 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
                               if (id) update('sheets_spreadsheet_id', id)
                             } catch { alert('Error exportando. Intentá de nuevo.') }
                           }}
-                          style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: '#16162a', color: '#a78bfa', fontSize: 12, cursor: 'pointer', fontFamily: "'Inter', system-ui, sans-serif" }}>
+                          style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: '#16162a', color: '#a78bfa', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
                           Exportar
                         </button>
                         {config.sheets_spreadsheet_id && (
                           <button
                             onClick={() => window.open(`https://docs.google.com/spreadsheets/d/${config.sheets_spreadsheet_id}`, '_blank')}
-                            style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: '#0a2e14', color: '#22c55e', fontSize: 12, cursor: 'pointer', fontFamily: "'Inter', system-ui, sans-serif" }}>
+                            style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: '#0a2e14', color: '#22c55e', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
                             Abrir
                           </button>
                         )}
@@ -888,7 +900,7 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
                             await supabase.from('businesses').update({ sheets_refresh_token: null, sheets_spreadsheet_id: null }).eq('id', businessId!)
                             update('sheets_refresh_token', null); update('sheets_spreadsheet_id', null)
                           }}
-                          style={{ padding: '6px 12px', borderRadius: 7, border: '0.5px solid #3e1a1a', background: 'transparent', color: '#f87171', fontSize: 12, cursor: 'pointer', fontFamily: "'Inter', system-ui, sans-serif" }}>
+                          style={{ padding: '6px 12px', borderRadius: 7, border: '0.5px solid #3e1a1a', background: 'transparent', color: '#f87171', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
                           Desconectar
                         </button>
                       </>
@@ -898,7 +910,7 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
                           const popup = (async () => { const { data: { session: _ss } } = await supabase.auth.getSession(); window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/sheets/connect/${businessId}?token=${_ss?.access_token ?? ''}`, '_blank', 'width=600,height=700') })()
                           const timer = setInterval(() => { if (popup?.closed) { clearInterval(timer); loadConfig() } }, 1000)
                         }}
-                        style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'Inter', system-ui, sans-serif" }}>
+                        style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
                         Conectar
                       </button>
                     )}
@@ -1067,12 +1079,12 @@ function IntegrationCard({ icon, iconColor, name, description, status, connectLa
         {!isDisabled && (
           isConnected ? (
             <button onClick={onDisconnect}
-              style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 7, border: '0.5px solid #3e1a1a', background: 'transparent', color: '#f87171', fontSize: 12, cursor: 'pointer', fontFamily: "'Inter', system-ui, sans-serif" }}>
+              style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 7, border: '0.5px solid #3e1a1a', background: 'transparent', color: '#f87171', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
               {disconnectLabel}
             </button>
           ) : (
             <button onClick={onConnect}
-              style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 7, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: "'Inter', system-ui, sans-serif" }}>
+              style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 7, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
               {connectLabel}
             </button>
           )
@@ -1143,8 +1155,8 @@ const s: Record<string, React.CSSProperties> = {
   section: { maxWidth: 680 },
   loading: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#4a4a6a', fontSize: 13 },
   row2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 },
-  input: { width: '100%', background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'system-ui, sans-serif', outline: 'none', boxSizing: 'border-box' as const },
-  textarea: { width: '100%', background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'system-ui, sans-serif', outline: 'none', resize: 'vertical' as const, boxSizing: 'border-box' as const, minHeight: 80 },
+  input: { width: '100%', background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const },
+  textarea: { width: '100%', background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'vertical' as const, boxSizing: 'border-box' as const, minHeight: 80 },
   select: { width: '100%', background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, outline: 'none' },
   toneGrid: { display: 'flex', flexWrap: 'wrap' as const, gap: 6 },
   langGrid: { display: 'flex', gap: 6 },
