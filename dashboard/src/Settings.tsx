@@ -468,59 +468,66 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
 
                   <div style={s.scheduleGrid}>
                     {Object.entries(config.schedule?.hours ?? {}).map(([day, hours]) => (
-                      <div key={day} style={{ ...s.scheduleRow, flexDirection: 'column', gridTemplateColumns: 'none', gap: 6 }}>
+                      <div key={day} style={s.scheduleRow}>
                         {/* Fila principal */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '90px 40px 90px 20px 90px auto', alignItems: 'center', gap: 8 }}>
-                          <div style={{ ...s.dayLabel, ...(hours.closed ? { color: '#4a4a6a' } : {}) }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{
+                            fontSize: 11, fontWeight: 600, minWidth: 64, textAlign: 'center',
+                            color: hours.closed ? '#4a4a6a' : '#a78bfa',
+                            background: hours.closed ? 'transparent' : '#1a1a2e',
+                            border: hours.closed ? '0.5px solid #2e2e4e' : '0.5px solid #a78bfa55',
+                            borderRadius: 6, padding: '3px 8px', transition: 'all 0.2s',
+                          }}>
                             {day.charAt(0).toUpperCase() + day.slice(1)}
-                          </div>
+                          </span>
                           <div style={{ ...s.toggleTrackSm, ...(hours.closed ? {} : s.toggleTrackOn) }}
-                            onClick={() => update('schedule', {
-                              ...config.schedule,
-                              hours: { ...config.schedule.hours, [day]: { ...hours, closed: !hours.closed } }
-                            })}>
+                            onClick={() => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, closed: !hours.closed } } })}>
                             <div style={{ ...s.toggleThumbSm, ...(!hours.closed ? s.toggleThumbOn : {}) }} />
                           </div>
                           {!hours.closed ? (
                             <>
-                              <input style={s.timeInput} type="time" value={hours.open}
-                                onChange={e => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, open: e.target.value } } })} />
-                              <span style={{ fontSize: 11, color: '#4a4a6a' }}>a</span>
-                              <input style={s.timeInput} type="time" value={hours.close}
-                                onChange={e => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, close: e.target.value } } })} />
+                              <TimeSelect value={hours.open}
+                                onChange={v => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, open: v } } })} />
+                              <span style={{ fontSize: 12, color: '#3a3a5a', fontWeight: 600 }}>→</span>
+                              <TimeSelect value={hours.close}
+                                onChange={v => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, close: v } } })} />
                               <button
                                 onClick={() => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: [...(hours.breaks ?? []), { start: '13:00', end: '14:00' }] } } })}
-                                style={{ fontSize: 10, color: '#a78bfa', background: 'none', border: '0.5px solid #a78bfa', borderRadius: 4, padding: '2px 6px', cursor: 'pointer' }}>
-                                + descanso
+                                style={{ marginLeft: 'auto', fontSize: 10, color: '#a78bfa', background: '#12122a', border: '0.5px solid #a78bfa44', borderRadius: 20, padding: '4px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontWeight: 500 }}>
+                                ☕ descanso
                               </button>
                             </>
                           ) : (
-                            <span style={{ fontSize: 12, color: '#4a4a6a', gridColumn: 'span 4' }}>Cerrado</span>
+                            <span style={{ fontSize: 11, color: '#4a4a6a', marginLeft: 4 }}>Cerrado</span>
                           )}
                         </div>
-                        {/* Franjas de descanso */}
-                        {!hours.closed && (hours.breaks ?? []).map((b, i) => (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 16 }}>
-                            <span style={{ fontSize: 10, color: '#6b7280' }}>descanso</span>
-                            <input style={s.timeInput} type="time" value={b.start}
-                              onChange={e => {
-                                const nb = [...(hours.breaks ?? [])]; nb[i] = { ...nb[i], start: e.target.value };
-                                update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: nb } } });
-                              }} />
-                            <span style={{ fontSize: 11, color: '#4a4a6a' }}>a</span>
-                            <input style={s.timeInput} type="time" value={b.end}
-                              onChange={e => {
-                                const nb = [...(hours.breaks ?? [])]; nb[i] = { ...nb[i], end: e.target.value };
-                                update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: nb } } });
-                              }} />
-                            <button
-                              onClick={() => {
-                                const nb = (hours.breaks ?? []).filter((_, j) => j !== i);
-                                update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: nb } } });
-                              }}
-                              style={{ fontSize: 11, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px' }}>✕</button>
+                        {/* Chips de descanso */}
+                        {!hours.closed && (hours.breaks ?? []).length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingLeft: 82, paddingTop: 2 }}>
+                            {(hours.breaks ?? []).map((b, i) => (
+                              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#0d0d1e', border: '0.5px solid #2e2e5e', borderRadius: 20, padding: '3px 8px 3px 10px' }}>
+                                <span style={{ fontSize: 10 }}>⏸</span>
+                                <TimeSelect value={b.start}
+                                  onChange={v => {
+                                    const nb = [...(hours.breaks ?? [])]; nb[i] = { ...nb[i], start: v };
+                                    update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: nb } } });
+                                  }} />
+                                <span style={{ fontSize: 11, color: '#3a3a5a', fontWeight: 600 }}>→</span>
+                                <TimeSelect value={b.end}
+                                  onChange={v => {
+                                    const nb = [...(hours.breaks ?? [])]; nb[i] = { ...nb[i], end: v };
+                                    update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: nb } } });
+                                  }} />
+                                <button
+                                  onClick={() => {
+                                    const nb = (hours.breaks ?? []).filter((_, j) => j !== i);
+                                    update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: nb } } });
+                                  }}
+                                  style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: '0 2px', fontSize: 14, lineHeight: 1, marginLeft: 2 }}>×</button>
+                              </span>
+                            ))}
                           </div>
-                        ))}
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1071,6 +1078,30 @@ function TagInput({ tags, value, onChange, onAdd, onRemove, placeholder, color }
   )
 }
 
+function TimeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const parts = (value || '09:00').split(':');
+  const h = parts[0] ?? '09';
+  const m = ['00', '15', '30', '45'].includes(parts[1]) ? parts[1] : '00';
+  const sel: React.CSSProperties = {
+    background: 'transparent', border: 'none', color: '#e2e8f0',
+    fontSize: 13, fontWeight: 500, outline: 'none', cursor: 'pointer',
+    textAlign: 'center', width: 36, padding: '2px 0',
+  };
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 0, background: '#111122', border: '0.5px solid #2e2e4e', borderRadius: 7, padding: '3px 6px' }}>
+      <select style={sel} value={h} onChange={e => onChange(`${e.target.value}:${m}`)}>
+        {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map(hh =>
+          <option key={hh} value={hh}>{hh}</option>
+        )}
+      </select>
+      <span style={{ color: '#4a4a6a', fontWeight: 700, fontSize: 13, userSelect: 'none', padding: '0 1px' }}>:</span>
+      <select style={sel} value={m} onChange={e => onChange(`${h}:${e.target.value}`)}>
+        {['00', '15', '30', '45'].map(mm => <option key={mm} value={mm}>{mm}</option>)}
+      </select>
+    </span>
+  );
+}
+
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
 const s: Record<string, React.CSSProperties> = {
@@ -1100,7 +1131,7 @@ const s: Record<string, React.CSSProperties> = {
   toggleTrackSm: { width: 32, height: 18, borderRadius: 9, background: '#2e2e4e', position: 'relative' as const, cursor: 'pointer', transition: 'background 0.25s', flexShrink: 0 },
   toggleThumbSm: { position: 'absolute' as const, top: 2, left: 2, width: 14, height: 14, borderRadius: '50%', background: '#6a6a8a', transition: 'left 0.25s, background 0.25s' },
   scheduleGrid: { display: 'flex', flexDirection: 'column' as const, gap: 8 },
-  scheduleRow: { display: 'grid', gridTemplateColumns: '90px 40px 90px 20px 90px', alignItems: 'center', gap: 8, background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 8, padding: '8px 12px' },
+  scheduleRow: { display: 'flex', flexDirection: 'column' as const, gap: 6, background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 10, padding: '10px 14px' },
   dayLabel: { fontSize: 12, fontWeight: 500, color: '#c4c4d4' },
   timeInput: { background: '#111122', border: '0.5px solid #2e2e4e', borderRadius: 6, padding: '4px 6px', color: '#e2e8f0', fontSize: 12, outline: 'none' },
   saveBar: { borderTop: '0.5px solid #1e1e2e', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0d0d14' },
