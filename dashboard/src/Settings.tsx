@@ -108,6 +108,7 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
       document.head.appendChild(link)
     }
     document.documentElement.style.setProperty('--font-family', `'${font}', system-ui, sans-serif`)
+    document.body.style.fontFamily = `'${font}', system-ui, sans-serif`
     setFontFamily(font)
   }
   const [newCatName, setNewCatName] = useState('')

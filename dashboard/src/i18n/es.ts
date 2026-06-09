@@ -1,5 +1,7 @@
 export const es = {
   // Nav
+  nav_dashboard: 'Dashboard',
+  nav_inbox: 'Inbox',
   nav_activity: 'Actividad',
   nav_analytics: 'Analytics',
   nav_contacts: 'Contactos',

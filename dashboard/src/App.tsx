@@ -1,7 +1,7 @@
 export {};
 import './App.css'
 import { useEffect, useState, useRef } from 'react'
-import { LangContext } from './i18n'
+import { LangContext, t as tr } from './i18n'
 import type { Lang } from './i18n'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import type { Session } from '@supabase/supabase-js'
@@ -257,6 +257,7 @@ export default function App() {
         link.href = `https://fonts.googleapis.com/css2?family=${savedFont.replace(/ /g, '+')}:wght@400;500;600;700&display=swap`
         document.head.appendChild(link)
         document.documentElement.style.setProperty('--font-family', `'${savedFont}', system-ui, sans-serif`)
+        document.body.style.fontFamily = `'${savedFont}', system-ui, sans-serif`
       }
       // Cargar turnos de hoy
       const today = new Date().toISOString().split('T')[0]
@@ -560,13 +561,13 @@ export default function App() {
     metrics.todayMessages < yesterdayMsgCount ? 'down' : 'neutral'
 
   const navItems: { id: Tab; icon: string; label: string }[] = [
-    { id: 'dashboard', icon: 'ti-layout-dashboard', label: 'Dashboard' },
-    { id: 'inbox',     icon: 'ti-message-2',        label: 'Inbox' },
-    { id: 'analytics', icon: 'ti-chart-bar',        label: 'Analytics' },
-    { id: 'contacts',     icon: 'ti-users',            label: 'Contactos' },
-    { id: 'appointments', icon: 'ti-calendar',        label: 'Turnos' },
-    { id: 'activity',  icon: 'ti-activity',         label: 'Actividad' },
-    { id: 'settings',  icon: 'ti-settings',         label: 'Configuración' },
+    { id: 'dashboard',    icon: 'ti-layout-dashboard', label: tr('nav_dashboard', lang) },
+    { id: 'inbox',        icon: 'ti-message-2',        label: tr('nav_inbox', lang) },
+    { id: 'analytics',    icon: 'ti-chart-bar',        label: tr('nav_analytics', lang) },
+    { id: 'contacts',     icon: 'ti-users',            label: tr('nav_contacts', lang) },
+    { id: 'appointments', icon: 'ti-calendar',         label: tr('nav_appointments', lang) },
+    { id: 'activity',     icon: 'ti-activity',         label: tr('nav_activity', lang) },
+    { id: 'settings',     icon: 'ti-settings',         label: tr('nav_settings', lang) },
   ]
 
   const filteredConvs = conversations
@@ -581,7 +582,7 @@ export default function App() {
   // ── Auth guards ───────────────────────────────────────────────────────────────
 
   if (authLoading) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#07070d', flexDirection: 'column', gap: 12, fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#07070d', flexDirection: 'column', gap: 12, fontFamily: 'inherit' }}>
       <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #1d4ed8, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', boxShadow: '0 4px 16px #1d4ed844' }}>W</div>
       <div style={{ fontSize: 12, color: '#5a5a7a' }}>Cargando...</div>
     </div>
@@ -668,7 +669,7 @@ export default function App() {
           {isMobile && tab === 'inbox' && mobileShowChat && (
             <button className="mobile-back-btn"
               onClick={() => setMobileShowChat(false)}
-              style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, padding: '0 4px 0 0', fontFamily: "'Inter', system-ui, sans-serif" }}>
+              style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, padding: '0 4px 0 0', fontFamily: 'inherit' }}>
               <i className="ti ti-chevron-left" style={{ fontSize: 18 }} />
             </button>
           )}
@@ -811,7 +812,7 @@ export default function App() {
                 {/* Filtro de etiquetas */}
                 <div style={{ position: 'relative' as const, flexShrink: 0 }}>
                   <button onClick={() => setShowTagFilterPopover(p => !p)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 4, background: tagFilter ? 'var(--accent-dim)' : 'transparent', border: `0.5px solid ${tagFilter ? 'var(--accent)' : '#2e2e4e'}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', color: tagFilter ? 'var(--accent)' : '#4a4a6a', fontSize: 11, fontFamily: "'Inter', system-ui, sans-serif", whiteSpace: 'nowrap' as const }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, background: tagFilter ? 'var(--accent-dim)' : 'transparent', border: `0.5px solid ${tagFilter ? 'var(--accent)' : '#2e2e4e'}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', color: tagFilter ? 'var(--accent)' : '#4a4a6a', fontSize: 11, fontFamily: 'inherit', whiteSpace: 'nowrap' as const }}>
                     <i className="ti ti-tag" style={{ fontSize: 11 }} />
                     {tagFilter ?? 'Etiqueta'}
                     <i className={`ti ti-chevron-${showTagFilterPopover ? 'up' : 'down'}`} style={{ fontSize: 10 }} />
@@ -819,14 +820,14 @@ export default function App() {
                   {showTagFilterPopover && (
                     <div className="popover-enter" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, background: 'var(--bg-card)', border: '1px solid var(--border-mid)', borderRadius: 10, padding: 6, zIndex: 100, boxShadow: '0 8px 24px rgba(0,0,0,0.6)', minWidth: 160 }}>
                       <button onClick={() => { setTagFilter(null); setShowTagFilterPopover(false) }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: !tagFilter ? '#1a1a2e' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: !tagFilter ? '#3b82f6' : '#6a6a8a', fontSize: 12, fontFamily: "'Inter', system-ui, sans-serif" }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: !tagFilter ? '#1a1a2e' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: !tagFilter ? '#3b82f6' : '#6a6a8a', fontSize: 12, fontFamily: 'inherit' }}>
                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4a4a6a', flexShrink: 0 }} />
                         Todas
                         {!tagFilter && <i className="ti ti-check" style={{ fontSize: 11, marginLeft: 'auto' }} />}
                       </button>
                       {TAG_PRESETS.map(p => (
                         <button key={p.label} onClick={() => { setTagFilter(p.label); setShowTagFilterPopover(false) }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: tagFilter === p.label ? p.color + '18' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: tagFilter === p.label ? p.color : '#8080a0', fontSize: 12, fontFamily: "'Inter', system-ui, sans-serif", transition: 'all 0.1s' }}>
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: tagFilter === p.label ? p.color + '18' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: tagFilter === p.label ? p.color : '#8080a0', fontSize: 12, fontFamily: 'inherit', transition: 'all 0.1s' }}>
                           <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
                           {p.label}
                           {tagFilter === p.label && <i className="ti ti-check" style={{ fontSize: 11, marginLeft: 'auto' }} />}
@@ -912,7 +913,7 @@ export default function App() {
                             const active = (selectedConv.tags ?? []).includes(p.label)
                             return (
                               <button key={p.label} onClick={() => active ? removeTag(p.label) : addTag(p.label)}
-                                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: active ? p.color + '18' : 'transparent', border: 'none', borderRadius: 6, padding: '5px 8px', cursor: 'pointer', color: active ? p.color : '#8080a0', fontSize: 12, fontFamily: "'Inter', system-ui, sans-serif", transition: 'all 0.1s' }}>
+                                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: active ? p.color + '18' : 'transparent', border: 'none', borderRadius: 6, padding: '5px 8px', cursor: 'pointer', color: active ? p.color : '#8080a0', fontSize: 12, fontFamily: 'inherit', transition: 'all 0.1s' }}>
                                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
                                 {p.label}
                                 {active && <i className="ti ti-check" style={{ fontSize: 11, marginLeft: 'auto' }} />}
@@ -1154,7 +1155,7 @@ export default function App() {
                           {/* Agregar nueva */}
                           <div style={{ display: 'flex', gap: 4, marginTop: 8, paddingTop: 8, borderTop: '0.5px solid var(--border)' }}>
                             <input
-                              style={{ flex: 1, background: 'var(--bg-base)', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '5px 8px', color: '#e2e8f0', fontSize: 12, fontFamily: "'Inter', system-ui, sans-serif", outline: 'none' }}
+                              style={{ flex: 1, background: 'var(--bg-base)', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '5px 8px', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none' }}
                               placeholder="Nueva respuesta..."
                               value={newQuickReply}
                               onChange={e => setNewQuickReply(e.target.value)}
@@ -1361,7 +1362,7 @@ function EmptyState({ icon, title, sub }: { icon: string; title: string; sub: st
 
 const s: Record<string, React.CSSProperties> = {
   // ── Shell ───────────────────────────────────────────────────────────────────
-  shell: { display: 'grid', gridTemplateColumns: '68px 1fr', height: '100vh', background: 'var(--bg-base)', color: '#e2e8f0', fontFamily: "var(--font-family, 'Inter', system-ui, sans-serif)", fontSize: 14, overflow: 'hidden', position: 'relative' },
+  shell: { display: 'grid', gridTemplateColumns: '68px 1fr', height: '100vh', background: 'var(--bg-base)', color: '#e2e8f0', fontFamily: "var(--font-family, 'Inter', system-ui, sans-serif)", fontSize: 14, overflow: 'hidden', position: 'relative', WebkitFontSmoothing: 'antialiased' } as React.CSSProperties,
 
   // ── Sidebar ─────────────────────────────────────────────────────────────────
   sidebar: { background: 'var(--bg-panel)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '14px 0 10px', gap: 2 },
@@ -1395,7 +1396,7 @@ const s: Record<string, React.CSSProperties> = {
   convSearchBox: { padding: '10px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 },
   convSearchInput: { background: 'transparent', border: 'none', color: '#e2e8f0', fontSize: 12, outline: 'none', flex: 1 },
   filterRow: { display: 'flex', borderBottom: '1px solid var(--border)', padding: '0 6px' },
-  filterBtn: { flex: 1, background: 'transparent', border: 'none', borderBottom: '2px solid transparent', padding: '7px 2px', fontSize: 11, color: '#5a5a7a', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 500 },
+  filterBtn: { flex: 1, background: 'transparent', border: 'none', borderBottom: '2px solid transparent', padding: '7px 2px', fontSize: 11, color: '#5a5a7a', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, fontFamily: 'inherit', fontWeight: 500 },
   filterBtnActive: { color: 'var(--accent)', borderBottomColor: 'var(--accent)' },
   convRow: { display: 'grid', gridTemplateColumns: '34px 1fr auto', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', borderLeft: '2px solid transparent', transition: 'background 0.12s' },
   convRowActive: { background: 'var(--accent-dim)', borderLeftColor: 'var(--accent)' },
@@ -1407,7 +1408,7 @@ const s: Record<string, React.CSSProperties> = {
   chatHeader: { padding: '11px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-panel)' },
   chatName: { fontSize: 13, fontWeight: 600, color: '#f0eeff', letterSpacing: '-0.01em' },
   chatSub: { fontSize: 11, color: '#5a5a7a' },
-  chip: { background: 'var(--accent-dim)', border: '1px solid var(--border-mid)', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s', color: 'var(--accent)', fontFamily: "'Inter', system-ui, sans-serif" },
+  chip: { background: 'var(--accent-dim)', border: '1px solid var(--border-mid)', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s', color: 'var(--accent)', fontFamily: 'inherit' },
   contactPanel: { display: 'flex', flexWrap: 'wrap', padding: '10px 18px', borderBottom: '1px solid var(--border)', background: 'var(--bg-base)', gap: 0 },
   messageArea: { overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 8 },
   bubble: { padding: '9px 13px', borderRadius: 12, fontSize: 13, lineHeight: 1.6, wordBreak: 'break-word' },
@@ -1417,12 +1418,12 @@ const s: Record<string, React.CSSProperties> = {
   msgMeta: { fontSize: 10, color: '#3a3a5a', marginTop: 3, cursor: 'default', userSelect: 'none' },
   inputArea: { padding: '12px 18px', borderTop: '1px solid var(--border)', background: 'var(--bg-panel)' },
   inputRow: { display: 'flex', gap: 8, alignItems: 'flex-end' },
-  textarea: { flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border-mid)', borderRadius: 10, padding: '9px 12px', color: '#e2e8f0', fontSize: 13, fontFamily: "'Inter', system-ui, sans-serif", resize: 'none', outline: 'none', lineHeight: 1.5, overflowY: 'auto' },
+  textarea: { flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border-mid)', borderRadius: 10, padding: '9px 12px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', resize: 'none', outline: 'none', lineHeight: 1.5, overflowY: 'auto' },
   iconBtn: { width: 38, height: 38, background: 'transparent', border: '1px solid var(--border-mid)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3a3a5a', cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s' },
   sendBtn: { background: 'linear-gradient(135deg, var(--accent-dark), var(--accent))', border: 'none', borderRadius: 10, padding: '0 16px', height: 38, color: '#fff', fontSize: 14, cursor: 'pointer', flexShrink: 0, transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500, boxShadow: '0 2px 10px var(--accent-glow)' },
   quickRepliesPopover: { position: 'absolute', bottom: '100%', right: 0, marginBottom: 8, background: 'var(--bg-card)', border: '1px solid var(--border-mid)', borderRadius: 12, padding: 8, width: 290, zIndex: 100, boxShadow: '0 12px 32px rgba(0,0,0,0.7)' },
   quickRepliesTitle: { fontSize: 10, color: '#3a3a5a', textTransform: 'uppercase', letterSpacing: '0.07em', paddingBottom: 6, borderBottom: '1px solid var(--border)', marginBottom: 4, fontWeight: 600 },
-  quickReplyItem: { display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: '#8080a0', fontSize: 12, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.1s, color 0.1s', fontFamily: "'Inter', system-ui, sans-serif" },
+  quickReplyItem: { display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: '#8080a0', fontSize: 12, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.1s, color 0.1s', fontFamily: 'inherit' },
   emptyPane: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' },
 
   // ── Toggle ──────────────────────────────────────────────────────────────────
