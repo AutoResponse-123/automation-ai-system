@@ -164,9 +164,17 @@ async function callClaude(
           clientPhone: clientPhone || '',
           durationMinutes: toolUseBlock.input.duration_minutes,
         });
+        // Buscar contact_id por phone
+        const { data: contactData } = await supabase
+          .from('contacts')
+          .select('id')
+          .eq('business_id', business.id)
+          .eq('phone', clientPhone || '')
+          .single();
         // Guardar en Supabase para recordatorios
         const { error: insertErr } = await supabase.from('appointments').insert({
           business_id: business.id,
+          contact_id: contactData?.id || null,
           google_event_id: eventId,
           title: toolUseBlock.input.title,
           category: toolUseBlock.input.category || null,

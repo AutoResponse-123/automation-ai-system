@@ -41,7 +41,7 @@ interface BusinessConfig {
   schedule: {
     enabled: boolean
     timezone: string
-    hours: Record<string, { open: string; close: string; closed: boolean }>
+    hours: Record<string, { open: string; close: string; closed: boolean; breaks?: Array<{ start: string; end: string }> }>
   }
 }
 
@@ -468,28 +468,59 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
 
                   <div style={s.scheduleGrid}>
                     {Object.entries(config.schedule?.hours ?? {}).map(([day, hours]) => (
-                      <div key={day} style={s.scheduleRow}>
-                        <div style={{ ...s.dayLabel, ...(hours.closed ? { color: '#4a4a6a' } : {}) }}>
-                          {day.charAt(0).toUpperCase() + day.slice(1)}
+                      <div key={day} style={{ ...s.scheduleRow, flexDirection: 'column', gridTemplateColumns: 'none', gap: 6 }}>
+                        {/* Fila principal */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '90px 40px 90px 20px 90px auto', alignItems: 'center', gap: 8 }}>
+                          <div style={{ ...s.dayLabel, ...(hours.closed ? { color: '#4a4a6a' } : {}) }}>
+                            {day.charAt(0).toUpperCase() + day.slice(1)}
+                          </div>
+                          <div style={{ ...s.toggleTrackSm, ...(hours.closed ? {} : s.toggleTrackOn) }}
+                            onClick={() => update('schedule', {
+                              ...config.schedule,
+                              hours: { ...config.schedule.hours, [day]: { ...hours, closed: !hours.closed } }
+                            })}>
+                            <div style={{ ...s.toggleThumbSm, ...(!hours.closed ? s.toggleThumbOn : {}) }} />
+                          </div>
+                          {!hours.closed ? (
+                            <>
+                              <input style={s.timeInput} type="time" value={hours.open}
+                                onChange={e => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, open: e.target.value } } })} />
+                              <span style={{ fontSize: 11, color: '#4a4a6a' }}>a</span>
+                              <input style={s.timeInput} type="time" value={hours.close}
+                                onChange={e => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, close: e.target.value } } })} />
+                              <button
+                                onClick={() => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: [...(hours.breaks ?? []), { start: '13:00', end: '14:00' }] } } })}
+                                style={{ fontSize: 10, color: '#a78bfa', background: 'none', border: '0.5px solid #a78bfa', borderRadius: 4, padding: '2px 6px', cursor: 'pointer' }}>
+                                + descanso
+                              </button>
+                            </>
+                          ) : (
+                            <span style={{ fontSize: 12, color: '#4a4a6a', gridColumn: 'span 4' }}>Cerrado</span>
+                          )}
                         </div>
-                        <div style={{ ...s.toggleTrackSm, ...(hours.closed ? {} : s.toggleTrackOn) }}
-                          onClick={() => update('schedule', {
-                            ...config.schedule,
-                            hours: { ...config.schedule.hours, [day]: { ...hours, closed: !hours.closed } }
-                          })}>
-                          <div style={{ ...s.toggleThumbSm, ...(!hours.closed ? s.toggleThumbOn : {}) }} />
-                        </div>
-                        {!hours.closed ? (
-                          <>
-                            <input style={s.timeInput} type="time" value={hours.open}
-                              onChange={e => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, open: e.target.value } } })} />
+                        {/* Franjas de descanso */}
+                        {!hours.closed && (hours.breaks ?? []).map((b, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 16 }}>
+                            <span style={{ fontSize: 10, color: '#6b7280' }}>descanso</span>
+                            <input style={s.timeInput} type="time" value={b.start}
+                              onChange={e => {
+                                const nb = [...(hours.breaks ?? [])]; nb[i] = { ...nb[i], start: e.target.value };
+                                update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: nb } } });
+                              }} />
                             <span style={{ fontSize: 11, color: '#4a4a6a' }}>a</span>
-                            <input style={s.timeInput} type="time" value={hours.close}
-                              onChange={e => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, close: e.target.value } } })} />
-                          </>
-                        ) : (
-                          <span style={{ fontSize: 12, color: '#4a4a6a', gridColumn: 'span 3' }}>Cerrado</span>
-                        )}
+                            <input style={s.timeInput} type="time" value={b.end}
+                              onChange={e => {
+                                const nb = [...(hours.breaks ?? [])]; nb[i] = { ...nb[i], end: e.target.value };
+                                update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: nb } } });
+                              }} />
+                            <button
+                              onClick={() => {
+                                const nb = (hours.breaks ?? []).filter((_, j) => j !== i);
+                                update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: nb } } });
+                              }}
+                              style={{ fontSize: 11, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px' }}>✕</button>
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>

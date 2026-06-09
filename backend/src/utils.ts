@@ -27,7 +27,12 @@ export function buildSystemPrompt(business: any, contactSummary?: string): strin
     const schedule = business.schedule;
     const tz = schedule.timezone || 'America/Argentina/Buenos_Aires';
     const now = new Date().toLocaleString('es-AR', { timeZone: tz, weekday: 'long', hour: '2-digit', minute: '2-digit' });
-    parts.push(`\nHorario de atención (${tz}): ${Object.entries(schedule.hours || {}).map(([day, h]: any) => h.closed ? `${day}: cerrado` : `${day}: ${h.open} - ${h.close}`).join(', ')}`);
+    parts.push(`\nHorario de atención (${tz}): ${Object.entries(schedule.hours || {}).map(([day, h]: any) => {
+      if (h.closed) return `${day}: cerrado`;
+      let str = `${day}: ${h.open} - ${h.close}`;
+      if (h.breaks?.length > 0) str += ` (descanso: ${h.breaks.map((b: any) => `${b.start}-${b.end}`).join(', ')})`;
+      return str;
+    }).join(', ')}`);
     parts.push(`Ahora es: ${now}`);
   }
 
@@ -87,6 +92,14 @@ export function isOutsideHours(schedule: any): boolean {
     const curMins = curH * 60 + curM;
     const openMins = openH * 60 + openM;
     const closeMins = closeH * 60 + closeM;
-    return curMins < openMins || curMins > closeMins;
+    if (curMins < openMins || curMins > closeMins) return true;
+    // Verificar franjas de descanso
+    const breaks: Array<{ start: string; end: string }> = dayConfig.breaks ?? [];
+    for (const b of breaks) {
+      const [bStartH, bStartM] = b.start.split(':').map(Number);
+      const [bEndH, bEndM] = b.end.split(':').map(Number);
+      if (curMins >= bStartH * 60 + bStartM && curMins < bEndH * 60 + bEndM) return true;
+    }
+    return false;
   } catch { return false; }
 }

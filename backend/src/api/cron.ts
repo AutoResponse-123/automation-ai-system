@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 
 const router = Router();
 const { supabase } = require('../config/supabase');
-const { sendDailySummaries } = require('../services/summary');
+const { sendDailySummaries, sendWeeklySummaries } = require('../services/summary');
 
 function checkSecret(req: Request, res: Response): boolean {
   const secret = req.headers['x-cron-secret'];
@@ -36,6 +36,17 @@ router.get('/daily-summary', async (req: Request, res: Response) => {
   if (!checkSecret(req, res)) return;
   try {
     await sendDailySummaries();
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/cron/weekly-summary — llamar los lunes a las 9am
+router.get('/weekly-summary', async (req: Request, res: Response) => {
+  if (!checkSecret(req, res)) return;
+  try {
+    await sendWeeklySummaries();
     res.json({ ok: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
