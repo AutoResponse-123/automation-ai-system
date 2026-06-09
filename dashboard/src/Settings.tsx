@@ -95,6 +95,21 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
   const isMobile = useIsMobile()
   const [showSectionDropdown, setShowSectionDropdown] = useState(false)
   const [bgColor, setBgColor] = useState<string>(() => localStorage.getItem('ar_bg_color') ?? '#07070d')
+  const [fontFamily, setFontFamily] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Inter')
+
+  function applyFont(font: string) {
+    const existing = document.getElementById('ar-font-link')
+    if (existing) existing.remove()
+    if (font !== 'Inter') {
+      const link = document.createElement('link')
+      link.id = 'ar-font-link'
+      link.rel = 'stylesheet'
+      link.href = `https://fonts.googleapis.com/css2?family=${font.replace(/ /g, '+')}:wght@400;500;600;700&display=swap`
+      document.head.appendChild(link)
+    }
+    document.documentElement.style.setProperty('--font-family', `'${font}', system-ui, sans-serif`)
+    setFontFamily(font)
+  }
   const [newCatName, setNewCatName] = useState('')
   const [newCatDuration, setNewCatDuration] = useState(30)
   const [newCatColor, setNewCatColor] = useState('#a78bfa')
@@ -187,6 +202,7 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
       updated_at: new Date().toISOString(),
     }).eq('id', businessId!)
     localStorage.setItem('ar_bg_color', bgColor)
+    localStorage.setItem('ar_font', fontFamily)
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
@@ -656,6 +672,41 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
                 <i className="ti ti-info-circle" style={{ marginRight: 6 }} />
                 Los cambios de color se aplican en vivo. Guardá para que persistan al recargar.
               </div>
+
+              {/* Fuente */}
+              <Field label="Fuente del dashboard" hint="Se aplica en todo el dashboard — guardá para que persista">
+                {(() => {
+                  const FONTS = [
+                    { id: 'Inter',         desc: 'Limpia y moderna (por defecto)' },
+                    { id: 'DM Sans',       desc: 'Amigable y redondeada' },
+                    { id: 'Space Grotesk', desc: 'Geométrica y técnica' },
+                    { id: 'Outfit',        desc: 'Minimalista y legible' },
+                    { id: 'Nunito',        desc: 'Suave y amigable' },
+                    { id: 'Syne',          desc: 'Futurista y llamativa' },
+                  ]
+                  return (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
+                      {FONTS.map(f => (
+                        <div key={f.id} onClick={() => applyFont(f.id)}
+                          style={{
+                            background: fontFamily === f.id ? 'var(--accent-dim)' : '#0d0d14',
+                            border: `0.5px solid ${fontFamily === f.id ? 'var(--accent)' : '#1e1e2e'}`,
+                            borderRadius: 10, padding: '10px 14px', cursor: 'pointer',
+                            transition: 'all 0.15s',
+                          }}>
+                          <div style={{ fontSize: 15, fontWeight: 600, color: fontFamily === f.id ? 'var(--accent)' : '#c4c4d4', fontFamily: `'${f.id}', system-ui, sans-serif`, marginBottom: 3 }}>
+                            {f.id}
+                          </div>
+                          <div style={{ fontSize: 10, color: '#5a5a7a' }}>{f.desc}</div>
+                          <div style={{ fontSize: 11, color: fontFamily === f.id ? 'var(--accent)' : '#4a4a6a', fontFamily: `'${f.id}', system-ui, sans-serif`, marginTop: 4 }}>
+                            Hola, ¿cómo estás?
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
+              </Field>
 
               {/* Idioma de la interfaz */}
               <Field label="Idioma de la interfaz" hint="Cambia el idioma del dashboard (no afecta al bot)">

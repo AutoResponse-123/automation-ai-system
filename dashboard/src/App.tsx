@@ -249,6 +249,15 @@ export default function App() {
       setBusinessData(data)
       const bg = localStorage.getItem('ar_bg_color') ?? undefined
       applyTheme(data.accent_color ?? undefined, bg)
+      const savedFont = localStorage.getItem('ar_font')
+      if (savedFont && savedFont !== 'Inter') {
+        const link = document.createElement('link')
+        link.id = 'ar-font-link'
+        link.rel = 'stylesheet'
+        link.href = `https://fonts.googleapis.com/css2?family=${savedFont.replace(/ /g, '+')}:wght@400;500;600;700&display=swap`
+        document.head.appendChild(link)
+        document.documentElement.style.setProperty('--font-family', `'${savedFont}', system-ui, sans-serif`)
+      }
       // Cargar turnos de hoy
       const today = new Date().toISOString().split('T')[0]
       const { data: appts } = await supabase.from('appointments')
@@ -1352,7 +1361,7 @@ function EmptyState({ icon, title, sub }: { icon: string; title: string; sub: st
 
 const s: Record<string, React.CSSProperties> = {
   // ── Shell ───────────────────────────────────────────────────────────────────
-  shell: { display: 'grid', gridTemplateColumns: '68px 1fr', height: '100vh', background: 'var(--bg-base)', color: '#e2e8f0', fontFamily: "'Inter', system-ui, sans-serif", fontSize: 14, overflow: 'hidden', position: 'relative' },
+  shell: { display: 'grid', gridTemplateColumns: '68px 1fr', height: '100vh', background: 'var(--bg-base)', color: '#e2e8f0', fontFamily: "var(--font-family, 'Inter', system-ui, sans-serif)", fontSize: 14, overflow: 'hidden', position: 'relative' },
 
   // ── Sidebar ─────────────────────────────────────────────────────────────────
   sidebar: { background: 'var(--bg-panel)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '14px 0 10px', gap: 2 },
