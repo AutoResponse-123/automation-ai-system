@@ -486,11 +486,11 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
                           </div>
                           {!hours.closed ? (
                             <>
-                              <TimeSelect value={hours.open}
-                                onChange={v => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, open: v } } })} />
+                              <input style={s.timeInput} type="time" value={hours.open}
+                                onChange={e => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, open: e.target.value } } })} />
                               <span style={{ fontSize: 12, color: '#3a3a5a', fontWeight: 600 }}>→</span>
-                              <TimeSelect value={hours.close}
-                                onChange={v => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, close: v } } })} />
+                              <input style={s.timeInput} type="time" value={hours.close}
+                                onChange={e => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, close: e.target.value } } })} />
                               <button
                                 onClick={() => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: [...(hours.breaks ?? []), { start: '13:00', end: '14:00' }] } } })}
                                 style={{ marginLeft: 'auto', fontSize: 10, color: '#a78bfa', background: '#12122a', border: '0.5px solid #a78bfa44', borderRadius: 20, padding: '4px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontWeight: 500 }}>
@@ -507,15 +507,15 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'tr
                             {(hours.breaks ?? []).map((b, i) => (
                               <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#0d0d1e', border: '0.5px solid #2e2e5e', borderRadius: 20, padding: '3px 8px 3px 10px' }}>
                                 <span style={{ fontSize: 10 }}>⏸</span>
-                                <TimeSelect value={b.start}
-                                  onChange={v => {
-                                    const nb = [...(hours.breaks ?? [])]; nb[i] = { ...nb[i], start: v };
+                                <input style={s.timeInput} type="time" value={b.start}
+                                  onChange={e => {
+                                    const nb = [...(hours.breaks ?? [])]; nb[i] = { ...nb[i], start: e.target.value };
                                     update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: nb } } });
                                   }} />
                                 <span style={{ fontSize: 11, color: '#3a3a5a', fontWeight: 600 }}>→</span>
-                                <TimeSelect value={b.end}
-                                  onChange={v => {
-                                    const nb = [...(hours.breaks ?? [])]; nb[i] = { ...nb[i], end: v };
+                                <input style={s.timeInput} type="time" value={b.end}
+                                  onChange={e => {
+                                    const nb = [...(hours.breaks ?? [])]; nb[i] = { ...nb[i], end: e.target.value };
                                     update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: nb } } });
                                   }} />
                                 <button
@@ -1076,30 +1076,6 @@ function TagInput({ tags, value, onChange, onAdd, onRemove, placeholder, color }
       </div>
     </div>
   )
-}
-
-function TimeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const parts = (value || '09:00').split(':');
-  const h = parts[0] ?? '09';
-  const m = ['00', '15', '30', '45'].includes(parts[1]) ? parts[1] : '00';
-  const sel: React.CSSProperties = {
-    background: 'transparent', border: 'none', color: '#e2e8f0',
-    fontSize: 13, fontWeight: 500, outline: 'none', cursor: 'pointer',
-    textAlign: 'center', width: 36, padding: '2px 0',
-  };
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 0, background: '#111122', border: '0.5px solid #2e2e4e', borderRadius: 7, padding: '3px 6px' }}>
-      <select style={sel} value={h} onChange={e => onChange(`${e.target.value}:${m}`)}>
-        {Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')).map(hh =>
-          <option key={hh} value={hh}>{hh}</option>
-        )}
-      </select>
-      <span style={{ color: '#4a4a6a', fontWeight: 700, fontSize: 13, userSelect: 'none', padding: '0 1px' }}>:</span>
-      <select style={sel} value={m} onChange={e => onChange(`${h}:${e.target.value}`)}>
-        {['00', '15', '30', '45'].map(mm => <option key={mm} value={mm}>{mm}</option>)}
-      </select>
-    </span>
-  );
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
