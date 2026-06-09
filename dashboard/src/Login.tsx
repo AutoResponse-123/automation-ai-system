@@ -205,3 +205,4 @@ const s: Record<string, React.CSSProperties> = {
   btn: { marginTop: 16, width: '100%', background: 'linear-gradient(135deg, #a78bfa 0%, #6366f1 100%)', border: 'none', borderRadius: 11, padding: '12px', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 4px 24px rgba(167,139,250,0.3)', transition: 'opacity .15s', fontFamily: 'inherit' },
   trialBadge: { display: 'flex', alignItems: 'center', gap: 5, marginTop: 14, fontSize: 11, color: '#4a4268' },
 }
+              

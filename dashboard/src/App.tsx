@@ -132,6 +132,7 @@ const DEFAULT_QUICK_REPLIES: string[] = []
 
 export default function App() {
   const [lang, setLang] = useState<Lang>(() => (localStorage.getItem('ui_lang') as Lang) || 'es')
+  const [dashFont, setDashFont] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Inter')
   const [tab, setTab] = useState<Tab>('dashboard')
   const [session, setSession] = useState<Session | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
@@ -256,8 +257,6 @@ export default function App() {
         link.rel = 'stylesheet'
         link.href = `https://fonts.googleapis.com/css2?family=${savedFont.replace(/ /g, '+')}:wght@400;500;600;700&display=swap`
         document.head.appendChild(link)
-        document.documentElement.style.setProperty('--font-family', `'${savedFont}', system-ui, sans-serif`)
-        document.body.style.fontFamily = `'${savedFont}', system-ui, sans-serif`
       }
       // Cargar turnos de hoy
       const today = new Date().toISOString().split('T')[0]
@@ -594,7 +593,7 @@ export default function App() {
 
   return (
     <LangContext.Provider value={{ lang, setLang: (l) => { setLang(l); localStorage.setItem('ui_lang', l) } }}>
-    <div style={{ ...s.shell, ...(isMobile ? { display: 'flex', flexDirection: 'column', gridTemplateColumns: 'none' } : {}) }} className="app-shell">
+    <div style={{ ...s.shell, fontFamily: `'${dashFont}', system-ui, sans-serif`, ...(isMobile ? { display: 'flex', flexDirection: 'column', gridTemplateColumns: 'none' } : {}) }} className="app-shell">
 
       {/* Sidebar */}
       <nav style={{ ...s.sidebar, ...(isMobile ? { display: 'none' } : {}) }} className="desktop-sidebar">
@@ -1204,7 +1203,7 @@ export default function App() {
         )}
         {tab === 'appointments' && businessId && <Appointments businessId={businessId} />}
         {tab === 'activity' && <Activity />}
-        {tab === 'settings' && <Settings businessId={businessId} onThemeChange={applyTheme} plan={businessData?.plan ?? 'trial'} />}
+        {tab === 'settings' && <Settings businessId={businessId} onThemeChange={applyTheme} onFontChange={f => { setDashFont(f); localStorage.setItem('ar_font', f) }} plan={businessData?.plan ?? 'trial'} />}
       </div>
 
       {/* Toasts */}
@@ -1362,7 +1361,7 @@ function EmptyState({ icon, title, sub }: { icon: string; title: string; sub: st
 
 const s: Record<string, React.CSSProperties> = {
   // ── Shell ───────────────────────────────────────────────────────────────────
-  shell: { display: 'grid', gridTemplateColumns: '68px 1fr', height: '100vh', background: 'var(--bg-base)', color: '#e2e8f0', fontFamily: "var(--font-family, 'Inter', system-ui, sans-serif)", fontSize: 14, overflow: 'hidden', position: 'relative', WebkitFontSmoothing: 'antialiased' } as React.CSSProperties,
+  shell: { display: 'grid', gridTemplateColumns: '68px 1fr', height: '100vh', background: 'var(--bg-base)', color: '#e2e8f0', fontSize: 14, overflow: 'hidden', position: 'relative' },
 
   // ── Sidebar ─────────────────────────────────────────────────────────────────
   sidebar: { background: 'var(--bg-panel)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '14px 0 10px', gap: 2 },
@@ -1455,3 +1454,4 @@ const s: Record<string, React.CSSProperties> = {
   noteModeBar: { fontSize: 11, color: '#d97706', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, padding: '0 2px', fontWeight: 500 },
   textareaNote: { borderColor: '#3a2500', background: '#100b00' },
 }
+                                                                               
