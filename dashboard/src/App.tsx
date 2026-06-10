@@ -442,7 +442,7 @@ export default function App() {
     setMetrics({
       totalMessages: totalMessages ?? 0,
       todayMessages: periodMessages ?? 0,
-      automationRate: userCount > 0 ? Math.round((assistantCount / userCount) * 100) : 0,
+      automationRate: userCount > 0 ? Math.min(100, Math.round((assistantCount / userCount) * 100)) : 0,
       avgResponseTime: 1.1,
       uniqueContacts: uniqueContacts ?? 0,
       activeConversations: activeConversations ?? 0,
@@ -1258,7 +1258,8 @@ function DashboardHero({ name, automationRate, pending, totalMessages, onGoPendi
 }) {
   const hour = new Date().getHours()
   const greet = hour < 6 ? 'Buenas noches' : hour < 13 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches'
-  const dateStr = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
+  const rawDate = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
+  const dateStr = rawDate.charAt(0).toUpperCase() + rawDate.slice(1)
   const status = pending > 0
     ? { label: 'Requiere atención', color: '#fb923c', icon: 'ti-alert-triangle' }
     : totalMessages === 0
@@ -1268,7 +1269,7 @@ function DashboardHero({ name, automationRate, pending, totalMessages, onGoPendi
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: 12, marginBottom: 18 }}>
       <div>
         <div style={{ fontSize: 20, fontWeight: 600, color: '#e8e8f4' }}>{name ? `${greet}, ${name} 👋` : `${greet} 👋`}</div>
-        <div style={{ fontSize: 12, color: '#5a5a7a', marginTop: 2, textTransform: 'capitalize' as const }}>{dateStr}</div>
+        <div style={{ fontSize: 12, color: '#5a5a7a', marginTop: 2 }}>{dateStr}</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const }}>
         <div onClick={pending > 0 ? onGoPending : undefined}
