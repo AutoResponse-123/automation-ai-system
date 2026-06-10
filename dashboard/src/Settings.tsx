@@ -1160,4 +1160,6 @@ const s: Record<string, React.CSSProperties> = {
   scheduleRow: { display: 'flex', flexDirection: 'column' as const, gap: 6, background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 10, padding: '10px 14px' },
   dayLabel: { fontSize: 12, fontWeight: 500, color: '#c4c4d4' },
   timeInput: { background: '#111122', border: '0.5px solid #2e2e4e', borderRadius: 6, padding: '4px 6px', color: '#e2e8f0', fontSize: 12, outline: 'none' },
-  saveBar: { borderTop: '0.5px solid #1e1e2e', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0d0d14' 
+  saveBar: { borderTop: '0.5px solid #1e1e2e', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0d0d14' },
+  saveBtn: { background: '#a78bfa', border: 'none', borderRadius: 8, padding: '8px 20px', color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer' },
+}

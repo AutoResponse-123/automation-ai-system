@@ -46,6 +46,18 @@ function maxOf(stats: DayStat[], key: keyof DayStat): number {
   return Math.max(...stats.map(s => s[key] as number), 1)
 }
 
+function ChartEmpty({ label }: { label: string }) {
+  return (
+    <div style={s.chartCard}>
+      <div style={s.chartTitle}>{label}</div>
+      <div style={{ height: 130, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#3a3a5a' }}>
+        <i className="ti ti-chart-bar-off" style={{ fontSize: 28, opacity: 0.7 }} />
+        <span style={{ fontSize: 12 }}>Sin datos en este período</span>
+      </div>
+    </div>
+  )
+}
+
 // ── Bar chart with hover tooltips ─────────────────────────────────────────────
 
 function BarChart({ stats, valueKey, color, label, format }: {
@@ -58,6 +70,7 @@ function BarChart({ stats, valueKey, color, label, format }: {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
   const max = maxOf(stats, valueKey)
   const fmt = format ?? ((v: number) => String(v))
+  if (stats.every(d => (d[valueKey] as number) === 0)) return <ChartEmpty label={label} />
 
   return (
     <div style={s.chartCard}>
@@ -93,6 +106,7 @@ function BarChart({ stats, valueKey, color, label, format }: {
 function StackedChart({ stats }: { stats: DayStat[] }) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
   const max = maxOf(stats, 'total')
+  if (stats.every(d => d.total === 0)) return <ChartEmpty label="Mensajes por día" />
 
   return (
     <div style={s.chartCard}>
@@ -135,6 +149,7 @@ function StackedChart({ stats }: { stats: DayStat[] }) {
 function HourlyChart({ hours }: { hours: HourStat[] }) {
   const max = Math.max(...hours.map(h => h.count), 1)
   const [hovered, setHovered] = useState<number | null>(null)
+  if (hours.every(h => h.count === 0)) return <ChartEmpty label="Horario pico — mensajes por hora del día" />
 
   return (
     <div style={s.chartCard}>

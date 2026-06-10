@@ -1246,6 +1246,22 @@ function MetricCard({ label, value, sub, color, trend, trendDetail, onClick, ico
   icon?: string; iconColor?: string
 }) {
   const accent = iconColor || color
+  const isCountable = /^\d{1,9}$/.test(value)
+  const [display, setDisplay] = useState<string>(isCountable ? '0' : value)
+  useEffect(() => {
+    if (!isCountable) { setDisplay(value); return }
+    const target = parseInt(value, 10)
+    if (target === 0) { setDisplay('0'); return }
+    let raf = 0
+    const start = performance.now()
+    const tick = (now: number) => {
+      const pr = Math.min((now - start) / 650, 1)
+      setDisplay(String(Math.round(target * (1 - Math.pow(1 - pr, 3)))))
+      if (pr < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [value])
   return (
     <div className="metric-card"
       style={{ ...s.metricCard, ...(accent ? { borderTop: `2px solid ${accent}` } : {}), ...(onClick ? { cursor: 'pointer' } : {}) }}
@@ -1259,7 +1275,7 @@ function MetricCard({ label, value, sub, color, trend, trendDetail, onClick, ico
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
-        <div style={s.metricValue}>{value}</div>
+        <div style={s.metricValue}>{display}</div>
         {trend && trend !== 'neutral' && (
           <span style={{ fontSize: 12, color: trend === 'up' ? '#22c55e' : '#f87171', marginBottom: 3 }}>
             <i className={`ti ti-trending-${trend}`} style={{ fontSize: 14 }} />
@@ -1453,4 +1469,6 @@ const s: Record<string, React.CSSProperties> = {
   noteBadge: { fontSize: 10, color: '#d97706', display: 'flex', alignItems: 'center', gap: 3, marginBottom: 3, fontWeight: 500 },
   noteBubble: { background: '#160f00', border: '1px solid #3a2500', borderRadius: 10, borderBottomLeftRadius: 3, padding: '9px 13px', fontSize: 13, lineHeight: 1.6, color: '#fde68a', wordBreak: 'break-word' },
   inputAreaNote: { borderTopColor: '#3a2500', background: '#0e0900' },
-  noteModeBar: { fontSize: 11, color: '#d97706', display: 'flex', alignIt
+  noteModeBar: { fontSize: 11, color: '#d97706', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, padding: '0 2px', fontWeight: 500 },
+  textareaNote: { borderColor: '#3a2500', background: '#100b00' },
+}
