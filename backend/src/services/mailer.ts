@@ -19,7 +19,7 @@ function getGmailTransporter() {
 // 1) Si hay GMAIL_USER + GMAIL_APP_PASSWORD -> manda por Gmail (no requiere dominio propio).
 // 2) Si no, y hay RESEND_API_KEY -> manda por Resend.
 // 3) Si no hay nada configurado, no envía (solo avisa por consola).
-export async function sendMail(opts: { to: string; subject: string; html: string }) {
+export async function sendMail(opts: { to: string; subject: string; html: string; replyTo?: string }) {
   if (!opts.to) return;
 
   const gmailUser = process.env.GMAIL_USER;
@@ -32,6 +32,7 @@ export async function sendMail(opts: { to: string; subject: string; html: string
       to: opts.to,
       subject: opts.subject,
       html: opts.html,
+      ...(opts.replyTo ? { replyTo: opts.replyTo } : {}),
     });
     return;
   }
@@ -44,6 +45,7 @@ export async function sendMail(opts: { to: string; subject: string; html: string
       to: opts.to,
       subject: opts.subject,
       html: opts.html,
+      ...(opts.replyTo ? { replyTo: opts.replyTo } : {}),
     });
     return;
   }

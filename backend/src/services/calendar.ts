@@ -118,6 +118,23 @@ async function getAvailableSlots(business: any, date: string): Promise<string[]>
   return slots;
 }
 
+async function isSlotFree(business: any, date: string, time: string, durationMinutes: number = 60): Promise<boolean> {
+  const calendar = await getCalendarClient(business);
+  const calendarId = business.google_calendar_id || 'primary';
+  const tz = business.schedule?.timezone || 'America/Argentina/Buenos_Aires';
+  const start = wallTimeToUtc(date, time, tz);
+  const end = new Date(start.getTime() + durationMinutes * 60000);
+  const { data } = await calendar.freebusy.query({
+    requestBody: { timeMin: start.toISOString(), timeMax: end.toISOString(), items: [{ id: calendarId }] },
+  });
+  const busy: { start: string; end: string }[] = data.calendars?.[calendarId]?.busy || [];
+  return !busy.some(b => {
+    const bs = new Date(b.start).getTime();
+    const be = new Date(b.end).getTime();
+    return start.getTime() < be && end.getTime() > bs;
+  });
+}
+
 async function createEvent(business: any, params: {
   title: string;
   date: string;
@@ -147,4 +164,4 @@ async function createEvent(business: any, params: {
   return data.id;
 }
 
-module.exports = { getAuthUrl, saveTokens, getAvailableSlots, createEvent, wallTimeToUtc };
+module.exports = { getAuthUrl, saveTokens, getAvailableSlots, createEvent, isSlotFree, wallTimeToUtc };

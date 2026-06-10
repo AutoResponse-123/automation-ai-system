@@ -104,7 +104,8 @@ async function sendPendingReminders() {
       }
     }
   } catch (err: any) {
-    console.error('[reminders] Error general:', err.message);
+    const { captureError } = require('./logger');
+    captureError(err, 'reminders');
   }
 }
 

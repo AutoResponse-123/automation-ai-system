@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-const { Resend } = require('resend');
+const { sendMail } = require('../services/mailer');
 
 const router = Router();
 
@@ -34,14 +34,11 @@ router.post('/', async (req: Request, res: Response) => {
   const safeBizType = business_type ? escapeHtml(String(business_type).slice(0, 100)) : ''
 
   try {
-    if (process.env.RESEND_API_KEY) {
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      await resend.emails.send({
-        from: 'Wasso <onboarding@resend.dev>',
-        to: process.env.CONTACT_EMAIL || 'zaza42069zaza69@gmail.com',
-        replyTo: email,
-        subject: `📩 Consulta de ${safeName} — Wasso`,
-        html: `
+    await sendMail({
+      to: process.env.CONTACT_EMAIL || 'zaza42069zaza69@gmail.com',
+      replyTo: email,
+      subject: `📩 Consulta de ${safeName} — Wasso`,
+      html: `
           <div style="font-family:sans-serif;max-width:520px;margin:0 auto;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
             <div style="background:#7c3aed;padding:24px 28px;">
               <h2 style="color:#fff;margin:0;font-size:18px;">📩 Nueva consulta desde la landing</h2>
@@ -59,8 +56,7 @@ router.post('/', async (req: Request, res: Response) => {
               Wasso · Formulario de contacto
             </div>
           </div>`,
-      });
-    }
+    });
     res.json({ ok: true });
   } catch (err: any) {
     console.error('[contact]', err.message);

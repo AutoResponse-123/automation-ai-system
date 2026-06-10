@@ -1,6 +1,6 @@
 export {};
 const Anthropic = require('@anthropic-ai/sdk').default;
-const { getAvailableSlots, createEvent } = require('./calendar');
+const { getAvailableSlots, createEvent, isSlotFree } = require('./calendar');
 const { supabase } = require('../config/supabase');
 const { createPaymentLink } = require('./mercadopago');
 const { sendCancellationEmail } = require('./email');
@@ -156,6 +156,11 @@ async function callClaude(
           ? `Horarios disponibles: ${slots.join(', ')}`
           : 'No hay horarios disponibles para esa fecha.';
       } else if (toolUseBlock.name === 'create_appointment') {
+        const free = await isSlotFree(business, toolUseBlock.input.date, toolUseBlock.input.time, toolUseBlock.input.duration_minutes || 60);
+        if (!free) {
+          toolResult = 'Ese horario ya no esta disponible (lo tomaron recien). Pedile al cliente que elija otro horario y consulta de nuevo con get_available_slots. NO confirmes este turno.';
+          console.log('[create_appointment] slot ocupado, rechazado:', toolUseBlock.input.date, toolUseBlock.input.time);
+        } else {
         const eventId = await createEvent(business, {
           title: toolUseBlock.input.title,
           date: toolUseBlock.input.date,
@@ -187,6 +192,7 @@ async function callClaude(
         if (insertErr) console.error('[appointments insert]', insertErr.message);
         toolResult = `Turno creado exitosamente. ID: ${eventId}`;
         console.log(`[create_appointment] OK — Event ID: ${eventId}`);
+        }
       } else if (toolUseBlock.name === 'reschedule_appointment') {
         const today = new Date().toISOString().split('T')[0];
         const { data: appts } = await supabase

@@ -10,6 +10,18 @@ const { buildSystemPrompt, checkEscalation, isOutsideHours } = require('../utils
 
 const router = express.Router();
 
+// Dedup de mensajes: Twilio puede reintentar el mismo webhook. Guardamos los SID
+// procesados en memoria (single-instance) y descartamos repetidos dentro de 10 min.
+const recentSids = new Map<string, number>();
+function isDuplicateSid(sid: string): boolean {
+  if (!sid) return false;
+  const now = Date.now();
+  for (const [k, t] of recentSids) if (now - t > 10 * 60 * 1000) recentSids.delete(k);
+  if (recentSids.has(sid)) return true;
+  recentSids.set(sid, now);
+  return false;
+}
+
 async function verifyBusinessOwner(authHeader: string | undefined, businessId: string): Promise<boolean> {
   if (!authHeader) return false;
   const token = authHeader.replace('Bearer ', '');
@@ -36,6 +48,14 @@ router.post('/whatsapp', async (req: any, res: any) => {
     if (!isValid) {
       console.warn('[webhook] Firma Twilio inválida');
       res.status(403).send('Forbidden');
+      return;
+    }
+
+    // Idempotencia: si ya procesamos este MessageSid, ignorar el reintento
+    const messageSid = req.body.MessageSid || req.body.SmsSid || '';
+    if (isDuplicateSid(messageSid)) {
+      console.log('[webhook] MessageSid duplicado, ignorando:', messageSid);
+      res.status(200).send('<Response/>');
       return;
     }
 
@@ -193,7 +213,8 @@ router.post('/whatsapp', async (req: any, res: any) => {
     res.send(twiml.toString());
 
   } catch (error) {
-    console.error('Error en webhook:', error);
+    const { captureError } = require('../services/logger');
+    captureError(error, 'webhook');
     res.status(500).json({ error: 'Internal server error' });
   }
 });
