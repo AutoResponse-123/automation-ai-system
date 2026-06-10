@@ -421,6 +421,7 @@ export default function App() {
       { data: tokenData },
       { data: allMessages },
       { count: reservationCount },
+      { count: escalationCount },
     ] = await Promise.all([
       convIds.length ? supabase.from('messages').select('*', { count: 'exact', head: true }).in('conversation_id', convIds) : Promise.resolve({ count: 0 }),
       convIds.length ? supabase.from('messages').select('*', { count: 'exact', head: true }).in('conversation_id', convIds).gte('created_at', periodStart.toISOString()) : Promise.resolve({ count: 0 }),
@@ -431,6 +432,7 @@ export default function App() {
       convIds.length ? supabase.from('messages').select('tokens_used').eq('sender', 'assistant').in('conversation_id', convIds).not('tokens_used', 'is', null) : Promise.resolve({ data: [] }),
       convIds.length ? supabase.from('messages').select('sender').in('conversation_id', convIds).limit(1000) : Promise.resolve({ data: [] }),
       supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('business_id', businessId).gte('created_at', periodStart.toISOString()),
+      supabase.from('escalations').select('*', { count: 'exact', head: true }).eq('business_id', businessId).gte('created_at', periodStart.toISOString()),
     ])
 
     const totalTokens = tokenData?.reduce((s, m) => s + (m.tokens_used || 0), 0) ?? 0
@@ -447,7 +449,7 @@ export default function App() {
       uniqueContacts: uniqueContacts ?? 0,
       activeConversations: activeConversations ?? 0,
       pendingConversations: pendingConversations ?? 0,
-      escalations: 0,
+      escalations: escalationCount ?? 0,
       totalTokens,
       estimatedCost: totalTokens * 0.000003
     })

@@ -149,6 +149,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
 
     if (checkEscalation(messageBody, business.escalation_keywords)) {
       await updateConversationStatus(conversationId, 'pending');
+      supabase.from('escalations').insert({ business_id: business.id, conversation_id: conversationId, contact_phone: fromPhone, reason: 'keyword' }).then((r: any) => { if (r.error) console.error('[escalation]', r.error.message); });
       const matchedKw = business.escalation_keywords?.find((kw: string) => messageBody.toLowerCase().includes(kw.toLowerCase()));
       sendEscalationEmail({ to: business.escalation_email, businessName: business.name, botName: business.bot_name, clientPhone: fromPhone, reason: 'keyword', keyword: matchedKw }).catch(console.error);
       const escalMsg = `Entendido! Te voy a comunicar con un miembro de nuestro equipo lo antes posible. Por favor esperá unos momentos.`;
@@ -165,6 +166,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
 
     if (msgCount >= maxMsgs) {
       await updateConversationStatus(conversationId, 'pending');
+      supabase.from('escalations').insert({ business_id: business.id, conversation_id: conversationId, contact_phone: fromPhone, reason: 'limit' }).then((r: any) => { if (r.error) console.error('[escalation]', r.error.message); });
       sendEscalationEmail({ to: business.escalation_email, businessName: business.name, botName: business.bot_name, clientPhone: fromPhone, reason: 'limit' }).catch(console.error);
       const limitMsg = `Gracias por tu paciencia! Para darte una mejor atención, voy a derivarte con uno de nuestros agentes.`;
       await saveMessage(conversationId, 'assistant', limitMsg);
