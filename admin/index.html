@@ -7,7 +7,22 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+
+    <!-- Iconos Tabler: precargar la fuente para evitar el flash de glifos rotos -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/fonts/tabler-icons.woff2?v2.47.0" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" />
+
+    <style>.ti{visibility:hidden}.fonts-ready .ti{visibility:visible}</style>
+    <script>
+      (function () {
+        var show = function () { document.documentElement.classList.add('fonts-ready'); };
+        if (document.fonts && document.fonts.ready) { document.fonts.ready.then(show); }
+        setTimeout(show, 1500);
+      })();
+    </script>
+
     <title>Wasso — Admin</title>
   </head>
   <body>
