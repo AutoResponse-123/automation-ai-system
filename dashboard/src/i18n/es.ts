@@ -136,4 +136,7 @@ export const es = {
   close: 'Cerrar',
   yes: 'Sí',
   no: 'No',
-  minutes: 'mi
+  minutes: 'min',
+}
+
+export type TranslationKey = keyof typeof es

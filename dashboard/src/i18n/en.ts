@@ -133,4 +133,8 @@ export const en = {
   delete: 'Delete',
   edit: 'Edit',
   add: 'Add',
-  close: 'Cl
+  close: 'Close',
+  yes: 'Yes',
+  no: 'No',
+  minutes: 'min',
+}

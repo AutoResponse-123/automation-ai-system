@@ -207,4 +207,3 @@ const s: Record<string, React.CSSProperties> = {
   footer: { display: 'flex', gap: 16, padding: '8px 16px', borderTop: '1px solid var(--border)', fontSize: 11, color: '#4a4a6a' },
   key: { background: 'var(--bg-panel)', border: '1px solid var(--border-mid)', borderRadius: 4, padding: '1px 5px', fontSize: 10, color: '#8080a0', fontFamily: 'inherit', marginRight: 4 },
 }
-                       
