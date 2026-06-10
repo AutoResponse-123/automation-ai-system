@@ -91,7 +91,8 @@ async function sendPendingReminders() {
               appt.client_phone,
               message,
               process.env.TWILIO_ACCOUNT_SID!,
-              process.env.TWILIO_AUTH_TOKEN!
+              process.env.TWILIO_AUTH_TOKEN!,
+              business.phone_whatsapp
             );
             await supabase.from('appointments')
               .update({ reminder_sent: true, reminders_sent: [...alreadySent, hoursBefore] })

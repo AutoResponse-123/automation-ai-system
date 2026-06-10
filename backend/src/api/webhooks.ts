@@ -362,7 +362,7 @@ router.post('/send-manual', async (req: any, res: any) => {
     if (!phone) { res.status(400).json({ error: 'Sin teléfono de contacto' }); return; }
 
     const { sendWhatsAppMessage } = require('../services/twilio');
-    await sendWhatsAppMessage(phone, text.trim(), process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!);
+    await sendWhatsAppMessage(phone, text.trim(), process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!, business.phone_whatsapp);
 
     await supabase.from('messages').insert({
       conversation_id: conversationId,
@@ -414,7 +414,8 @@ router.post('/appointments/:id/cancel', async (req: any, res: any) => {
       const { sendWhatsAppMessage } = require('../services/twilio');
       await sendWhatsAppMessage(
         appt.client_phone, message,
-        process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!
+        process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!,
+        business?.phone_whatsapp
       );
     }
 

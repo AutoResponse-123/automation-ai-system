@@ -23,12 +23,14 @@ async function sendWhatsAppMessage(
   to: string,
   message: string,
   accountSid: string,
-  authToken: string
+  authToken: string,
+  fromNumber?: string
 ) {
   const client = twilio(accountSid, authToken);
+  const from = fromNumber || process.env.TWILIO_PHONE_NUMBER;
 
   const result = await client.messages.create({
-    from: 'whatsapp:' + process.env.TWILIO_PHONE_NUMBER,
+    from: 'whatsapp:' + from,
     to: 'whatsapp:' + to,
     body: message,
   });
