@@ -159,6 +159,7 @@ export default function App() {
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [recentConvId, setRecentConvId] = useState<string | null>(null)
   const [todayAppts, setTodayAppts] = useState<any[]>([])
   const [notes, setNotes] = useState<Note[]>([])
   const [noteMode, setNoteMode] = useState(false)
@@ -298,6 +299,8 @@ export default function App() {
       .channel('realtime-dashboard')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         const msg = payload.new as Message
+        setRecentConvId(msg.conversation_id)
+        setTimeout(() => setRecentConvId(prev => (prev === msg.conversation_id ? null : prev)), 2500)
         if (selectedConvId && msg.conversation_id === selectedConvId) {
           loadMessages(selectedConvId)
         } else {
@@ -718,6 +721,7 @@ export default function App() {
         {/* Dashboard */}
         {tab === 'dashboard' && (
           <div style={s.scrollArea}>
+            <DashboardHero name={businessData?.name} automationRate={metrics.automationRate} pending={metrics.pendingConversations} totalMessages={metrics.totalMessages} onGoPending={() => { setConvFilter('pending'); setTab('inbox') }} />
             <Onboarding business={businessData} onGoToSettings={() => setTab('settings')} />
             {/* Selector de escala */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
@@ -788,7 +792,7 @@ export default function App() {
               ? <SkeletonList count={5} />
               : conversations.length === 0
                 ? <EmptyState icon="ti-message-2" title="Sin conversaciones aún" sub="Las conversaciones de tus clientes aparecerán acá" />
-                : <ConvList conversations={conversations.slice(0, 10)} selected={selectedConv}
+                : <ConvList conversations={conversations.slice(0, 10)} selected={selectedConv} recentId={recentConvId}
                     onSelect={c => { setSelectedConv(c); setTab('inbox'); if (isMobile) setMobileShowChat(true) }} onCopyPhone={copyPhone} />
             }
           </div>
@@ -859,7 +863,7 @@ export default function App() {
                   : filteredConvs.length === 0
                     ? <EmptyState icon="ti-message-off" title="Sin conversaciones"
                         sub={convSearch ? 'Probá con otro término de búsqueda' : 'Las nuevas conversaciones aparecerán acá'} />
-                    : <ConvList conversations={filteredConvs} selected={selectedConv}
+                    : <ConvList conversations={filteredConvs} selected={selectedConv} recentId={recentConvId}
                         onSelect={c => { setSelectedConv(c); if (isMobile) setMobileShowChat(true) }} onCopyPhone={copyPhone} />
                 }
               </div>
@@ -1240,6 +1244,39 @@ export default function App() {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
+function DashboardHero({ name, automationRate, pending, totalMessages, onGoPending }: {
+  name?: string; automationRate: number; pending: number; totalMessages: number; onGoPending: () => void
+}) {
+  const hour = new Date().getHours()
+  const greet = hour < 6 ? 'Buenas noches' : hour < 13 ? 'Buenos días' : hour < 20 ? 'Buenas tardes' : 'Buenas noches'
+  const dateStr = new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })
+  const status = pending > 0
+    ? { label: 'Requiere atención', color: '#fb923c', icon: 'ti-alert-triangle' }
+    : totalMessages === 0
+      ? { label: 'Listo para arrancar', color: '#60a5fa', icon: 'ti-rocket' }
+      : { label: 'Todo al día', color: '#22c55e', icon: 'ti-circle-check' }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: 12, marginBottom: 18 }}>
+      <div>
+        <div style={{ fontSize: 20, fontWeight: 600, color: '#e8e8f4' }}>{name ? `${greet}, ${name} 👋` : `${greet} 👋`}</div>
+        <div style={{ fontSize: 12, color: '#5a5a7a', marginTop: 2, textTransform: 'capitalize' as const }}>{dateStr}</div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const }}>
+        <div onClick={pending > 0 ? onGoPending : undefined}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, background: status.color + '18', color: status.color, fontSize: 12, fontWeight: 500, cursor: pending > 0 ? 'pointer' : 'default', border: '0.5px solid ' + status.color + '33' }}>
+          <i className={`ti ${status.icon}`} style={{ fontSize: 14 }} aria-hidden="true" />{status.label}
+        </div>
+        {totalMessages > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, background: '#0d0d18', border: '0.5px solid #1e1e2e', fontSize: 12, color: '#8b8baa' }}>
+            <i className="ti ti-robot" style={{ fontSize: 14, color: '#a78bfa' }} aria-hidden="true" />
+            <span style={{ color: '#a78bfa', fontWeight: 500 }}>{automationRate}%</span> automatizado
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function MetricCard({ label, value, sub, color, trend, trendDetail, onClick, icon, iconColor }: {
   label: string; value: string; sub: string; color?: string
   trend?: 'up' | 'down' | 'neutral'; trendDetail?: string; onClick?: () => void
@@ -1290,11 +1327,12 @@ function MetricCard({ label, value, sub, color, trend, trendDetail, onClick, ico
   )
 }
 
-function ConvList({ conversations, selected, onSelect, onCopyPhone }: {
+function ConvList({ conversations, selected, onSelect, onCopyPhone, recentId }: {
   conversations: Conversation[]
   selected: Conversation | null
   onSelect: (c: Conversation) => void
   onCopyPhone?: (phone: string) => void
+  recentId?: string | null
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '4px 0' }}>
@@ -1305,7 +1343,7 @@ function ConvList({ conversations, selected, onSelect, onCopyPhone }: {
         const preview = c.last_message?.content ?? 'Sin mensajes'
         const statusColor = c.status === 'active' ? '#22c55e' : c.status === 'pending' ? '#f59e0b' : '#4a4a6a'
         return (
-          <div key={c.id} className="conv-row" onClick={() => onSelect(c)}
+          <div key={c.id} className={'conv-row' + (c.id === recentId ? ' conv-flash' : '')} onClick={() => onSelect(c)}
             style={{ ...s.convRow, ...(isActive ? s.convRowActive : {}) }}>
             <div style={{ ...s.avatar, color: '#fff', background: color, flexShrink: 0 }}>
               {getInitials(c.contact?.phone ?? '', c.contact?.name)}

@@ -75,6 +75,13 @@ html, body, #root {
 /* Conv row hover */
 .conv-row:hover { background: #0c0c1a; }
 
+/* Flash al entrar un mensaje nuevo (realtime) */
+@keyframes convFlash {
+  0%   { background: rgba(59, 130, 246, 0.20); }
+  100% { background: transparent; }
+}
+.conv-flash { animation: convFlash 2.4s ease-out; }
+
 /* Contact panel & popover animations */
 .contact-panel { animation: slideDown 0.15s ease forwards; }
 .popover-enter  { animation: slideDown 0.15s ease forwards; }
