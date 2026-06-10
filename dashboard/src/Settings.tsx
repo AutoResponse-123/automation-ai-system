@@ -862,7 +862,8 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                         <button
                           onClick={async () => {
                             try {
-                              const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/sheets/export/${businessId}`, { method: 'POST' })
+                              const { data: { session } } = await supabase.auth.getSession()
+                              const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/sheets/export/${businessId}`, { method: 'POST', headers: { Authorization: `Bearer ${session?.access_token ?? ''}` } })
                               const { url } = await res.json()
                               if (url) window.open(url, '_blank')
                               // update local state with spreadsheet id from url
@@ -1008,4 +1009,155 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                   <button
                     onClick={() => {
                       if (!newCatName.trim()) return
-                      update('appointment_categories', [...(config.appointment_categories ?? []
+                      update('appointment_categories', [...(config.appointment_categories ?? []), { id: crypto.randomUUID(), name: newCatName.trim(), duration_minutes: newCatDuration, color: newCatColor }])
+                      setNewCatName(''); setNewCatDuration(30)
+                    }}
+                    style={s.addBtn}>
+                    + {uis('Agregar', 'Add')}
+                  </button>
+                </div>
+                <div style={{ fontSize: 11, color: '#3a3a5a', marginTop: 8 }}>
+                  {uis('Las categorías aparecerán como filtros en la sección Turnos y definen la duración por defecto de cada servicio.', 'Categories appear as filters in the Appointments section and define the default duration per service.')}
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* Save bar */}
+        <div style={s.saveBar}>
+          <span style={{ fontSize: 12, color: '#4a4a6a' }}>
+            {saved ? uis('✅ Guardado correctamente', '✅ Saved successfully') : uis('Los cambios se aplican en la próxima conversación', 'Changes apply from the next conversation')}
+          </span>
+          <button onClick={saveConfig} disabled={saving} style={s.saveBtn}>
+            {saving ? uis('Guardando...', 'Saving...') : uis('Guardar cambios', 'Save changes')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
+function IntegrationCard({ icon, iconColor, name, description, status, connectLabel = 'Conectar', disconnectLabel = 'Desconectar', onConnect, onDisconnect }: {
+  icon: string; iconColor: string; name: string; description: string
+  status: 'connected' | 'disconnected' | 'disabled'
+  connectLabel?: string; disconnectLabel?: string
+  onConnect?: () => void; onDisconnect?: () => void
+}) {
+  const isConnected = status === 'connected'
+  const isDisabled = status === 'disabled'
+  return (
+    <div style={{ background: '#0d0d14', border: `0.5px solid ${isConnected ? '#2a3a2a' : '#1e1e2e'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 8, background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <i className={`ti ${icon}`} style={{ fontSize: 18, color: iconColor }} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>{name}</span>
+            {isConnected && <span style={{ fontSize: 10, background: '#0a2e14', border: '0.5px solid #1a4a25', color: '#22c55e', borderRadius: 4, padding: '1px 6px' }}>Activo</span>}
+          </div>
+          <div style={{ fontSize: 11, color: isDisabled ? '#2a2a4a' : '#4a4a6a', marginTop: 2 }}>{description}</div>
+        </div>
+        {!isDisabled && (
+          isConnected ? (
+            <button onClick={onDisconnect}
+              style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 7, border: '0.5px solid #3e1a1a', background: 'transparent', color: '#f87171', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {disconnectLabel}
+            </button>
+          ) : (
+            <button onClick={onConnect}
+              style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 7, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {connectLabel}
+            </button>
+          )
+        )}
+      </div>
+    </div>
+  )
+}
+
+function SectionHeader({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <i className={`ti ${icon}`} style={{ fontSize: 16, color: '#a78bfa' }} aria-hidden="true" />
+        <h2 style={{ fontSize: 15, fontWeight: 600, color: '#e2e8f0', margin: 0 }}>{title}</h2>
+      </div>
+      <p style={{ fontSize: 12, color: '#4a4a6a', margin: 0, paddingLeft: 24 }}>{subtitle}</p>
+    </div>
+  )
+}
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      {label && <div style={{ fontSize: 12, fontWeight: 500, color: '#8b8baa', marginBottom: 6 }}>{label}</div>}
+      {hint && <div style={{ fontSize: 11, color: '#4a4a6a', marginBottom: 6 }}>{hint}</div>}
+      {children}
+    </div>
+  )
+}
+
+function TagInput({ tags, value, onChange, onAdd, onRemove, placeholder, color }: {
+  tags: string[]; value: string; onChange: (v: string) => void
+  onAdd: () => void; onRemove: (i: number) => void
+  placeholder: string; color: string
+}) {
+  return (
+    <div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+        {tags.map((tag, i) => (
+          <span key={i} style={{ background: '#1a1a2e', border: `0.5px solid ${color}44`, borderRadius: 6, padding: '3px 8px', fontSize: 12, color, display: 'flex', alignItems: 'center', gap: 4 }}>
+            {tag}
+            <button onClick={() => onRemove(i)} style={{ background: 'none', border: 'none', color, cursor: 'pointer', fontSize: 13, padding: 0, lineHeight: 1 }}>×</button>
+          </span>
+        ))}
+        {tags.length === 0 && <span style={{ fontSize: 12, color: '#4a4a6a' }}>Sin palabras clave todavía</span>}
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input style={{ ...s.input, flex: 1 }} value={value} onChange={e => onChange(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && onAdd()}
+          placeholder={placeholder} />
+        <button onClick={onAdd} style={s.addBtn}>+ Agregar</button>
+      </div>
+    </div>
+  )
+}
+
+// ── Styles ─────────────────────────────────────────────────────────────────────
+
+const s: Record<string, React.CSSProperties> = {
+  container: { display: 'grid', gridTemplateColumns: '200px 1fr', height: '100%', overflow: 'hidden' },
+  sectNav: { background: '#0d0d14', borderRight: '0.5px solid #1e1e2e', padding: '16px 8px', display: 'flex', flexDirection: 'column', gap: 1, overflowY: 'auto', overflowX: 'hidden' as const },
+  sectNavTitle: { fontSize: 8.5, color: '#3a3a5a', textTransform: 'uppercase', letterSpacing: 0, fontWeight: 600, padding: '0 4px', marginBottom: 8, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' },
+  sectBtn: { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 7, border: 'none', background: 'transparent', color: '#7a7a9a', fontSize: 12, fontWeight: 500, cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'color 0.15s, background 0.15s', letterSpacing: '0.01em' },
+  sectBtnActive: { background: '#16162a', color: '#c4b5fd' },
+  content: { display: 'grid', gridTemplateRows: '1fr auto', overflow: 'hidden' },
+  contentInner: { overflowY: 'auto', padding: 24 },
+  section: { maxWidth: 680 },
+  loading: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#4a4a6a', fontSize: 13 },
+  row2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 },
+  input: { width: '100%', background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const },
+  textarea: { width: '100%', background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'vertical' as const, boxSizing: 'border-box' as const, minHeight: 80 },
+  select: { width: '100%', background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, outline: 'none' },
+  toneGrid: { display: 'flex', flexWrap: 'wrap' as const, gap: 6 },
+  langGrid: { display: 'flex', gap: 6 },
+  toneBtn: { background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 6, padding: '5px 12px', fontSize: 12, color: '#8b8baa', cursor: 'pointer' },
+  toneBtnActive: { background: '#1a1a2e', borderColor: '#a78bfa', color: '#a78bfa' },
+  addBtn: { background: '#1a1a2e', border: '0.5px solid #2e2e4e', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#a78bfa', cursor: 'pointer', whiteSpace: 'nowrap' as const, flexShrink: 0 },
+  toggleRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 10, padding: '12px 14px' },
+  toggleTrack: { width: 40, height: 22, borderRadius: 11, background: '#2e2e4e', position: 'relative' as const, cursor: 'pointer', transition: 'background 0.25s', flexShrink: 0 },
+  toggleTrackOn: { background: '#7c3aed' },
+  toggleThumb: { position: 'absolute' as const, top: '50%', transform: 'translateY(-50%)', left: 3, width: 16, height: 16, borderRadius: '50%', background: '#6a6a8a', transition: 'left 0.25s, background 0.25s' },
+  toggleThumbOn: { left: 21, background: '#fff' },
+  toggleTrackSm: { width: 32, height: 18, borderRadius: 9, background: '#2e2e4e', position: 'relative' as const, cursor: 'pointer', transition: 'background 0.25s', flexShrink: 0 },
+  toggleThumbSm: { position: 'absolute' as const, top: 2, left: 2, width: 14, height: 14, borderRadius: '50%', background: '#6a6a8a', transition: 'left 0.25s, background 0.25s' },
+  scheduleGrid: { display: 'flex', flexDirection: 'column' as const, gap: 8 },
+  scheduleRow: { display: 'flex', flexDirection: 'column' as const, gap: 6, background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 10, padding: '10px 14px' },
+  dayLabel: { fontSize: 12, fontWeight: 500, color: '#c4c4d4' },
+  timeInput: { background: '#111122', border: '0.5px solid #2e2e4e', borderRadius: 6, padding: '4px 6px', color: '#e2e8f0', fontSize: 12, outline: 'none' },
+  saveBar: { borderTop: '0.5px solid #1e1e2e', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0d0d14' 

@@ -26,20 +26,23 @@ router.post('/signup', async (req: Request, res: Response) => {
     res.status(400).json({ error: 'Email inválido.' }); return;
   }
 
-  // Anti-multicuenta: verificar si el email ya existe
-  const { data: existing } = await adminSupabase.auth.admin.listUsers();
-  if (existing?.users?.some((u: any) => u.email?.toLowerCase() === email.toLowerCase())) {
-    res.status(409).json({ error: 'Ya existe una cuenta con ese email.' }); return;
-  }
+  const cleanEmail = email.toLowerCase().trim();
 
   const { data: authData, error: authError } = await adminSupabase.auth.admin.createUser({
-    email: email.toLowerCase().trim(),
+    email: cleanEmail,
     password,
     email_confirm: true,
     user_metadata: { name: name.trim() },
   });
 
-  if (authError) { res.status(400).json({ error: authError.message }); return; }
+  // Anti-multicuenta: Supabase aplica unicidad de email a nivel auth.
+  if (authError) {
+    const msg = (authError.message || '').toLowerCase();
+    if (msg.includes('already') || msg.includes('registered') || msg.includes('exists') || (authError as any).code === 'email_exists') {
+      res.status(409).json({ error: 'Ya existe una cuenta con ese email.' }); return;
+    }
+    res.status(400).json({ error: authError.message }); return;
+  }
 
   const userId = authData.user.id;
   const trialEndsAt = new Date(Date.now() + 7 * 24 * 3600000).toISOString();
@@ -51,9 +54,9 @@ router.post('/signup', async (req: Request, res: Response) => {
     plan: 'trial',
     trial_ends_at: trialEndsAt,
     is_active: true,
-    escalation_email: email.toLowerCase().trim(),
+    escalation_email: cleanEmail,
     bot_name: 'Asistente',
-    bot_emoji: '🤖',
+    bot_emoji: '\u{1F916}',
     language: 'es',
     tone: 'amigable',
   });
@@ -63,8 +66,7 @@ router.post('/signup', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Error al crear tu cuenta. Intentá de nuevo.' }); return;
   }
 
-  // Enviar email de bienvenida con instrucciones del sandbox
-  sendWelcomeEmail({ to: email.toLowerCase().trim(), businessName: name.trim() }).catch(() => {});
+  sendWelcomeEmail({ to: cleanEmail, businessName: name.trim() }).catch(() => {});
 
   res.json({ ok: true });
 });

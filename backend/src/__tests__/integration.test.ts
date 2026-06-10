@@ -111,7 +111,7 @@ jest.mock('resend', () => ({ Resend: jest.fn().mockImplementation(() => ({
 import express from 'express'
 import request from 'supertest'
 
-process.env.TWILIO_AUTH_TOKEN = '' // deshabilita validación de firma
+process.env.TWILIO_AUTH_TOKEN = 'test_token' // token presente; validateRequest está mockeado a true
 
 const app = express()
 app.use(express.json())

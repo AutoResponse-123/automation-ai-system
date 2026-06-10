@@ -510,8 +510,10 @@ export default function App() {
     setSummaryText(null)
     try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch(`${backendUrl}/api/webhooks/conversations/${selectedConv.id}/summary`, {
-        method: 'POST'
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
       })
       const data = await res.json()
       setSummaryText(data.summary ?? 'No se pudo generar el resumen.')
@@ -1451,7 +1453,4 @@ const s: Record<string, React.CSSProperties> = {
   noteBadge: { fontSize: 10, color: '#d97706', display: 'flex', alignItems: 'center', gap: 3, marginBottom: 3, fontWeight: 500 },
   noteBubble: { background: '#160f00', border: '1px solid #3a2500', borderRadius: 10, borderBottomLeftRadius: 3, padding: '9px 13px', fontSize: 13, lineHeight: 1.6, color: '#fde68a', wordBreak: 'break-word' },
   inputAreaNote: { borderTopColor: '#3a2500', background: '#0e0900' },
-  noteModeBar: { fontSize: 11, color: '#d97706', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, padding: '0 2px', fontWeight: 500 },
-  textareaNote: { borderColor: '#3a2500', background: '#100b00' },
-}
-                                                                               
+  noteModeBar: { fontSize: 11, color: '#d97706', display: 'flex', alignIt

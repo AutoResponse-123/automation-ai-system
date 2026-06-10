@@ -1,6 +1,13 @@
 import { Resend } from 'resend';
 const { supabase } = require('../config/supabase');
 
+// Escapa texto que viene de clientes antes de meterlo en el HTML del email
+function esc(s: any): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function getResend() {
   if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY no configurado');
   return new Resend(process.env.RESEND_API_KEY);
@@ -48,15 +55,15 @@ function buildHtml(business: any, period: 'daily' | 'weekly', data: ReturnType<t
     `<tr>
       <td style="padding:6px 8px;border-bottom:1px solid #1e1e2e;">${a.appointment_date}</td>
       <td style="padding:6px 8px;border-bottom:1px solid #1e1e2e;">${a.appointment_time?.slice(0,5)}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid #1e1e2e;">${a.client_name ?? '—'}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid #1e1e2e;color:#a78bfa;">${a.title ?? ''}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #1e1e2e;">${esc(a.client_name) || '—'}</td>
+      <td style="padding:6px 8px;border-bottom:1px solid #1e1e2e;color:#a78bfa;">${esc(a.title)}</td>
     </tr>`
   ).join('');
 
   return `
   <div style="font-family:sans-serif;max-width:560px;margin:0 auto;background:#0d0d14;color:#e2e8f0;border-radius:12px;overflow:hidden;border:1px solid #1e1e2e;">
     <div style="background:#7c3aed;padding:24px 28px;">
-      <h2 style="color:#fff;margin:0;font-size:18px;">📊 ${periodLabel} — ${business.name}</h2>
+      <h2 style="color:#fff;margin:0;font-size:18px;">📊 ${periodLabel} — ${esc(business.name)}</h2>
       <p style="color:#ddd6fe;margin:4px 0 0;font-size:13px;">${dateLabel}</p>
     </div>
     <div style="padding:24px 28px;">
@@ -114,7 +121,7 @@ export async function sendSummary(business: any, period: 'daily' | 'weekly') {
 
   const resend = getResend();
   await resend.emails.send({
-    from: 'Wasso <noreply@wasso.app>',
+    from: process.env.RESEND_FROM || 'Wasso <onboarding@resend.dev>',
     to: business.escalation_email,
     subject,
     html: buildHtml(business, period, data, dateLabel),
@@ -153,5 +160,4 @@ export async function sendWeeklySummaries() {
   }
 }
 
-// Compatibilidad con imports anteriores
 export const sendDailySummary = (business: any) => sendSummary(business, 'daily');
