@@ -1,16 +1,11 @@
-import { Resend } from 'resend';
 const { supabase } = require('../config/supabase');
+const { sendMail } = require('./mailer');
 
 // Escapa texto que viene de clientes antes de meterlo en el HTML del email
 function esc(s: any): string {
   return String(s ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-function getResend() {
-  if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY no configurado');
-  return new Resend(process.env.RESEND_API_KEY);
 }
 
 async function buildSummaryData(businessId: string, sinceIso: string, todayStr: string) {
@@ -119,9 +114,7 @@ export async function sendSummary(business: any, period: 'daily' | 'weekly') {
   const periodLabel = period === 'weekly' ? 'semana' : 'hoy';
   const subject = `📊 Resumen de ${periodLabel} — ${business.name} (${data.totalConvs} conv, ${data.totalAppts} turnos)`;
 
-  const resend = getResend();
-  await resend.emails.send({
-    from: process.env.RESEND_FROM || 'Wasso <onboarding@resend.dev>',
+  await sendMail({
     to: business.escalation_email,
     subject,
     html: buildHtml(business, period, data, dateLabel),

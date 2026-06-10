@@ -413,10 +413,8 @@ router.post('/voice', async (req: any, res: any) => {
       const recordingSid = req.body.RecordingSid;
       const listenUrl = `https://automation-ai-system-production.up.railway.app/api/webhooks/recording/${recordingSid}`;
 
-      const { Resend } = require('resend');
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      await resend.emails.send({
-        from: process.env.RESEND_FROM || 'Wasso <onboarding@resend.dev>',
+      const { sendMail } = require('../services/mailer');
+      await sendMail({
         to: process.env.META_VERIFY_EMAIL || 'zaza42069zaza69@gmail.com',
         subject: 'Codigo de verificacion Meta WhatsApp',
         html: `<h2>Codigo de verificacion WhatsApp</h2><p><a href="${listenUrl}">Escuchar codigo</a></p><p>SID: ${recordingSid}</p>`,

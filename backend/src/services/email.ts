@@ -1,8 +1,4 @@
-const { Resend } = require('resend');
-
-function getResend() {
-  return new Resend(process.env.RESEND_API_KEY);
-}
+const { sendMail } = require('./mailer');
 
 // Escapa datos provenientes de clientes antes de inyectarlos en el HTML del email
 function esc(s: any): string {
@@ -11,10 +7,8 @@ function esc(s: any): string {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-const FROM = process.env.RESEND_FROM || 'Wasso <onboarding@resend.dev>';
 
 export async function sendWelcomeEmail(opts: { to: string; businessName: string }) {
-  if (!process.env.RESEND_API_KEY) return;
   const dashboardUrl = 'https://automation-ai-dashboard.vercel.app';
   const html = `
     <div style="font-family:sans-serif;max-width:540px;margin:0 auto;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
@@ -48,8 +42,7 @@ export async function sendWelcomeEmail(opts: { to: string; businessName: string 
         Wasso · Tu asistente de WhatsApp con IA
       </div>
     </div>`;
-  await getResend().emails.send({
-    from: FROM,
+  await sendMail({
     to: opts.to,
     subject: `🚀 Bienvenido a Wasso — empezá tu prueba gratis`,
     html,
@@ -66,7 +59,6 @@ export async function sendCancellationEmail(opts: {
   appointmentTime: string;
   title: string;
 }) {
-  if (!process.env.RESEND_API_KEY) return;
   if (!opts.to) return;
 
   const dashboardUrl = 'https://automation-ai-dashboard.vercel.app';
@@ -92,8 +84,7 @@ export async function sendCancellationEmail(opts: {
       </div>
     </div>`;
 
-  await getResend().emails.send({
-    from: FROM,
+  await sendMail({
     to: opts.to,
     subject: `❌ Turno cancelado — ${esc(opts.clientName)} (${opts.appointmentDate})`,
     html,
@@ -108,7 +99,6 @@ export async function sendEscalationEmail(opts: {
   reason: 'keyword' | 'limit';
   keyword?: string;
 }) {
-  if (!process.env.RESEND_API_KEY) return;
   if (!opts.to) return;
 
   const subject = `🔔 ${opts.botName} necesita tu atención — ${opts.businessName}`;
@@ -139,8 +129,7 @@ export async function sendEscalationEmail(opts: {
       </div>
     </div>`;
 
-  await getResend().emails.send({
-    from: FROM,
+  await sendMail({
     to: opts.to,
     subject,
     html,
