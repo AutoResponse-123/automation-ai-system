@@ -1235,6 +1235,15 @@ export default function App() {
             else { setTab('inbox') }
             setSearchOpen(false)
           }}
+          actions={[
+            { label: 'Inbox', sub: 'Ver conversaciones', icon: 'ti-message-2', keywords: 'mensajes chat conversaciones', run: () => setTab('inbox') },
+            { label: 'Pendientes', sub: 'Conversaciones sin responder', icon: 'ti-clock-exclamation', keywords: 'pendientes atencion', run: () => { setConvFilter('pending'); setTab('inbox') } },
+            { label: 'Turnos', sub: 'Citas agendadas', icon: 'ti-calendar', keywords: 'appointments citas reservas', run: () => setTab('appointments') },
+            { label: 'Analytics', sub: 'Métricas y gráficos', icon: 'ti-chart-bar', keywords: 'estadisticas metricas', run: () => setTab('analytics') },
+            { label: 'Contactos', sub: 'Tus clientes', icon: 'ti-users', keywords: 'clientes', run: () => setTab('contacts') },
+            { label: 'Actividad', sub: 'Historial de eventos', icon: 'ti-activity', keywords: 'historial log', run: () => setTab('activity') },
+            { label: 'Configuración', sub: 'Ajustes del bot', icon: 'ti-settings', keywords: 'settings ajustes config', run: () => setTab('settings') },
+          ]}
         />
       )}
     </div>
