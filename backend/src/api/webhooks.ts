@@ -43,10 +43,13 @@ router.post('/whatsapp', async (req: any, res: any) => {
     }
     const twilio = require('twilio');
     const signature = req.headers['x-twilio-signature'] as string || '';
-    const webhookUrl = process.env.WEBHOOK_URL || `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-    const isValid = twilio.validateRequest(authToken, signature, webhookUrl, req.body);
+    // Validar la firma contra WEBHOOK_URL (si está) y/o la URL reconstruida de producción.
+    // Aceptamos si alguna coincide, para no rechazar por una WEBHOOK_URL desactualizada (ngrok viejo).
+    const reconstructed = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+    const candidateUrls = [process.env.WEBHOOK_URL, reconstructed].filter(Boolean) as string[];
+    const isValid = candidateUrls.some((url) => twilio.validateRequest(authToken, signature, url, req.body));
     if (!isValid) {
-      console.warn('[webhook] Firma Twilio inválida');
+      console.warn('[webhook] Firma Twilio inválida. URLs probadas:', candidateUrls.join(' | '));
       res.status(403).send('Forbidden');
       return;
     }
