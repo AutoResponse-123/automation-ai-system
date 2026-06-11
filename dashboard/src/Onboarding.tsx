@@ -63,9 +63,9 @@ export default function Onboarding({ business, onGoToSettings }: OnboardingProps
     {
       id: 'test',
       num: 6,
-      icon: 'ti-message-chatbot',
-      label: 'Probá tu bot',
-      desc: 'Enviá un mensaje al sandbox de Twilio (+1 415 523 8886) para ver tu bot en acción.',
+      icon: 'ti-brand-whatsapp',
+      label: 'Activá tu WhatsApp',
+      desc: 'Coordinamos con vos la activación de tu número para que el bot empiece a atender a tus clientes. Te contactamos.',
       done: false, // siempre como call-to-action
       section: null,
       isAction: true,
@@ -144,7 +144,7 @@ export default function Onboarding({ business, onGoToSettings }: OnboardingProps
               {!step.done && (
                 step.isAction ? (
                   <span style={{ fontSize: 11, color: '#10b981', background: '#10b98118', border: '1px solid #10b98130', borderRadius: 6, padding: '3px 8px', whiteSpace: 'nowrap' }}>
-                    +1 415 523 8886
+                    Te contactamos
                   </span>
                 ) : (
                   <button onClick={onGoToSettings} style={{ fontSize: 11, color: 'var(--accent)', background: 'var(--accent-dim)', border: '1px solid var(--accent)30', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>

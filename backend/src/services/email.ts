@@ -17,26 +17,17 @@ export async function sendWelcomeEmail(opts: { to: string; businessName: string 
         <p style="color:#ddd6fe;margin:6px 0 0;font-size:14px;">Tu prueba gratuita de 7 días ya está activa</p>
       </div>
       <div style="padding:28px;">
-        <p style="font-size:15px;color:#111827;margin:0 0 20px;">Hola <strong>${esc(opts.businessName)}</strong>, tu cuenta está lista. Para empezar a recibir mensajes de WhatsApp seguí estos pasos:</p>
+        <p style="font-size:15px;color:#111827;margin:0 0 20px;">Hola <strong>${esc(opts.businessName)}</strong>, tu cuenta está lista. Empecemos:</p>
         <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:20px;margin-bottom:20px;">
-          <p style="font-size:13px;font-weight:700;color:#7c3aed;margin:0 0 12px;text-transform:uppercase;letter-spacing:.05em;">Paso 1 — Activar el sandbox de WhatsApp</p>
-          <p style="font-size:14px;color:#374151;margin:0 0 10px;">Desde tu WhatsApp, enviá este mensaje al número de Wasso:</p>
-          <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px;margin-bottom:10px;">
-            <p style="margin:0;font-size:13px;color:#6b7280;">Número:</p>
-            <p style="margin:4px 0 0;font-size:18px;font-weight:700;color:#111827;">+1 415 523 8886</p>
-          </div>
-          <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px;">
-            <p style="margin:0;font-size:13px;color:#6b7280;">Mensaje a enviar:</p>
-            <p style="margin:4px 0 0;font-size:18px;font-weight:700;color:#7c3aed;font-family:monospace;">join pretty-ought</p>
-          </div>
-          <p style="font-size:12px;color:#9ca3af;margin:10px 0 0;">Solo necesitás hacerlo una vez. Después de eso, tu bot ya recibe mensajes.</p>
+          <p style="font-size:13px;font-weight:700;color:#7c3aed;margin:0 0 12px;text-transform:uppercase;letter-spacing:.05em;">Paso 1 — Configurá tu bot</p>
+          <p style="font-size:14px;color:#374151;margin:0 0 12px;">Ingresá al dashboard y completá la información de tu negocio: nombre, servicios, precios y horarios. Cuanto más completo, mejor responde tu bot.</p>
+          <a href="${dashboardUrl}" style="display:inline-block;background:#7c3aed;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Ir al dashboard →</a>
         </div>
         <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:20px;margin-bottom:20px;">
-          <p style="font-size:13px;font-weight:700;color:#059669;margin:0 0 12px;text-transform:uppercase;letter-spacing:.05em;">Paso 2 — Configurar tu bot</p>
-          <p style="font-size:14px;color:#374151;margin:0 0 12px;">Ingresá al dashboard y completá la información de tu negocio: nombre, servicios, precios y horarios.</p>
-          <a href="${dashboardUrl}" style="display:inline-block;background:#059669;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Ir al dashboard →</a>
+          <p style="font-size:13px;font-weight:700;color:#059669;margin:0 0 12px;text-transform:uppercase;letter-spacing:.05em;">Paso 2 — Activamos tu WhatsApp</p>
+          <p style="font-size:14px;color:#374151;margin:0;">Coordinamos con vos la activación de tu número de WhatsApp para que el bot empiece a atender a tus clientes. Te contactamos para dejarlo andando.</p>
         </div>
-        <p style="font-size:13px;color:#6b7280;margin:0;">¿Tenés dudas? Respondé este email o escribinos al mismo número de WhatsApp.</p>
+        <p style="font-size:13px;color:#6b7280;margin:0;">¿Tenés dudas? Respondé este email y te ayudamos.</p>
       </div>
       <div style="padding:16px 28px;background:#f9fafb;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;">
         Wasso · Tu asistente de WhatsApp con IA
