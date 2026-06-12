@@ -7,18 +7,29 @@ const { wallTimeToUtc } = require('./calendar');
 async function autoCompleteAppointments() {
   try {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const currentTime = now.toTimeString().slice(0, 5);
+    // Cota superior amplia: cualquier turno con fecha de pared <= mañana (UTC) es candidato.
+    // El filtro fino se hace abajo convirtiendo a UTC con la TZ real de cada negocio.
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
     const { data, error } = await supabase
       .from('appointments')
-      .update({ status: 'completed' })
+      .select('id, appointment_date, appointment_time, businesses(schedule)')
       .eq('status', 'scheduled')
-      .or(`appointment_date.lt.${today},and(appointment_date.eq.${today},appointment_time.lt.${currentTime}:00)`)
-      .select('id');
+      .lte('appointment_date', tomorrow);
 
-    if (!error && (data?.length ?? 0) > 0) {
-      console.log(`[reminders] Auto-completados ${data.length} turnos pasados`);
+    if (error || !data?.length) return;
+
+    const toComplete = data
+      .filter((appt: any) => {
+        const tz = appt.businesses?.schedule?.timezone || 'America/Argentina/Buenos_Aires';
+        const startUtc = wallTimeToUtc(appt.appointment_date, String(appt.appointment_time).slice(0, 5), tz);
+        return startUtc.getTime() < now.getTime();
+      })
+      .map((appt: any) => appt.id);
+
+    if (toComplete.length) {
+      await supabase.from('appointments').update({ status: 'completed' }).in('id', toComplete);
+      console.log(`[reminders] Auto-completados ${toComplete.length} turnos pasados`);
     }
   } catch (err: any) {
     console.error('[autoComplete]', err.message);
@@ -133,4 +144,4 @@ async function sendPendingReminders() {
   }
 }
 
-module.exports = { startReminderJob, startRemindersJob: startReminderJob, sendPendingReminders };
+module.exports = { startReminderJob, startRemindersJob: startReminderJob, sendPendingReminders, autoCompleteAppointments };
