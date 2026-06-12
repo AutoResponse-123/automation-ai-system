@@ -89,10 +89,15 @@ export function isOutsideHours(schedule: any): boolean {
     const [curH, curM] = timeStr.split(':').map(Number);
     const [openH, openM] = dayConfig.open.split(':').map(Number);
     const [closeH, closeM] = dayConfig.close.split(':').map(Number);
-    const curMins = curH * 60 + curM;
+    const curMins = (curH % 24) * 60 + curM;
     const openMins = openH * 60 + openM;
     const closeMins = closeH * 60 + closeM;
-    if (curMins < openMins || curMins > closeMins) return true;
+    // Horario que cruza medianoche (ej. 20:00–02:00): close <= open.
+    const crossesMidnight = closeMins <= openMins;
+    const withinHours = crossesMidnight
+      ? (curMins >= openMins || curMins <= closeMins)
+      : (curMins >= openMins && curMins <= closeMins);
+    if (!withinHours) return true;
     // Verificar franjas de descanso
     const breaks: Array<{ start: string; end: string }> = dayConfig.breaks ?? [];
     for (const b of breaks) {

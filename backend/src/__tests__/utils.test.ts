@@ -61,6 +61,29 @@ describe('isOutsideHours', () => {
     expect(isOutsideHours(schedule)).toBe(false);
     jest.restoreAllMocks();
   });
+
+  // Helper: mockea `new Date()` a un instante UTC fijo (lunes 2024-01-15)
+  const mockNow = (iso: string) => {
+    const realDate = global.Date;
+    const fixed = new Date(iso);
+    jest.spyOn(global, 'Date').mockImplementation((...args: any[]) =>
+      args.length ? new realDate(...(args as [any])) : fixed
+    );
+  };
+
+  describe('horario normal (no cruza medianoche)', () => {
+    const schedule = { enabled: true, timezone: 'UTC', hours: { lunes: { open: '09:00', close: '18:00' } } };
+    it('dentro del horario → false', () => { mockNow('2024-01-15T12:00:00Z'); expect(isOutsideHours(schedule)).toBe(false); jest.restoreAllMocks(); });
+    it('después de cerrar → true', () => { mockNow('2024-01-15T20:00:00Z'); expect(isOutsideHours(schedule)).toBe(true); jest.restoreAllMocks(); });
+    it('antes de abrir → true', () => { mockNow('2024-01-15T07:00:00Z'); expect(isOutsideHours(schedule)).toBe(true); jest.restoreAllMocks(); });
+  });
+
+  describe('horario que cruza medianoche (ej. bar 20:00–02:00)', () => {
+    const schedule = { enabled: true, timezone: 'UTC', hours: { lunes: { open: '20:00', close: '02:00' } } };
+    it('23:00 está abierto → false', () => { mockNow('2024-01-15T23:00:00Z'); expect(isOutsideHours(schedule)).toBe(false); jest.restoreAllMocks(); });
+    it('01:00 (madrugada) está abierto → false', () => { mockNow('2024-01-15T01:00:00Z'); expect(isOutsideHours(schedule)).toBe(false); jest.restoreAllMocks(); });
+    it('12:00 (mediodía) está cerrado → true', () => { mockNow('2024-01-15T12:00:00Z'); expect(isOutsideHours(schedule)).toBe(true); jest.restoreAllMocks(); });
+  });
 });
 
 // ─── buildSystemPrompt ────────────────────────────────────────────────────────
