@@ -922,25 +922,6 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                 </div>
               </div>
 
-              {/* Próximamente */}
-              <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: 11, color: '#3a3a5a', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontWeight: 600, marginBottom: 10 }}>Próximamente</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  {[
-                    { icon: 'ti-webhook', color: '#a78bfa', name: 'Webhook / Zapier', desc: 'Conectar con n8n, Make, Zapier' },
-                    { icon: 'ti-brand-instagram', color: '#e879f9', name: 'Instagram DMs', desc: 'Mismo bot en Instagram' },
-                    { icon: 'ti-shopping-cart', color: '#fb923c', name: 'WooCommerce', desc: 'Consultas de pedidos y stock' },
-                  ].map(item => (
-                    <div key={item.name} style={{ background: '#0a0a14', border: '0.5px solid #1a1a2e', borderRadius: 10, padding: '12px 14px', opacity: 0.5 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <i className={`ti ${item.icon}`} style={{ fontSize: 16, color: item.color }} />
-                        <span style={{ fontSize: 12, fontWeight: 500, color: '#c4c4d4' }}>{item.name}</span>
-                      </div>
-                      <div style={{ fontSize: 11, color: '#3a3a5a' }}>{item.desc}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
 
