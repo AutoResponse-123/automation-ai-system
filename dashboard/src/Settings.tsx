@@ -176,8 +176,9 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
   async function saveConfig() {
     if (!config || !businessId) return
     setSaving(true)
-    await supabase.from('businesses').update({
+    const { error } = await supabase.from('businesses').update({
       name: config.name,
+      type: config.type,
       bot_name: config.bot_name,
       bot_emoji: config.bot_emoji,
       tone: config.tone,
@@ -203,9 +204,14 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
       appointment_categories: config.appointment_categories,
       updated_at: new Date().toISOString(),
     }).eq('id', businessId!)
+    setSaving(false)
+    if (error) {
+      console.error('[settings] Error al guardar config:', error)
+      alert(uis('No se pudo guardar la configuración: ', 'Could not save settings: ') + error.message)
+      return
+    }
     localStorage.setItem('ar_bg_color', bgColor)
     localStorage.setItem('ar_font', fontFamily)
-    setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
     onThemeChange?.(config.accent_color, bgColor)
@@ -782,23 +788,35 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                 </div>
                 {config.reminders_enabled && config.google_refresh_token && (
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #1e1e2e' }}>
-                    <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 8 }}>{uis('¿Cuándo enviar el recordatorio?', 'When to send the reminder?')}</div>
+                    <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 8 }}>
+                      {uis('¿Cuándo enviar el recordatorio? Podés elegir más de uno.', 'When to send the reminder? You can pick more than one.')}
+                    </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {[{ label: uis('2 horas antes', '2 hours before'), value: 2 }, { label: uis('24 horas antes', '24 hours before'), value: 24 }, { label: uis('48 horas antes', '48 hours before'), value: 48 }].map(opt => {
+                      {[
+                        { label: uis('30 min antes', '30 min before'), value: 0.5, rec: false },
+                        { label: uis('1 hora antes', '1 hour before'), value: 1, rec: false },
+                        { label: uis('2 horas antes', '2 hours before'), value: 2, rec: false },
+                        { label: uis('24 horas antes', '24 hours before'), value: 24, rec: true },
+                        { label: uis('48 horas antes', '48 hours before'), value: 48, rec: true },
+                      ].map(opt => {
                         const active = (config.reminder_hours_before || []).includes(opt.value)
                         return (
                           <button key={opt.value}
-                            style={{ padding: '5px 12px', borderRadius: 6, border: `1px solid ${active ? '#7c3aed' : '#2d2d3d'}`, background: active ? '#3b1f6e' : '#1a1a2e', color: active ? '#c4b5fd' : '#6b7280', fontSize: 12, cursor: 'pointer' }}
+                            style={{ padding: '5px 12px', borderRadius: 6, border: `1px solid ${active ? '#7c3aed' : opt.rec ? '#4c3a7a' : '#2d2d3d'}`, background: active ? '#3b1f6e' : '#1a1a2e', color: active ? '#c4b5fd' : '#6b7280', fontSize: 12, cursor: 'pointer' }}
                             onClick={async () => {
                               const current = config.reminder_hours_before || []
-                              const next = active ? current.filter((h: number) => h !== opt.value) : [...current, opt.value]
-                              await supabase.from('businesses').update({ reminder_hours_before: next }).eq('id', businessId!)
+                              const next = (active ? current.filter((h: number) => h !== opt.value) : [...current, opt.value]).sort((a: number, b: number) => a - b)
+                              const { error } = await supabase.from('businesses').update({ reminder_hours_before: next }).eq('id', businessId!)
+                              if (error) { alert(uis('No se pudo guardar: ', 'Could not save: ') + error.message); return }
                               update('reminder_hours_before', next)
                             }}>
-                            {opt.label}
+                            {opt.label}{opt.rec ? ' ★' : ''}
                           </button>
                         )
                       })}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#5a5a7a', marginTop: 8 }}>
+                      {uis('★ Recomendado. El de 24 h es el más efectivo para reducir ausencias.', '★ Recommended. 24 h is the most effective at reducing no-shows.')}
                     </div>
                   </div>
                 )}

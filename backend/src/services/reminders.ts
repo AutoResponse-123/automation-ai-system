@@ -37,12 +37,14 @@ async function autoCompleteAppointments() {
 }
 
 function startReminderJob() {
-  cron.schedule('0 * * * *', async () => {
+  // Cada 15 min para soportar recordatorios sub-hora (30 min / 1 h) con precisión.
+  // El dedup por reminders_sent evita reenvíos dentro de la ventana de ±30 min.
+  cron.schedule('*/15 * * * *', async () => {
     console.log('[reminders] Ejecutando chequeo de recordatorios...');
     await sendPendingReminders();
     await autoCompleteAppointments();
   });
-  console.log('[reminders] Job iniciado — corre cada hora');
+  console.log('[reminders] Job iniciado — corre cada 15 min');
 }
 
 async function sendPendingReminders() {
@@ -62,8 +64,10 @@ async function sendPendingReminders() {
 
       for (const hoursBefore of hoursConfig) {
         const targetTime = new Date(now.getTime() + hoursBefore * 60 * 60 * 1000);
-        const windowStart = new Date(targetTime.getTime() - 30 * 60 * 1000);
-        const windowEnd = new Date(targetTime.getTime() + 30 * 60 * 1000);
+        // Ventana ±10 min: con el cron cada 15 min nunca se pierde un turno
+        // y el recordatorio sale cerca de la hora pedida (clave para 30 min / 1 h).
+        const windowStart = new Date(targetTime.getTime() - 10 * 60 * 1000);
+        const windowEnd = new Date(targetTime.getTime() + 10 * 60 * 1000);
 
         const windowStartDate = windowStart.toISOString().split('T')[0];
         const windowEndDate = windowEnd.toISOString().split('T')[0];
