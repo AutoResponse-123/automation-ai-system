@@ -29,3 +29,22 @@ export function captureError(err: any, tag?: string, extra?: any) {
   }
   console.error(tag ? `[${tag}]` : '[error]', err?.message || err);
 }
+
+// Inicializa Sentry al arrancar y engancha errores globales del proceso.
+// Llamar una vez en index.ts.
+export function initLogger() {
+  getSentry(); // fuerza el init temprano si hay SENTRY_DSN
+  process.on('unhandledRejection', (reason: any) => {
+    captureError(reason, 'unhandledRejection');
+  });
+  process.on('uncaughtException', (err: any) => {
+    captureError(err, 'uncaughtException');
+  });
+}
+
+// Middleware de manejo de errores de Express — va al final de las rutas.
+export function errorHandler(err: any, _req: any, res: any, _next: any) {
+  captureError(err, 'express');
+  if (res.headersSent) return;
+  res.status(err?.status || 500).json({ error: 'Error interno del servidor' });
+}

@@ -8,6 +8,9 @@ const adminRouter = require('./api/admin');
 const contactRouter = require('./api/contact');
 const authRouter = require('./api/auth').default;
 const { startRemindersJob } = require('./services/reminders');
+const { initLogger, errorHandler } = require('./services/logger');
+
+initLogger();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -72,6 +75,9 @@ app.use('/api/cron', cronRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/contact', contactLimiter, contactRouter);
 app.use('/api/auth', signupLimiter, authRouter);
+
+// ── Manejo global de errores (al final de las rutas) ────────────────────────────
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log('Server running on http://localhost:' + PORT);
