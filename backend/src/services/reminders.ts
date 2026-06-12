@@ -1,7 +1,7 @@
 export {};
 const cron = require('node-cron');
 const { supabase } = require('../config/supabase');
-const { sendWhatsAppMessage } = require('./twilio');
+const { sendWhatsAppMessage, sendWhatsAppTemplate } = require('./twilio');
 const { wallTimeToUtc } = require('./calendar');
 
 async function autoCompleteAppointments() {
@@ -86,14 +86,37 @@ async function sendPendingReminders() {
             ? `${botEmoji} Hola ${appt.client_name}! Te recordamos que tenés un turno de *${appt.title}* en *${business.name}* el *${dateStr}* a las *${timeStr}*.\n\nSi necesitás cancelar o reprogramar, escribinos. ¡Hasta pronto!`
             : `${botEmoji} Hi ${appt.client_name}! Reminder: you have a *${appt.title}* appointment at *${business.name}* on *${dateStr}* at *${timeStr}*.\n\nTo cancel or reschedule, message us here.`;
 
+          // Los recordatorios suelen caer fuera de la ventana de 24hs → requieren plantilla aprobada.
+          // Si hay SID de plantilla configurado se usa; si no, fallback a texto libre (solo funciona dentro de la ventana).
+          const templateSid = isSpanish
+            ? process.env.TWILIO_REMINDER_TEMPLATE_ES
+            : process.env.TWILIO_REMINDER_TEMPLATE_EN;
+
           try {
-            await sendWhatsAppMessage(
-              appt.client_phone,
-              message,
-              process.env.TWILIO_ACCOUNT_SID!,
-              process.env.TWILIO_AUTH_TOKEN!,
-              business.phone_whatsapp
-            );
+            if (templateSid) {
+              await sendWhatsAppTemplate(
+                appt.client_phone,
+                templateSid,
+                {
+                  '1': appt.client_name,
+                  '2': appt.title,
+                  '3': business.name,
+                  '4': dateStr,
+                  '5': timeStr,
+                },
+                process.env.TWILIO_ACCOUNT_SID!,
+                process.env.TWILIO_AUTH_TOKEN!,
+                business.phone_whatsapp
+              );
+            } else {
+              await sendWhatsAppMessage(
+                appt.client_phone,
+                message,
+                process.env.TWILIO_ACCOUNT_SID!,
+                process.env.TWILIO_AUTH_TOKEN!,
+                business.phone_whatsapp
+              );
+            }
             await supabase.from('appointments')
               .update({ reminder_sent: true, reminders_sent: [...alreadySent, hoursBefore] })
               .eq('id', appt.id);
