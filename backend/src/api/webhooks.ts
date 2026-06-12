@@ -400,6 +400,14 @@ router.post('/appointments/:id/cancel', async (req: any, res: any) => {
 
     await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', id);
 
+    if (appt.google_event_id) {
+      const ownerBiz = await supabase.from('businesses').select('google_refresh_token, google_calendar_id').eq('id', appt.business_id).single();
+      if (ownerBiz.data?.google_refresh_token) {
+        const { cancelEvent } = require('../services/calendar');
+        await cancelEvent(ownerBiz.data, appt.google_event_id);
+      }
+    }
+
     const business = appt.businesses;
     const isSpanish = (business?.language || 'es') === 'es';
     const botEmoji = business?.bot_emoji || '\u{1F916}';

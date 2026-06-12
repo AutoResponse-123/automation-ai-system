@@ -1,3 +1,4 @@
+export {};
 // Tests del loop de tool-use de callClaude — foco en create_appointment en conversación nueva.
 
 const mockCreate = jest.fn()

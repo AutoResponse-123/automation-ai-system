@@ -1,6 +1,6 @@
 export {};
 const Anthropic = require('@anthropic-ai/sdk').default;
-const { getAvailableSlots, createEvent, isSlotFree } = require('./calendar');
+const { getAvailableSlots, createEvent, isSlotFree, cancelEvent } = require('./calendar');
 const { supabase } = require('../config/supabase');
 const { createPaymentLink } = require('./mercadopago');
 const { sendCancellationEmail } = require('./email');
@@ -210,6 +210,7 @@ async function callClaude(
         } else {
           const appt = appts[0];
           await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', appt.id);
+          if (appt.google_event_id) await cancelEvent(business, appt.google_event_id);
           toolResult = `Turno anterior cancelado: ${appt.title} del ${appt.appointment_date} a las ${String(appt.appointment_time).slice(0,5)}. Ahora preguntale al cliente qué nueva fecha prefiere y consultá disponibilidad con get_available_slots.`;
           console.log(`[reschedule_appointment] Cancelado ${appt.id}, iniciando reagendado para ${clientPhone}`);
         }
@@ -231,6 +232,7 @@ async function callClaude(
         } else {
           const appt = appts[0];
           await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', appt.id);
+          if (appt.google_event_id) await cancelEvent(business, appt.google_event_id);
 
           // Email al dueño
           sendCancellationEmail({

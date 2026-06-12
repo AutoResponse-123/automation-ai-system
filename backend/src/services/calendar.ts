@@ -31,6 +31,14 @@ function wallTimeToUtc(dateStr: string, timeStr: string, tz: string): Date {
   return new Date(utcGuess - offset);
 }
 
+// Suma n dias a una fecha "YYYY-MM-DD" y devuelve el mismo formato.
+function addDaysStr(dateStr: string, n: number): string {
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + n);
+  return dt.toISOString().slice(0, 10);
+}
+
 function getAuthUrl(businessId: string): string {
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
@@ -80,8 +88,16 @@ async function getAvailableSlots(business: any, date: string): Promise<string[]>
     }));
   }
 
-  const dayStart = wallTimeToUtc(date, `${String(openH).padStart(2, '0')}:${String(openM).padStart(2, '0')}`, tz);
-  const dayEnd = wallTimeToUtc(date, `${String(closeH).padStart(2, '0')}:${String(closeM).padStart(2, '0')}`, tz);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const startMins = openH * 60 + openM;
+  const closeMins = closeH * 60 + closeM;
+  const crossesMidnight = closeMins <= startMins;
+  const endMins = crossesMidnight ? closeMins + 1440 : closeMins;
+
+  const dayStart = wallTimeToUtc(date, `${pad(openH)}:${pad(openM)}`, tz);
+  const dayEnd = crossesMidnight
+    ? wallTimeToUtc(addDaysStr(date, 1), `${pad(closeH)}:${pad(closeM)}`, tz)
+    : wallTimeToUtc(date, `${pad(closeH)}:${pad(closeM)}`, tz);
 
   const { data } = await calendar.freebusy.query({
     requestBody: {
@@ -93,14 +109,15 @@ async function getAvailableSlots(business: any, date: string): Promise<string[]>
   const busy: { start: string; end: string }[] = data.calendars?.[calendarId]?.busy || [];
 
   const SLOT_MIN = 60;
-  const startMins = openH * 60 + openM;
-  const endMins = closeH * 60 + closeM;
   const now = Date.now();
   const slots: string[] = [];
 
   for (let m = startMins; m + SLOT_MIN <= endMins; m += SLOT_MIN) {
-    const hh = Math.floor(m / 60), mm = m % 60;
-    const slotStart = wallTimeToUtc(date, `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`, tz);
+    const dayOffset = Math.floor(m / 1440);
+    const minInDay = m % 1440;
+    const hh = Math.floor(minInDay / 60), mm = minInDay % 60;
+    const slotDate = dayOffset === 0 ? date : addDaysStr(date, dayOffset);
+    const slotStart = wallTimeToUtc(slotDate, `${pad(hh)}:${pad(mm)}`, tz);
     const slotEnd = new Date(slotStart.getTime() + SLOT_MIN * 60000);
 
     if (slotStart.getTime() <= now) continue;
@@ -164,4 +181,19 @@ async function createEvent(business: any, params: {
   return data.id;
 }
 
-module.exports = { getAuthUrl, saveTokens, getAvailableSlots, createEvent, isSlotFree, wallTimeToUtc };
+async function cancelEvent(business: any, googleEventId: string): Promise<boolean> {
+  if (!business?.google_refresh_token || !googleEventId) return false;
+  try {
+    const calendar = await getCalendarClient(business);
+    const calendarId = business.google_calendar_id || 'primary';
+    await calendar.events.delete({ calendarId, eventId: googleEventId });
+    return true;
+  } catch (err: any) {
+    const code = err?.code || err?.response?.status;
+    if (code === 404 || code === 410) return false;
+    console.error('[cancelEvent]', err?.message || err);
+    return false;
+  }
+}
+
+module.exports = { getAuthUrl, saveTokens, getAvailableSlots, createEvent, isSlotFree, cancelEvent, wallTimeToUtc };
