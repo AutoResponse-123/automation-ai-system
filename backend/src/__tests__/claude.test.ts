@@ -47,6 +47,7 @@ const { callClaude } = require('../services/claude')
 const business = {
   id: 'biz_1',
   name: 'Barbería Centro',
+  plan: 'pro',
   google_refresh_token: 'tok',
   mp_access_token: null,
   appointment_categories: [],

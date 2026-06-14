@@ -33,7 +33,7 @@ jest.mock('../services/email', () => ({ sendCancellationEmail: jest.fn() }));
 
 const { callClaude } = require('../services/claude');
 
-const business = { id: 'biz_1', name: 'Barbería', google_refresh_token: 'tok', mp_access_token: null, escalation_email: 'x@y.com', bot_name: 'Bot' };
+const business = { id: 'biz_1', name: 'Barbería', plan: 'pro', google_refresh_token: 'tok', mp_access_token: null, escalation_email: 'x@y.com', bot_name: 'Bot' };
 
 beforeEach(() => { mockCreate.mockReset(); mockCancelEvent.mockClear(); });
 

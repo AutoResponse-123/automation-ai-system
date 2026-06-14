@@ -51,7 +51,7 @@ async function sendPendingReminders() {
   try {
     const { data: businesses, error } = await supabase
       .from('businesses')
-      .select('id, name, bot_name, bot_emoji, language, reminder_hours_before, phone_whatsapp, schedule, reminders_enabled')
+      .select('id, name, bot_name, bot_emoji, language, reminder_hours_before, phone_whatsapp, schedule, reminders_enabled, plan')
       .eq('is_active', true);
 
     if (error || !businesses?.length) return;
@@ -59,6 +59,8 @@ async function sendPendingReminders() {
     const now = new Date();
 
     for (const business of businesses) {
+      // Recordatorios = feature Pro (Pro/Enterprise/trial). Basic no.
+      if (!['pro', 'enterprise', 'trial'].includes(business.plan)) continue;
       if (!business.reminders_enabled) continue; // respeta el toggle del dashboard
       const hoursConfig: number[] = business.reminder_hours_before || [24];
       const tz = business.schedule?.timezone || 'America/Argentina/Buenos_Aires';

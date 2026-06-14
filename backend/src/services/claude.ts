@@ -107,8 +107,11 @@ async function callClaude(
   business?: any,
   clientPhone?: string
 ) {
-  const hasCalendar = !!business?.google_refresh_token;
-  const hasMP = !!business?.mp_access_token;
+  // Features Pro (turnos/Calendar y Mercado Pago) solo para Pro/Enterprise/trial,
+  // sin importar si quedó un token conectado de antes (un Basic no las usa).
+  const entitledPro = ['pro', 'enterprise', 'trial'].includes(business?.plan);
+  const hasCalendar = entitledPro && !!business?.google_refresh_token;
+  const hasMP = entitledPro && !!business?.mp_access_token;
   const activeTools = calendarTools.filter((t: any) => {
     if (t.name === 'create_payment_link') return hasMP;
     if (t.name === 'cancel_appointment') return true; // siempre disponible

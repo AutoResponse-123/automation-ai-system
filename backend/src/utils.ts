@@ -1,5 +1,11 @@
 export {};
 
+// Único lugar que define el acceso a las features Pro (turnos/Calendar, recordatorios,
+// Mercado Pago): Pro, Enterprise y el trial (para que prueben). Basic/starter NO.
+export function hasProFeatures(plan?: string): boolean {
+  return plan === 'pro' || plan === 'enterprise' || plan === 'trial';
+}
+
 export function buildSystemPrompt(business: any, contactSummary?: string): string {
   const parts: string[] = [];
 
@@ -51,7 +57,7 @@ export function buildSystemPrompt(business: any, contactSummary?: string): strin
     parts.push(`\nCategorías de servicio disponibles:\n${cats}\nUsá estas categorías y duraciones al crear turnos.`);
   }
 
-  if (business.google_refresh_token) {
+  if (hasProFeatures(business.plan) && business.google_refresh_token) {
     parts.push(`\nTenés acceso al calendario del negocio. SIEMPRE seguí este flujo para agendar turnos:
 1) Preguntá qué fecha prefiere el cliente
 2) OBLIGATORIO: llamá get_available_slots para esa fecha ANTES de confirmar cualquier hora

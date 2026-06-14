@@ -82,7 +82,8 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
   onFontChange?: (font: string) => void
   plan?: string
 }) {
-  const isPro = plan === 'pro' || plan === 'enterprise'
+  // Features Pro habilitadas para Pro, Enterprise y el trial (para que prueben). Basic no.
+  const isPro = plan === 'pro' || plan === 'enterprise' || plan === 'trial'
   const { lang, setLang } = useLang()
   const uis = (es: string, en: string) => lang === 'en' ? en : es
   const { permission, enabled: notifEnabled, setEnabled: setNotifEnabled, requestPermission, sendNotification, isSupported } = useNotifications()
