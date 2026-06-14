@@ -132,6 +132,15 @@ async function getAvailableSlots(business: any, date: string): Promise<string[]>
       slots.push(slotStart.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz }));
     }
   }
+  console.log('[slots]', JSON.stringify({
+    date, weekday,
+    scheduleEnabled: !!business.schedule?.enabled,
+    dayClosed: dayCfg?.closed ?? null,
+    openClose: `${pad(openH)}:${pad(openM)}-${pad(closeH)}:${pad(closeM)}`,
+    busyBlocks: busy.length,
+    slotsFound: slots.length,
+    window: `${dayStart.toISOString()} → ${dayEnd.toISOString()}`,
+  }));
   return slots;
 }
 
