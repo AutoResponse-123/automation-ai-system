@@ -130,21 +130,31 @@ router.post('/whatsapp', async (req: any, res: any) => {
       }
     }
 
-    const PLAN_LIMITS: Record<string, number> = { trial: 200, starter: 500, basic: 500, pro: -1, enterprise: -1 };
-    const planLimit = PLAN_LIMITS[business.plan] ?? -1;
+    // Tope de conversaciones nuevas por mes según plan (coincide con la guía de venta).
+    // Las conversaciones ya iniciadas siguen respondiendo; solo se frena un contacto
+    // NUEVO una vez superado el tope. Pro/Premium dejan de ser ilimitados → protege margen.
+    const PLAN_LIMITS: Record<string, number> = { trial: 200, starter: 500, basic: 500, pro: 1500, enterprise: 4000 };
+    const planLimit = PLAN_LIMITS[business.plan] ?? 500;
     if (planLimit > 0) {
       const monthStart = new Date();
       monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
-      const { data: bizConvs } = await supabase.from('conversations').select('id').eq('business_id', business.id);
-      const bizConvIds = (bizConvs || []).map((c: any) => c.id);
-      if (bizConvIds.length > 0) {
-        const { count: monthlyCount } = await supabase
-          .from('messages').select('id', { count: 'exact', head: true })
-          .in('conversation_id', bizConvIds)
-          .eq('sender', 'user')
+      // Un contacto que ya existe (cliente que vuelve) no cuenta contra el tope;
+      // solo se evalúa cuando es un contacto NUEVO de este mes.
+      const { data: existingContact } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('business_id', business.id)
+        .eq('phone', fromPhone)
+        .limit(1);
+      const isReturning = !!(existingContact && existingContact.length);
+      if (!isReturning) {
+        const { count: monthlyConvs } = await supabase
+          .from('conversations')
+          .select('id', { count: 'exact', head: true })
+          .eq('business_id', business.id)
           .gte('created_at', monthStart.toISOString());
-        if ((monthlyCount ?? 0) >= planLimit) {
-          const limitPlanMsg = `Lo sentimos, hemos alcanzado el límite de mensajes del plan este mes. Para continuar, contactanos para actualizar tu plan.`;
+        if ((monthlyConvs ?? 0) >= planLimit) {
+          const limitPlanMsg = `Lo sentimos, alcanzamos el límite del plan este mes. Para continuar, contactanos para actualizar tu plan.`;
           const twimlLP = new (require('twilio').twiml.MessagingResponse)();
           twimlLP.message(limitPlanMsg);
           res.type('text/xml');
