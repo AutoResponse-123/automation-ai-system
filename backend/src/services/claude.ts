@@ -145,13 +145,17 @@ async function callClaude(
       return { text: content?.text || '', tokens: totalTokens };
     }
 
-    // Buscar el tool call
-    const toolUseBlock = response.content.find((c: any) => c.type === 'tool_use');
-    if (!toolUseBlock) {
+    // Procesar TODAS las tool calls de la respuesta. Claude puede pedir varias en
+    // paralelo (ej. un get_available_slots por cada día). La API exige devolver un
+    // tool_result por cada tool_use; mandar solo uno tira 400 y rompe la respuesta.
+    const toolUseBlocks = response.content.filter((c: any) => c.type === 'tool_use');
+    if (toolUseBlocks.length === 0) {
       const content = response.content.find((c: any) => c.type === 'text');
       return { text: content?.text || '', tokens: totalTokens };
     }
 
+    const toolResults: any[] = [];
+    for (const toolUseBlock of toolUseBlocks) {
     console.log(`[Claude tool call] ${toolUseBlock.name}`, toolUseBlock.input);
 
     // Ejecutar el tool
@@ -275,15 +279,14 @@ async function callClaude(
       toolResult = `Error al acceder al calendario: ${err.message}`;
       console.error(`[tool error] ${toolUseBlock.name}:`, err.message);
     }
+      toolResults.push({ type: 'tool_result', tool_use_id: toolUseBlock.id, content: toolResult });
+    }
 
-    // Agregar resultado al historial y continuar el loop
+    // Agregar la respuesta del asistente + TODOS los tool_result y continuar el loop
     currentMessages = [
       ...currentMessages,
       { role: 'assistant', content: response.content },
-      {
-        role: 'user',
-        content: [{ type: 'tool_result', tool_use_id: toolUseBlock.id, content: toolResult }],
-      },
+      { role: 'user', content: toolResults },
     ];
   }
 
