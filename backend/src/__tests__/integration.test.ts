@@ -31,7 +31,12 @@ const mockSupabaseChain = (returnData: any = null) => {
 jest.mock('../config/supabase', () => ({
   supabase: {
     from: jest.fn((table: string) => {
-      if (table === 'businesses') return mockSupabaseChain(mockBusiness)
+      if (table === 'businesses') {
+        const c = mockSupabaseChain(mockBusiness)
+        // getBusinessByPhone ahora usa .in(...).limit(1) y lee un array
+        c.limit = jest.fn().mockResolvedValue({ data: [mockBusiness], error: null })
+        return c
+      }
       if (table === 'contacts') return mockSupabaseChain({ id: 'contact_123', summary: null })
       if (table === 'conversations') return {
         ...mockSupabaseChain({ id: 'conv_123' }),

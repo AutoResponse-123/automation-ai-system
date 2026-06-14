@@ -131,25 +131,27 @@ async function getBusiness(businessId: string) {
 }
 
 async function getBusinessByPhone(phone: string) {
-  // Busca el negocio por número de WhatsApp — permite multi-tenant
-  // Normaliza el número: intenta con y sin el formato +
-  const { data, error } = await supabase
+  // Multi-tenant: rutea por phone_whatsapp. Normaliza para tolerar que el número
+  // esté guardado con o sin el '+' (causa #1 de "Business not found" en el alta).
+  const variants = phone.startsWith('+') ? [phone, phone.slice(1)] : [phone, '+' + phone];
+
+  // Preferir negocio activo
+  const { data: active } = await supabase
     .from('businesses')
     .select('*')
-    .eq('phone_whatsapp', phone)
+    .in('phone_whatsapp', variants)
     .eq('is_active', true)
-    .single();
+    .limit(1);
+  if (active && active.length > 0) return active[0];
 
-  if (!error && data) return data;
-
-  // Fallback: buscar sin importar is_active (para mostrar mensaje de suspensión)
+  // Fallback: cualquiera con ese número (para mostrar mensaje de suspensión)
   const { data: anyBiz } = await supabase
     .from('businesses')
     .select('*')
-    .eq('phone_whatsapp', phone)
-    .single();
+    .in('phone_whatsapp', variants)
+    .limit(1);
 
-  return anyBiz || null;
+  return (anyBiz && anyBiz[0]) || null;
 }
 
 async function updateConversationStatus(conversationId: string, status: string) {
