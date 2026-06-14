@@ -461,13 +461,13 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
           {/* ── Horarios ── */}
           {activeSection === 'horarios' && (
             <div style={s.section}>
-              <SectionHeader icon="ti-clock" title={uis('Horarios de atención', 'Business Hours')} subtitle={uis('Fuera de horario el bot responde con un mensaje automático', 'Outside business hours the bot replies with an automatic message')} />
+              <SectionHeader icon="ti-clock" title={uis('Horarios de atención', 'Business Hours')} subtitle={uis('Definí los horarios en los que el bot puede agendar turnos', 'Set the hours when the bot can schedule appointments')} />
 
               <Field label="">
                 <div style={s.toggleRow}>
                   <div>
-                    <div style={{ fontSize: 13, color: '#c4c4d4', fontWeight: 500 }}>{uis('Activar horarios de atención', 'Enable business hours')}</div>
-                    <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 2 }}>{uis('Si está desactivado, el bot responde las 24hs', 'If disabled, the bot responds 24/7')}</div>
+                    <div style={{ fontSize: 13, color: '#c4c4d4', fontWeight: 500 }}>{uis('Avisar cuando estás fuera de horario', 'Notify when outside business hours')}</div>
+                    <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 2 }}>{uis('Si está activado, el bot avisa "fuera de horario" en vez de atender. Dejalo desactivado para atender 24hs — los horarios de abajo definen los turnos igual.', 'If enabled, the bot replies "outside hours" instead of helping. Leave it off to attend 24/7 — the hours below still define bookings.')}</div>
                   </div>
                   <div style={{ ...s.toggleTrack, ...(config.schedule?.enabled ? s.toggleTrackOn : {}) }}
                     onClick={() => update('schedule', { ...config.schedule, enabled: !config.schedule?.enabled })}>
@@ -476,7 +476,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                 </div>
               </Field>
 
-              {config.schedule?.enabled && (
+              {(
                 <>
                   <Field label={uis('Zona horaria', 'Timezone')}>
                     <select style={s.select} value={config.schedule?.timezone}
