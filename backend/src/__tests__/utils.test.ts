@@ -126,7 +126,7 @@ describe('buildSystemPrompt', () => {
   });
 
   it('incluye instrucciones de Calendar si hay google_refresh_token', () => {
-    const prompt = buildSystemPrompt({ ...baseBusiness, google_refresh_token: 'token123' });
+    const prompt = buildSystemPrompt({ ...baseBusiness, plan: 'pro', google_refresh_token: 'token123' });
     expect(prompt).toContain('get_available_slots');
     expect(prompt).toContain('create_appointment');
   });

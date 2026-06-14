@@ -35,6 +35,7 @@ interface BusinessConfig {
   reminders_enabled: boolean
   reminder_hours_before: number[]
   mp_access_token: string | null
+  mp_payment_link: string | null
   sheets_refresh_token: string | null
   sheets_spreadsheet_id: string | null
   appointment_categories: AppointmentCategory[]
@@ -161,6 +162,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
         reminders_enabled: data.reminders_enabled ?? false,
         reminder_hours_before: data.reminder_hours_before ?? [24],
         mp_access_token: data.mp_access_token ?? null,
+        mp_payment_link: data.mp_payment_link ?? null,
         sheets_refresh_token: data.sheets_refresh_token ?? null,
         sheets_spreadsheet_id: data.sheets_spreadsheet_id ?? null,
         appointment_categories: data.appointment_categories ?? [],
@@ -843,17 +845,18 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                 <IntegrationCard
                   icon="ti-brand-mastercard" iconColor="#00b1ea"
                   name="Mercado Pago"
-                  description={config.mp_access_token ? 'El bot puede generar links de pago automáticamente' : 'Ingresá tu Access Token para que el bot envíe links de cobro'}
-                  status={config.mp_access_token ? 'connected' : 'disconnected'}
+                  description={config.mp_payment_link ? 'El bot comparte tu alias/link de cobro cuando un cliente quiere pagar' : 'Pegá tu alias o link de cobro de Mercado Pago para que el bot lo comparta'}
+                  status={config.mp_payment_link ? 'connected' : 'disconnected'}
                   onConnect={async () => {
-                    const token = prompt('Pegá tu Mercado Pago Access Token:')
-                    if (!token) return
-                    await supabase.from('businesses').update({ mp_access_token: token }).eq('id', businessId!)
-                    update('mp_access_token', token)
+                    const link = prompt('Pegá tu alias o link de cobro de Mercado Pago (ej: tualias.mp o https://mpago.la/xxxx):')
+                    if (!link?.trim()) return
+                    const { error } = await supabase.from('businesses').update({ mp_payment_link: link.trim() }).eq('id', businessId!)
+                    if (error) { alert('No se pudo guardar: ' + error.message); return }
+                    update('mp_payment_link', link.trim())
                   }}
                   onDisconnect={async () => {
-                    await supabase.from('businesses').update({ mp_access_token: null }).eq('id', businessId!)
-                    update('mp_access_token', null)
+                    await supabase.from('businesses').update({ mp_payment_link: null }).eq('id', businessId!)
+                    update('mp_payment_link', null)
                   }}
                 />
               )}

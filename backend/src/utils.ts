@@ -67,6 +67,10 @@ export function buildSystemPrompt(business: any, contactSummary?: string): strin
 6) NUNCA confirmes un turno sin haber llamado create_appointment primero. Si no llamaste al tool, NO digas que el turno está agendado.`);
   }
 
+  if (hasProFeatures(business.plan) && business.mp_payment_link) {
+    parts.push(`\nMedio de pago: si el cliente quiere pagar, señar o reservar con anticipo, compartile EXACTAMENTE este dato de Mercado Pago: ${business.mp_payment_link}. No inventes alias, links ni CBU distintos a ese.`);
+  }
+
   if (contactSummary) {
     parts.push(`\nHistorial de este cliente (conversaciones anteriores):\n${contactSummary}`);
   }

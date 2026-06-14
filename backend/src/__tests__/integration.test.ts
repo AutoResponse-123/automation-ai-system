@@ -151,7 +151,7 @@ describe('buildSystemPrompt', () => {
   it('incluye nombre del bot', () => expect(buildSystemPrompt(biz)).toContain('Bot'))
   it('incluye summary si se pasa', () => expect(buildSystemPrompt(biz, 'cliente VIP')).toContain('cliente VIP'))
   it('no incluye historial si no hay summary', () => expect(buildSystemPrompt(biz)).not.toContain('Historial'))
-  it('incluye Calendar si hay token', () => expect(buildSystemPrompt({ ...biz, google_refresh_token: 'tok' })).toContain('get_available_slots'))
+  it('incluye Calendar si hay token', () => expect(buildSystemPrompt({ ...biz, plan: 'pro', google_refresh_token: 'tok' })).toContain('get_available_slots'))
 })
 
 // ── Tests de webhook ──────────────────────────────────────────────────────────
