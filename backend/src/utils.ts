@@ -12,6 +12,8 @@ export function buildSystemPrompt(business: any, contactSummary?: string): strin
   parts.push(`Tu tono de comunicación es ${tone}. Respondé siempre en ${language === 'es' ? 'español' : language === 'en' ? 'inglés' : 'portugués'}.`);
   parts.push(`Respondé de manera breve y clara. Máximo 2-3 oraciones por respuesta salvo que sea necesario más detalle.`);
 
+  if (business.welcome_message) parts.push(`\nCuando saludes a un cliente al inicio de la conversación, usá (o adaptá naturalmente) este mensaje de bienvenida: "${business.welcome_message}"`);
+
   const tz = business.schedule?.timezone || 'America/Argentina/Buenos_Aires';
   const nowStr = new Date().toLocaleDateString('es-AR', { timeZone: tz, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   parts.push(`\nFecha y hora actual (${tz}): ${nowStr}. Usá esta fecha como referencia para interpretar palabras como "hoy", "mañana", "pasado mañana", etc.`);
