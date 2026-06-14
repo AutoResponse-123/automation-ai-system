@@ -154,8 +154,10 @@ async function callClaude(
       return { text: content?.text || '', tokens: totalTokens };
     }
 
-    const toolResults: any[] = [];
-    for (const toolUseBlock of toolUseBlocks) {
+    // En paralelo: si Claude pide varios slots (un día por tool), se consultan todos
+    // a la vez en vez de en serie → mucho más rápido para el cliente. Promise.all
+    // preserva el orden, así cada tool_result queda con su tool_use_id correcto.
+    const toolResults = await Promise.all(toolUseBlocks.map(async (toolUseBlock: any) => {
     console.log(`[Claude tool call] ${toolUseBlock.name}`, toolUseBlock.input);
 
     // Ejecutar el tool
@@ -279,8 +281,8 @@ async function callClaude(
       toolResult = `Error al acceder al calendario: ${err.message}`;
       console.error(`[tool error] ${toolUseBlock.name}:`, err.message);
     }
-      toolResults.push({ type: 'tool_result', tool_use_id: toolUseBlock.id, content: toolResult });
-    }
+      return { type: 'tool_result', tool_use_id: toolUseBlock.id, content: toolResult };
+    }));
 
     // Agregar la respuesta del asistente + TODOS los tool_result y continuar el loop
     currentMessages = [
