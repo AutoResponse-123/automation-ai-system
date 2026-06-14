@@ -5,54 +5,59 @@ async function getOrCreateConversation(
   businessId: string,
   contactPhone: string
 ) {
-  const { data: contact, error: contactError } = await supabase
+  // Contacto: buscar; si no existe, crear tolerando carrera (índice único
+  // contacts(business_id, phone) → si otro proceso lo creó a la vez, re-leemos).
+  let contact: any = (await supabase
     .from('contacts')
     .select('id, summary')
     .eq('business_id', businessId)
     .eq('phone', contactPhone)
-    .single();
+    .maybeSingle()).data;
 
-  let contactId: string;
-  let contactSummary: string | null = null;
-
-  if (contactError || !contact) {
-    const { data: newContact, error: createError } = await supabase
+  if (!contact) {
+    const ins = await supabase
       .from('contacts')
-      .insert([{ business_id: businessId, phone: contactPhone, interaction_count: 1 }])
-      .select('id')
-      .single();
-
-    if (createError) throw createError;
-    contactId = newContact.id;
-  } else {
-    contactId = contact.id;
-    contactSummary = contact.summary || null;
+      .insert({ business_id: businessId, phone: contactPhone, interaction_count: 1 })
+      .select('id, summary')
+      .maybeSingle();
+    contact = ins.data || (await supabase
+      .from('contacts')
+      .select('id, summary')
+      .eq('business_id', businessId)
+      .eq('phone', contactPhone)
+      .maybeSingle()).data;
+    if (!contact) throw ins.error || new Error('No se pudo crear/obtener el contacto');
   }
 
-  const { data: conversation, error: convError } = await supabase
+  const contactId: string = contact.id;
+  const contactSummary: string | null = contact.summary || null;
+
+  // Conversación activa: mismo patrón (índice único parcial garantiza una sola activa).
+  let conversation: any = (await supabase
     .from('conversations')
     .select('id')
     .eq('business_id', businessId)
     .eq('contact_id', contactId)
     .eq('status', 'active')
-    .single();
+    .maybeSingle()).data;
 
-  let conversationId: string;
-
-  if (convError || !conversation) {
-    const { data: newConv, error: createConvError } = await supabase
+  if (!conversation) {
+    const ins = await supabase
       .from('conversations')
-      .insert([{ business_id: businessId, contact_id: contactId, status: 'active' }])
+      .insert({ business_id: businessId, contact_id: contactId, status: 'active' })
       .select('id')
-      .single();
-
-    if (createConvError) throw createConvError;
-    conversationId = newConv.id;
-  } else {
-    conversationId = conversation.id;
+      .maybeSingle();
+    conversation = ins.data || (await supabase
+      .from('conversations')
+      .select('id')
+      .eq('business_id', businessId)
+      .eq('contact_id', contactId)
+      .eq('status', 'active')
+      .maybeSingle()).data;
+    if (!conversation) throw ins.error || new Error('No se pudo crear/obtener la conversación');
   }
 
-  return { contactId, conversationId, contactSummary };
+  return { contactId, conversationId: conversation.id, contactSummary };
 }
 
 async function updateContactSummary(contactId: string, conversationId: string, business: any) {

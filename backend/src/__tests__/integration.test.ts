@@ -22,6 +22,7 @@ const mockSupabaseChain = (returnData: any = null) => {
     in: jest.fn().mockReturnThis(),
     not: jest.fn().mockReturnThis(),
     single: jest.fn().mockResolvedValue({ data: returnData, error: returnData ? null : { message: 'not found' } }),
+    maybeSingle: jest.fn().mockResolvedValue({ data: returnData, error: null }),
     head: jest.fn().mockReturnThis(),
   }
   chain.count = jest.fn().mockResolvedValue({ count: 0, error: null })

@@ -754,7 +754,9 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                   status={config.google_refresh_token ? 'connected' : 'disconnected'}
                   onConnect={async () => {
                     const { data: { session: _s } } = await supabase.auth.getSession()
-                    const popup = window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/calendar/connect/${businessId}?token=${_s?.access_token ?? ''}`, '_blank', 'width=600,height=700')
+                    const nr = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/connect-token/${businessId}`, { method: 'POST', headers: { Authorization: `Bearer ${_s?.access_token ?? ''}` } })
+                    const { nonce } = await nr.json()
+                    const popup = window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/calendar/connect/${businessId}?nonce=${nonce}`, '_blank', 'width=600,height=700')
                     const timer = setInterval(() => { if (popup?.closed) { clearInterval(timer); loadConfig() } }, 1000)
                   }}
                   onDisconnect={async () => {
@@ -910,8 +912,11 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                       </>
                     ) : (
                       <button
-                        onClick={() => {
-                          const popup = (async () => { const { data: { session: _ss } } = await supabase.auth.getSession(); window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/sheets/connect/${businessId}?token=${_ss?.access_token ?? ''}`, '_blank', 'width=600,height=700') })()
+                        onClick={async () => {
+                          const { data: { session: _ss } } = await supabase.auth.getSession()
+                          const nr = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/connect-token/${businessId}`, { method: 'POST', headers: { Authorization: `Bearer ${_ss?.access_token ?? ''}` } })
+                          const { nonce } = await nr.json()
+                          const popup = window.open(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/sheets/connect/${businessId}?nonce=${nonce}`, '_blank', 'width=600,height=700')
                           const timer = setInterval(() => { if (popup?.closed) { clearInterval(timer); loadConfig() } }, 1000)
                         }}
                         style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>

@@ -50,7 +50,13 @@ app.use((_req: any, res: any, next: any) => {
 
 // ── Rate limiters ─────────────────────────────────────────────────────────────
 const generalLimiter = rateLimit({ windowMs: 60_000, max: 300, standardHeaders: true, legacyHeaders: false });
-const webhookLimiter = rateLimit({ windowMs: 60_000, max: 120, standardHeaders: true, legacyHeaders: false });
+// Clave por número del cliente (req.body.From), no por IP: todo el tráfico de Twilio
+// comparte las mismas IPs, así que un límite por IP frenaría mensajes legítimos de
+// muchos negocios a la vez. 40/min por número alcanza de sobra para un humano real.
+const webhookLimiter = rateLimit({
+  windowMs: 60_000, max: 40, standardHeaders: true, legacyHeaders: false,
+  keyGenerator: (req: any) => req.body?.From || req.ip,
+});
 const contactLimiter = rateLimit({
   windowMs: 60_000 * 60, max: 5, standardHeaders: true, legacyHeaders: false,
   message: { error: 'Demasiados intentos. Esperá 1 hora.' }

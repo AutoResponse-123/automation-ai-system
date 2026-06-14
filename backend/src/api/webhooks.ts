@@ -22,6 +22,22 @@ function isDuplicateSid(sid: string): boolean {
   return false;
 }
 
+// Nonce de un solo uso (5 min) para iniciar OAuth sin exponer el JWT del usuario
+// en la URL del popup (que termina en logs/historial). Single-instance, en memoria.
+const connectNonces = new Map<string, { businessId: string; exp: number }>();
+function mintNonce(businessId: string): string {
+  const nonce = require('crypto').randomBytes(24).toString('hex');
+  connectNonces.set(nonce, { businessId, exp: Date.now() + 5 * 60 * 1000 });
+  return nonce;
+}
+function consumeNonce(nonce: string | undefined, businessId: string): boolean {
+  if (!nonce) return false;
+  const e = connectNonces.get(nonce);
+  if (!e) return false;
+  connectNonces.delete(nonce); // un solo uso
+  return e.businessId === businessId && e.exp > Date.now();
+}
+
 async function verifyBusinessOwner(authHeader: string | undefined, businessId: string): Promise<boolean> {
   if (!authHeader) return false;
   const token = authHeader.replace('Bearer ', '');
@@ -276,10 +292,21 @@ router.post('/conversations/:id/summary', async (req: any, res: any) => {
   }
 });
 
+// Mintea un nonce de un solo uso para iniciar la conexión OAuth desde el dashboard.
+router.post('/connect-token/:businessId', async (req: any, res: any) => {
+  const { businessId } = req.params;
+  const authorized = await verifyBusinessOwner(req.headers['authorization'], businessId);
+  if (!authorized) { res.status(403).json({ error: 'No autorizado' }); return; }
+  res.json({ nonce: mintNonce(businessId) });
+});
+
 router.get('/calendar/connect/:businessId', async (req: any, res: any) => {
   const { businessId } = req.params;
+  const nonce = req.query.nonce as string;
   const token = req.query.token as string;
-  const authorized = await verifyBusinessOwner(token ? `Bearer ${token}` : undefined, businessId);
+  // Preferir nonce (no expone el JWT en la URL); mantener token como fallback.
+  const authorized = consumeNonce(nonce, businessId)
+    || await verifyBusinessOwner(token ? `Bearer ${token}` : undefined, businessId);
   if (!authorized) { res.status(403).send('No autorizado'); return; }
   const url = getAuthUrl(businessId);
   res.redirect(url);
@@ -310,8 +337,10 @@ router.get('/calendar/callback', async (req: any, res: any) => {
 
 router.get('/sheets/connect/:businessId', async (req: any, res: any) => {
   const { businessId } = req.params;
+  const nonce = req.query.nonce as string;
   const token = req.query.token as string;
-  const authorized = await verifyBusinessOwner(token ? `Bearer ${token}` : undefined, businessId);
+  const authorized = consumeNonce(nonce, businessId)
+    || await verifyBusinessOwner(token ? `Bearer ${token}` : undefined, businessId);
   if (!authorized) { res.status(403).send('No autorizado'); return; }
   const url = getSheetsAuthUrl(businessId);
   res.redirect(url);
@@ -360,6 +389,7 @@ router.post('/send-manual', async (req: any, res: any) => {
 
     const { data: business } = await supabase.from('businesses').select('*').eq('id', conv.business_id).single();
     if (!business) { res.status(404).json({ error: 'Negocio no encontrado' }); return; }
+    if (!business.is_active) { res.status(403).json({ error: 'Negocio suspendido' }); return; }
 
     const phone = (conv.contact as any)?.phone;
     if (!phone) { res.status(400).json({ error: 'Sin teléfono de contacto' }); return; }
