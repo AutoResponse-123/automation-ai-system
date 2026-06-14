@@ -280,6 +280,7 @@ async function callClaude(
     } catch (err: any) {
       toolResult = `Error al acceder al calendario: ${err.message}`;
       console.error(`[tool error] ${toolUseBlock.name}:`, err.message);
+      try { require('./logger').captureError(err, `tool:${toolUseBlock.name}`); } catch {}
     }
       return { type: 'tool_result', tool_use_id: toolUseBlock.id, content: toolResult };
     }));

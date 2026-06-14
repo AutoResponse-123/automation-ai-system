@@ -42,10 +42,14 @@ async function verifyBusinessOwner(authHeader: string | undefined, businessId: s
   if (!authHeader) return false;
   const token = authHeader.replace('Bearer ', '');
   const { createClient } = require('@supabase/supabase-js');
-  const client = createClient(process.env.SUPABASE_URL || '', process.env.SUPABASE_ANON_KEY || '');
-  const { data: { user } } = await client.auth.getUser(token);
-  if (!user) return false;
-  const { data } = await client.from('businesses').select('id').eq('id', businessId).eq('user_id', user.id).single();
+  // 1) Validar el token del usuario con el cliente anónimo.
+  const authClient = createClient(process.env.SUPABASE_URL || '', process.env.SUPABASE_ANON_KEY || '');
+  const { data: { user }, error: authErr } = await authClient.auth.getUser(token);
+  if (authErr || !user) return false;
+  // 2) Chequear la propiedad con service role. Necesario: con RLS activado, una consulta
+  //    como anónimo NO ve la fila (auth.uid() es null) y siempre daría "No autorizado".
+  const admin = createClient(process.env.SUPABASE_URL || '', process.env.SUPABASE_SERVICE_ROLE_KEY || '');
+  const { data } = await admin.from('businesses').select('id').eq('id', businessId).eq('user_id', user.id).maybeSingle();
   return !!data;
 }
 
