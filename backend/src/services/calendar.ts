@@ -74,7 +74,10 @@ async function getAvailableSlots(business: any, date: string): Promise<string[]>
   const weekday = new Date(`${date}T12:00:00Z`)
     .toLocaleDateString('es-AR', { timeZone: tz, weekday: 'long' })
     .toLowerCase();
-  const dayCfg = business.schedule?.enabled ? business.schedule?.hours?.[weekday] : null;
+  // Los horarios configurados definen los slots SIEMPRE (independiente de "enabled",
+  // que solo controla el aviso de fuera de horario). Así el bot puede atender 24hs
+  // pero ofrecer turnos solo en el horario real del negocio.
+  const dayCfg = business.schedule?.hours?.[weekday] || null;
 
   let openH = 9, openM = 0, closeH = 18, closeM = 0;
   let breaks: { start: number; end: number }[] = [];

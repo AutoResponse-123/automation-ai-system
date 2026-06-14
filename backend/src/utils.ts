@@ -22,7 +22,8 @@ export function buildSystemPrompt(business: any, contactSummary?: string): strin
 
   const tz = business.schedule?.timezone || 'America/Argentina/Buenos_Aires';
   const nowStr = new Date().toLocaleDateString('es-AR', { timeZone: tz, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  parts.push(`\nFecha y hora actual (${tz}): ${nowStr}. Usá esta fecha como referencia para interpretar palabras como "hoy", "mañana", "pasado mañana", etc.`);
+  const curYear = new Date().toLocaleDateString('en-US', { timeZone: tz, year: 'numeric' });
+  parts.push(`\nFecha y hora actual (${tz}): ${nowStr}. EL AÑO EN CURSO ES ${curYear}. Cuando uses las herramientas de turnos, las fechas SIEMPRE deben ser de ${curYear} en adelante — NUNCA uses un año anterior. Usá esta fecha como referencia para interpretar "hoy", "mañana", "esta semana", etc.`);
 
   if (business.business_description) parts.push(`\nSobre el negocio: ${business.business_description}`);
   if (business.services) parts.push(`\nServicios que ofrecemos: ${business.services}`);

@@ -100,6 +100,19 @@ const calendarTools = [
   },
 ];
 
+// Defensa de año: a veces el modelo calcula fechas con un año pasado (ej. 2025 en vez
+// de 2026) y los turnos quedan en el pasado → 0 slots. Si la fecha quedó antes de hoy,
+// la empujamos al año en curso (y si aún es pasada, al siguiente). Los turnos son a futuro.
+function normalizeFutureDate(dateStr: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (dateStr >= todayStr) return dateStr;
+  const [, mo, dd] = dateStr.split('-');
+  const curY = new Date().getUTCFullYear();
+  const cand = `${curY}-${mo}-${dd}`;
+  return cand >= todayStr ? cand : `${curY + 1}-${mo}-${dd}`;
+}
+
 async function callClaude(
   messages: any[],
   systemPrompt: string,
@@ -158,6 +171,7 @@ async function callClaude(
     // a la vez en vez de en serie → mucho más rápido para el cliente. Promise.all
     // preserva el orden, así cada tool_result queda con su tool_use_id correcto.
     const toolResults = await Promise.all(toolUseBlocks.map(async (toolUseBlock: any) => {
+    if (toolUseBlock.input?.date) toolUseBlock.input.date = normalizeFutureDate(toolUseBlock.input.date);
     console.log(`[Claude tool call] ${toolUseBlock.name}`, toolUseBlock.input);
 
     // Ejecutar el tool
