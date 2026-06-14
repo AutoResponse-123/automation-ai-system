@@ -55,7 +55,7 @@ function makeBusiness(over: any = {}) {
   return {
     id: 'biz_1', name: 'Peluquería Melón', bot_name: 'Wasso', bot_emoji: '🤖',
     language: 'es', reminder_hours_before: [24], phone_whatsapp: '+5491172443409',
-    schedule: ART, ...over,
+    reminders_enabled: true, schedule: ART, ...over,
   };
 }
 
