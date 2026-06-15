@@ -6,7 +6,7 @@ export const es = {
   nav_analytics: 'Analytics',
   nav_contacts: 'Contactos',
   nav_appointments: 'Turnos',
-  nav_settings: 'Config',
+  nav_settings: 'Configuración',
 
   // Login
   login_title: 'Iniciar sesión',
