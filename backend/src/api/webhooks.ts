@@ -231,21 +231,30 @@ router.post('/whatsapp', async (req: any, res: any) => {
       content: msg.content,
     }));
 
-    const { text: assistantMessage, tokens } = await callClaude(messages, systemPrompt, business.max_tokens || 600, business, fromPhone);
-
-    await saveMessage(conversationId, 'assistant', assistantMessage, tokens);
-
-    const userMsgCount = history.filter((m: any) => m.sender === 'user').length + 1;
-    if (userMsgCount % 10 === 0 && contactId) {
-      updateContactSummary(contactId, conversationId, business).catch((e: any) =>
-        console.error('[summary async]', e.message)
-      );
-    }
-
-    const twiml = new (require('twilio').twiml.MessagingResponse)();
-    twiml.message(assistantMessage);
+    // Responder a Twilio YA con un ack vacío para evitar timeouts: Twilio corta la espera
+    // a los ~15s y el mensaje quedaría sin contestar. El bot piensa y responde por la API
+    // de Twilio cuando termina, sin importar cuánto tarde (no se cae ningún mensaje).
     res.type('text/xml');
-    res.send(twiml.toString());
+    res.send('<Response/>');
+
+    (async () => {
+      try {
+        const { text: assistantMessage, tokens } = await callClaude(messages, systemPrompt, business.max_tokens || 600, business, fromPhone);
+        await saveMessage(conversationId, 'assistant', assistantMessage, tokens);
+        const { sendWhatsAppMessage } = require('../services/twilio');
+        await sendWhatsAppMessage(fromPhone, assistantMessage, process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!, business.phone_whatsapp);
+
+        const userMsgCount = history.filter((m: any) => m.sender === 'user').length + 1;
+        if (userMsgCount % 10 === 0 && contactId) {
+          updateContactSummary(contactId, conversationId, business).catch((e: any) => console.error('[summary async]', e.message));
+        }
+      } catch (err: any) {
+        const { captureError } = require('../services/logger');
+        captureError(err, 'webhook-ai-async');
+        console.error('[webhook-ai-async]', err?.message || err);
+      }
+    })();
+    return;
 
   } catch (error) {
     const { captureError } = require('../services/logger');
