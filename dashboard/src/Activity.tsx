@@ -23,7 +23,7 @@ function timeAgo(dateStr: string): string {
 }
 
 const EVENT_STYLES: Record<ActivityEvent['type'], { icon: string; color: string; bg: string }> = {
-  new_message:      { icon: 'ti-message-2',   color: '#a78bfa', bg: '#1a1a2e' },
+  new_message:      { icon: 'ti-message-2',   color: '#a78bfa', bg: 'var(--bg-card)' },
   new_conversation: { icon: 'ti-message-plus', color: '#38bdf8', bg: '#0e1e2e' },
   ai_response:      { icon: 'ti-sparkles',     color: '#22c55e', bg: '#0a1a0e' },
   resolved:         { icon: 'ti-circle-check', color: '#34d399', bg: '#0a1e18' },
@@ -182,8 +182,8 @@ export default function Activity() {
       <div style={s.feed}>
         {events.length === 0 ? (
           <div style={s.emptyFeed}>
-            <i className="ti ti-activity" style={{ fontSize: 24, color: '#2e2e4e' }} aria-hidden="true" />
-            <p style={{ color: '#4a4a6a', fontSize: 13, marginTop: 8 }}>Esperando eventos...</p>
+            <i className="ti ti-activity" style={{ fontSize: 24, color: 'var(--border-mid)' }} aria-hidden="true" />
+            <p style={{ color: 'var(--text-3)', fontSize: 13, marginTop: 8 }}>Esperando eventos...</p>
           </div>
         ) : (
           events.map(e => {
@@ -214,24 +214,24 @@ const s: Record<string, React.CSSProperties> = {
   container: { display: 'grid', gridTemplateRows: 'auto auto 1fr', height: '100%', overflow: 'hidden', padding: 16, gap: 12 },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   headerLeft: { display: 'flex', alignItems: 'center', gap: 10 },
-  headerTitle: { fontSize: 13, fontWeight: 500, color: '#e2e8f0' },
+  headerTitle: { fontSize: 13, fontWeight: 500, color: 'var(--text-1)' },
   livePill: { display: 'flex', alignItems: 'center', gap: 5, background: '#0a1a0e', border: '0.5px solid #1a2e1e', borderRadius: 20, padding: '3px 8px', fontSize: 11, color: '#22c55e' },
   liveDot: { width: 6, height: 6, borderRadius: '50%', background: '#22c55e', animation: 'pulse 2s infinite' },
-  liveDotPaused: { background: '#4a4a6a', animation: 'none' },
-  eventCount: { fontSize: 11, color: '#4a4a6a' },
+  liveDotPaused: { background: 'var(--text-3)', animation: 'none' },
+  eventCount: { fontSize: 11, color: 'var(--text-3)' },
   headerActions: { display: 'flex', gap: 6 },
-  actionBtn: { background: '#1a1a2e', border: '0.5px solid #2e2e4e', borderRadius: 6, padding: '4px 10px', fontSize: 11, color: '#8b8baa', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 },
+  actionBtn: { background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '4px 10px', fontSize: 11, color: 'var(--text-2)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 },
   statsRow: { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 },
-  statCard: { background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 8, padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 8 },
+  statCard: { background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 8, padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 8 },
   statIcon: { width: 28, height: 28, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  statValue: { fontSize: 16, fontWeight: 500, color: '#e2e8f0', lineHeight: 1 },
-  statLabel: { fontSize: 10, color: '#4a4a6a', marginTop: 2 },
+  statValue: { fontSize: 16, fontWeight: 500, color: 'var(--text-1)', lineHeight: 1 },
+  statLabel: { fontSize: 10, color: 'var(--text-3)', marginTop: 2 },
   feed: { overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 },
   emptyFeed: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200 },
-  eventRow: { display: 'grid', gridTemplateColumns: '28px 1fr auto', gap: 10, alignItems: 'center', padding: '7px 10px', borderRadius: 8, background: '#0d0d14', border: '0.5px solid #1e1e2e' },
+  eventRow: { display: 'grid', gridTemplateColumns: '28px 1fr auto', gap: 10, alignItems: 'center', padding: '7px 10px', borderRadius: 8, background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)' },
   eventIcon: { width: 28, height: 28, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   eventContent: { minWidth: 0 },
-  eventTitle: { fontSize: 12, fontWeight: 500, color: '#c4c4d4' },
-  eventDetail: { fontSize: 11, color: '#4a4a6a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  eventTime: { fontSize: 10, color: '#4a4a6a', flexShrink: 0 },
+  eventTitle: { fontSize: 12, fontWeight: 500, color: 'var(--text-1)' },
+  eventDetail: { fontSize: 11, color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  eventTime: { fontSize: 10, color: 'var(--text-3)', flexShrink: 0 },
 }

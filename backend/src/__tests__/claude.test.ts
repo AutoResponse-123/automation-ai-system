@@ -37,6 +37,7 @@ jest.mock('../services/calendar', () => ({
   getAvailableSlots: jest.fn().mockResolvedValue(['14:00', '15:00']),
   createEvent: jest.fn().mockResolvedValue('event_123'),
   isSlotFree: jest.fn().mockResolvedValue(true),
+  resolveSlot: jest.fn((_b: any, m?: number) => ({ mode: 'fixed', duration: m || 60, step: 60, buffer: 0 })),
 }))
 
 jest.mock('../services/mercadopago', () => ({ createPaymentLink: jest.fn() }))

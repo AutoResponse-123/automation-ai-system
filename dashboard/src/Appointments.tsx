@@ -87,7 +87,7 @@ function ApptCard({ appt, today, categories, confirmingId, setConfirmingId, canc
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
           {appt.status === 'cancelled' && pill('❌ Cancelado', '#dc2626')}
           {appt.status !== 'cancelled' && isToday && pill(t('appointments_pill_today'), '#10b981')}
-          {appt.status !== 'cancelled' && isPast && pill(t('appointments_pill_past'), '#6b7280')}
+          {appt.status !== 'cancelled' && isPast && pill(t('appointments_pill_past'), 'var(--text-2)')}
           {appt.reminder_24h_sent && pill('✓ 24h', '#7c3aed')}
           {appt.reminder_1h_sent && pill('✓ 1h', '#7c3aed')}
           {appt.status !== 'cancelled' && !isPast && (
@@ -99,7 +99,7 @@ function ApptCard({ appt, today, categories, confirmingId, setConfirmingId, canc
                   {cancellingId === appt.id ? '...' : 'Sí'}
                 </button>
                 <button onClick={() => setConfirmingId(null)}
-                  style={{ padding: '3px 8px', borderRadius: 5, border: '1px solid #3a3a5a', background: 'transparent', color: '#8080a0', fontSize: 11, cursor: 'pointer' }}>
+                  style={{ padding: '3px 8px', borderRadius: 5, border: '1px solid var(--text-faint)', background: 'transparent', color: 'var(--text-2)', fontSize: 11, cursor: 'pointer' }}>
                   No
                 </button>
               </div>
@@ -113,7 +113,7 @@ function ApptCard({ appt, today, categories, confirmingId, setConfirmingId, canc
         </div>
       </div>
       {appt.status !== 'cancelled' && (
-        <div style={{ padding: '6px 14px 10px', borderTop: '1px solid #1a1a2e' }}>
+        <div style={{ padding: '6px 14px 10px', borderTop: '1px solid var(--bg-card)' }}>
           {editingNoteId === appt.id ? (
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               <input
@@ -122,16 +122,16 @@ function ApptCard({ appt, today, categories, confirmingId, setConfirmingId, canc
                 onChange={e => setNoteText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') saveNote(appt.id); if (e.key === 'Escape') setEditingNoteId(null) }}
                 placeholder="Nota interna..."
-                style={{ flex: 1, background: '#0d0d14', border: '1px solid #2d2d4a', borderRadius: 6, padding: '4px 8px', color: '#e2e8f0', fontSize: 12, outline: 'none' }}
+                style={{ flex: 1, background: 'var(--bg-card)', border: '1px solid #2d2d4a', borderRadius: 6, padding: '4px 8px', color: 'var(--text-1)', fontSize: 12, outline: 'none' }}
               />
               <button onClick={() => saveNote(appt.id)} style={{ padding: '3px 8px', borderRadius: 5, border: 'none', background: 'var(--accent-dark)', color: '#fff', fontSize: 11, cursor: 'pointer' }}>Guardar</button>
-              <button onClick={() => setEditingNoteId(null)} style={{ padding: '3px 8px', borderRadius: 5, border: '1px solid #3a3a5a', background: 'transparent', color: '#8080a0', fontSize: 11, cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setEditingNoteId(null)} style={{ padding: '3px 8px', borderRadius: 5, border: '1px solid var(--text-faint)', background: 'transparent', color: 'var(--text-2)', fontSize: 11, cursor: 'pointer' }}>✕</button>
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
               onClick={() => { setEditingNoteId(appt.id); setNoteText(appt.notes || '') }}>
-              <i className="ti ti-notes" style={{ fontSize: 12, color: '#4a4a6a' }} />
-              <span style={{ fontSize: 11, color: appt.notes ? '#9ca3af' : '#3a3a5a', fontStyle: appt.notes ? 'normal' : 'italic' }}>
+              <i className="ti ti-notes" style={{ fontSize: 12, color: 'var(--text-3)' }} />
+              <span style={{ fontSize: 11, color: appt.notes ? '#9ca3af' : 'var(--text-faint)', fontStyle: appt.notes ? 'normal' : 'italic' }}>
                 {appt.notes || 'Agregar nota...'}
               </span>
             </div>
@@ -263,7 +263,7 @@ export default function Appointments({ businessId }: { businessId: string }) {
           <h2 style={s.title}>📅 {t('appointments_title')}</h2>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button onClick={exportCSV} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-mid)', background: 'transparent', color: '#8b8baa', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button onClick={exportCSV} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-mid)', background: 'transparent', color: 'var(--text-2)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
             <i className="ti ti-download" style={{ fontSize: 13 }} /> CSV
           </button>
           <div style={s.filters}>

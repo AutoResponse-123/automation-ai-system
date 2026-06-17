@@ -106,7 +106,7 @@ export default function Onboarding({ business, onGoToSettings }: OnboardingProps
         {/* Progress bar inline */}
         <div style={{ width: 80, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
           <span style={{ fontSize: 11, fontWeight: 600, color: allConfigured ? '#10b981' : 'var(--accent)' }}>{pct}%</span>
-          <div style={{ width: '100%', height: 4, background: '#1e1e2e', borderRadius: 2 }}>
+          <div style={{ width: '100%', height: 4, background: 'var(--border-mid)', borderRadius: 2 }}>
             <div style={{ width: `${pct}%`, height: '100%', background: allConfigured ? '#10b981' : 'var(--accent)', borderRadius: 2, transition: 'width 0.4s' }} />
           </div>
         </div>
@@ -119,17 +119,17 @@ export default function Onboarding({ business, onGoToSettings }: OnboardingProps
 
       {/* Steps */}
       {expanded && (
-        <div style={{ borderTop: '1px solid #1e1e2e', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ borderTop: '1px solid var(--border-mid)', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {steps.map((step, i) => (
             <div key={step.id} style={{
               display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10,
-              background: step.done ? 'var(--accent-dim)' : step.isAction ? '#10b98108' : '#0d0d18',
-              border: `1px solid ${step.done ? 'var(--accent)30' : step.isAction ? '#10b98130' : '#1e1e2e'}`,
+              background: step.done ? 'var(--accent-dim)' : step.isAction ? '#10b98108' : 'var(--bg-card)',
+              border: `1px solid ${step.done ? 'var(--accent)30' : step.isAction ? '#10b98130' : 'var(--border-mid)'}`,
             }}>
               <div style={{
                 width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: step.done ? 'var(--accent)' : step.isAction ? '#10b98130' : '#1e1e2e',
+                background: step.done ? 'var(--accent)' : step.isAction ? '#10b98130' : 'var(--border-mid)',
                 fontSize: step.done ? 12 : 11, fontWeight: 700,
                 color: step.done ? '#fff' : step.isAction ? '#10b981' : 'var(--text-3)',
               }}>

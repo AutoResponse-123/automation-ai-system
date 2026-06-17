@@ -1,6 +1,6 @@
 export {};
 const Anthropic = require('@anthropic-ai/sdk').default;
-const { getAvailableSlots, createEvent, isSlotFree, cancelEvent } = require('./calendar');
+const { getAvailableSlots, createEvent, isSlotFree, cancelEvent, resolveSlot } = require('./calendar');
 const { supabase } = require('../config/supabase');
 const { createPaymentLink } = require('./mercadopago');
 const { sendCancellationEmail } = require('./email');
@@ -12,13 +12,17 @@ const client = new Anthropic({
 const calendarTools = [
   {
     name: 'get_available_slots',
-    description: 'Consulta los horarios disponibles en el calendario del negocio para una fecha específica.',
+    description: 'Consulta los horarios disponibles en el calendario del negocio para una fecha específica. IMPORTANTE: pasá duration_minutes con la duración del servicio que pidió el cliente (la de su categoría), así los horarios ofrecidos calzan con ese servicio. Si todavía no sabés qué servicio quiere, preguntáselo antes de consultar.',
     input_schema: {
       type: 'object',
       properties: {
         date: {
           type: 'string',
           description: 'Fecha en formato YYYY-MM-DD (ej: 2025-06-15)',
+        },
+        duration_minutes: {
+          type: 'number',
+          description: 'Duración en minutos del servicio que quiere el cliente (usá la de la categoría/servicio elegido). Si no se especificó, omitir.',
         },
       },
       required: ['date'],
@@ -178,7 +182,7 @@ async function callClaude(
     let toolResult: string;
     try {
       if (toolUseBlock.name === 'get_available_slots') {
-        const slots = await getAvailableSlots(business, toolUseBlock.input.date);
+        const slots = await getAvailableSlots(business, toolUseBlock.input.date, toolUseBlock.input.duration_minutes || 60);
         toolResult = slots.length > 0
           ? `Horarios disponibles: ${slots.join(', ')}`
           : 'No hay horarios disponibles para esa fecha.';
@@ -214,7 +218,7 @@ async function callClaude(
           client_phone: clientPhone || '',
           appointment_date: toolUseBlock.input.date,
           appointment_time: toolUseBlock.input.time + ':00',
-          duration_minutes: toolUseBlock.input.duration_minutes || 60,
+          duration_minutes: resolveSlot(business, toolUseBlock.input.duration_minutes).duration,
         });
         if (insertErr) console.error('[appointments insert]', insertErr.message);
         toolResult = `Turno creado exitosamente. ID: ${eventId}`;

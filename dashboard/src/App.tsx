@@ -11,7 +11,6 @@ import Contacts from './Contacts'
 import Activity from './Activity'
 import Settings from './Settings'
 import Appointments from './Appointments'
-import Onboarding from './Onboarding'
 import Login from './Login'
 import Search from './Search'
 import { useNotifications } from './hooks/useNotifications'
@@ -130,8 +129,27 @@ const DEFAULT_QUICK_REPLIES: string[] = []
 
 // ── Main App ──────────────────────────────────────────────────────────────────
 
+function ThemeToggle({ theme, setTheme }: { theme: 'light' | 'dark'; setTheme: (t: 'light' | 'dark') => void }) {
+  const isLight = theme === 'light'
+  return (
+    <button
+      onClick={() => setTheme(isLight ? 'dark' : 'light')}
+      title={isLight ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro'}
+      aria-label="Cambiar tema"
+      style={{
+        width: 32, height: 32, borderRadius: 9, cursor: 'pointer',
+        background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.28)',
+        color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        backdropFilter: 'blur(4px)', transition: 'background 0.15s',
+      }}>
+      <i className={`ti ${isLight ? 'ti-moon' : 'ti-sun'}`} style={{ fontSize: 16 }} aria-hidden="true" />
+    </button>
+  )
+}
+
 export default function App() {
   const [lang, setLang] = useState<Lang>(() => (localStorage.getItem('ui_lang') as Lang) || 'es')
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('ui_theme') as 'light' | 'dark') || 'dark')
   const [dashFont, setDashFont] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Inter')
   const [tab, setTab] = useState<Tab>('dashboard')
   const [session, setSession] = useState<Session | null>(null)
@@ -194,6 +212,25 @@ export default function App() {
   const channelRef = useRef<RealtimeChannel | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const quickRepliesRef = useRef<HTMLDivElement>(null)
+
+  // Tema claro/oscuro: aplicar al <html> y persistir
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    try { localStorage.setItem('ui_theme', theme) } catch { /* ignore */ }
+  }, [theme])
+
+  // Tipografía global: aplicar al <html> para que afecte ABSOLUTAMENTE todo
+  // (controles de formulario, modales, toasts, login, etc.)
+  useEffect(() => {
+    document.documentElement.style.setProperty('--app-font', `'${dashFont}', system-ui, sans-serif`)
+    if (dashFont && dashFont !== 'Inter' && !document.getElementById('ar-font-link')) {
+      const link = document.createElement('link')
+      link.id = 'ar-font-link'
+      link.rel = 'stylesheet'
+      link.href = `https://fonts.googleapis.com/css2?family=${dashFont.replace(/ /g, '+')}:wght@400;500;600;700&display=swap`
+      document.head.appendChild(link)
+    }
+  }, [dashFont])
 
   // Auto-resize textarea
   useEffect(() => {
@@ -588,9 +625,9 @@ export default function App() {
   // ── Auth guards ───────────────────────────────────────────────────────────────
 
   if (authLoading) return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#07070d', flexDirection: 'column', gap: 12, fontFamily: 'inherit' }}>
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', flexDirection: 'column', gap: 12, fontFamily: 'inherit' }}>
       <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #1d4ed8, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', boxShadow: '0 4px 16px #1d4ed844' }}>W</div>
-      <div style={{ fontSize: 12, color: '#5a5a7a' }}>Cargando...</div>
+      <div style={{ fontSize: 12, color: 'var(--text-3)' }}>Cargando...</div>
     </div>
   )
 
@@ -609,7 +646,7 @@ export default function App() {
           <button key={n.id} onClick={() => setTab(n.id)} title={n.label}
             style={{ ...s.sIcon, ...(tab === n.id ? s.sIconActive : {}) }}>
             <i className={`ti ${n.icon}`} style={{ fontSize: 18 }} aria-hidden="true" />
-            <span style={{ ...s.sLabel, ...(tab === n.id ? { color: '#3b82f6' } : {}) }}>{n.label}</span>
+            <span style={{ ...s.sLabel, ...(tab === n.id ? { color: 'var(--sidebar-icon-active)' } : {}) }}>{n.label}</span>
             {n.id === 'inbox' && unreadCount > 0 && (
               <span style={s.badge}>{unreadCount > 9 ? '9+' : unreadCount}</span>
             )}
@@ -644,18 +681,18 @@ export default function App() {
       {showLogoutModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => setShowLogoutModal(false)}>
-          <div style={{ background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 14, padding: '28px 28px 22px', width: 320, display: 'flex', flexDirection: 'column', gap: 0 }}
+          <div style={{ background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 14, padding: '28px 28px 22px', width: 320, display: 'flex', flexDirection: 'column', gap: 0 }}
             onClick={e => e.stopPropagation()}>
             <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--accent-dim)', border: '1px solid var(--border-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: 'var(--accent)', fontWeight: 700, marginBottom: 14 }}>
               {session?.user?.email?.slice(0, 1).toUpperCase() ?? 'U'}
             </div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: '#e2e8f0', marginBottom: 4 }}>Tu cuenta</div>
-            <div style={{ fontSize: 12, color: '#5a5a7a', marginBottom: 20, wordBreak: 'break-all' }}>{session?.user?.email}</div>
-            <div style={{ height: '0.5px', background: '#1e1e2e', marginBottom: 20 }} />
-            <div style={{ fontSize: 13, color: '#c4c4d4', marginBottom: 20 }}>¿Cerrar sesión en este dispositivo?</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>Tu cuenta</div>
+            <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 20, wordBreak: 'break-all' }}>{session?.user?.email}</div>
+            <div style={{ height: '0.5px', background: 'var(--border-mid)', marginBottom: 20 }} />
+            <div style={{ fontSize: 13, color: 'var(--text-1)', marginBottom: 20 }}>¿Cerrar sesión en este dispositivo?</div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={() => setShowLogoutModal(false)}
-                style={{ padding: '8px 18px', borderRadius: 8, border: '0.5px solid #2e2e4e', background: 'transparent', color: '#8b8baa', fontSize: 13, cursor: 'pointer' }}>
+                style={{ padding: '8px 18px', borderRadius: 8, border: '0.5px solid var(--border-mid)', background: 'transparent', color: 'var(--text-2)', fontSize: 13, cursor: 'pointer' }}>
                 Cancelar
               </button>
               <button onClick={() => { setShowLogoutModal(false); supabase.auth.signOut() }}
@@ -675,7 +712,7 @@ export default function App() {
           {isMobile && tab === 'inbox' && mobileShowChat && (
             <button className="mobile-back-btn"
               onClick={() => setMobileShowChat(false)}
-              style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, padding: '0 4px 0 0', fontFamily: 'inherit' }}>
+              style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, padding: '0 4px 0 0', fontFamily: 'inherit' }}>
               <i className="ti ti-chevron-left" style={{ fontSize: 18 }} />
             </button>
           )}
@@ -684,23 +721,24 @@ export default function App() {
             <div style={s.liveDot} />
             Producción
           </span>
-          {loading && <span style={{ ...s.prodBadge, color: '#f59e0b', borderColor: '#3a2a0e' }}>Actualizando...</span>}
+          {loading && <span style={{ ...s.prodBadge }}>Actualizando...</span>}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <ThemeToggle theme={theme} setTheme={setTheme} />
             {metrics.pendingConversations > 0 && (
               <button
                 onClick={() => { setConvFilter('pending'); setTab('inbox') }}
-                style={{ ...s.prodBadge, color: '#f59e0b', borderColor: '#3a2a0e', background: '#1a120a', cursor: 'pointer' }}>
+                style={{ ...s.prodBadge, background: 'rgba(255,255,255,0.26)', cursor: 'pointer' }}>
                 ⚠️ {metrics.pendingConversations} pendiente{metrics.pendingConversations !== 1 ? 's' : ''}
               </button>
             )}
             <button onClick={() => setSearchOpen(true)}
-              style={{ ...s.prodBadge, cursor: 'pointer', gap: 6, color: '#5a5a7a' }}
+              style={{ ...s.prodBadge, cursor: 'pointer', gap: 6 }}
               title="Buscar mensajes (Ctrl+K)">
               <i className="ti ti-search" style={{ fontSize: 12 }} />
               <span style={{ fontSize: 11 }}>Buscar</span>
-              <kbd style={{ fontSize: 9, background: 'var(--bg-base)', border: '1px solid var(--border-mid)', borderRadius: 3, padding: '1px 4px', color: '#4a4a6a' }}>⌘K</kbd>
+              <kbd style={{ fontSize: 9, background: 'rgba(255,255,255,0.22)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 3, padding: '1px 4px', color: '#fff' }}>⌘K</kbd>
             </button>
-            <span style={{ fontSize: 11, color: '#4a4a6a' }}>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)' }}>
               {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
@@ -724,15 +762,14 @@ export default function App() {
         {tab === 'dashboard' && (
           <div style={s.scrollArea}>
             <DashboardHero name={businessData?.name} automationRate={metrics.automationRate} pending={metrics.pendingConversations} totalMessages={metrics.totalMessages} onGoPending={() => { setConvFilter('pending'); setTab('inbox') }} />
-            <Onboarding business={businessData} onGoToSettings={() => setTab('settings')} />
             {/* Selector de escala */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
               {(['day', 'week', 'month', '6months', 'year'] as const).map(sc => (
                 <button key={sc} onClick={() => { setDashScale(sc); loadMetrics(sc) }}
                   style={{ padding: '5px 14px', borderRadius: 8, border: '0.5px solid', fontSize: 12, fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s',
                     background: dashScale === sc ? 'var(--accent-dim)' : 'transparent',
-                    borderColor: dashScale === sc ? 'var(--accent)' : '#2e2e4e',
-                    color: dashScale === sc ? 'var(--accent)' : '#5a5a7a' }}>
+                    borderColor: dashScale === sc ? 'var(--accent)' : 'var(--border-mid)',
+                    color: dashScale === sc ? 'var(--accent)' : 'var(--text-3)' }}>
                   {sc === 'day' ? 'Hoy' : sc === 'week' ? 'Semana' : sc === 'month' ? 'Mes' : sc === '6months' ? '6M' : 'Año'}
                 </button>
               ))}
@@ -758,11 +795,11 @@ export default function App() {
                   icon="ti-users" iconColor="#e879f9" />
                 <MetricCard label="Pendientes" value={metrics.pendingConversations.toString()}
                   sub="sin responder" color={metrics.pendingConversations > 0 ? '#f59e0b' : undefined}
-                  icon="ti-clock-pause" iconColor={metrics.pendingConversations > 0 ? '#f59e0b' : '#4a4a6a'}
+                  icon="ti-clock-pause" iconColor={metrics.pendingConversations > 0 ? '#f59e0b' : 'var(--text-3)'}
                   onClick={metrics.pendingConversations > 0 ? () => { setConvFilter('pending'); setTab('inbox') } : undefined} />
                 <MetricCard label="Escalaciones" value={metrics.escalations.toString()}
                   sub="a humano" color={metrics.escalations > 0 ? '#f87171' : undefined}
-                  icon="ti-alert-triangle" iconColor={metrics.escalations > 0 ? '#f87171' : '#4a4a6a'} />
+                  icon="ti-alert-triangle" iconColor={metrics.escalations > 0 ? '#f87171' : 'var(--text-3)'} />
               </div>
             )}
             {/* Turnos de hoy */}
@@ -779,8 +816,8 @@ export default function App() {
                         <i className="ti ti-calendar" style={{ fontSize: 16, color: 'var(--accent)' }} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>{a.client_name}</div>
-                        <div style={{ fontSize: 11, color: '#6b7280' }}>{a.title} · {String(a.appointment_time).slice(0, 5)}</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-1)' }}>{a.client_name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-2)' }}>{a.title} · {String(a.appointment_time).slice(0, 5)}</div>
                       </div>
                       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>{String(a.appointment_time).slice(0, 5)}</div>
                     </div>
@@ -807,19 +844,19 @@ export default function App() {
             {/* Conv list */}
             <div style={{ ...s.convPane, ...(isMobile && mobileShowChat ? { display: 'none' } : {}) }} className="inbox-list-pane">
               <div style={s.convSearchBox}>
-                <i className="ti ti-search" style={{ fontSize: 13, color: '#4a4a6a' }} aria-hidden="true" />
+                <i className="ti ti-search" style={{ fontSize: 13, color: 'var(--text-3)' }} aria-hidden="true" />
                 <input style={s.convSearchInput} placeholder="Buscar contacto..."
                   value={convSearch} onChange={e => setConvSearch(e.target.value)} />
                 {convSearch && (
                   <button onClick={() => setConvSearch('')}
-                    style={{ background: 'none', border: 'none', color: '#4a4a6a', cursor: 'pointer', fontSize: 16, padding: 0, lineHeight: 1 }}>
+                    style={{ background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer', fontSize: 16, padding: 0, lineHeight: 1 }}>
                     ×
                   </button>
                 )}
                 {/* Filtro de etiquetas */}
                 <div style={{ position: 'relative' as const, flexShrink: 0 }}>
                   <button onClick={() => setShowTagFilterPopover(p => !p)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 4, background: tagFilter ? 'var(--accent-dim)' : 'transparent', border: `0.5px solid ${tagFilter ? 'var(--accent)' : '#2e2e4e'}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', color: tagFilter ? 'var(--accent)' : '#4a4a6a', fontSize: 11, fontFamily: 'inherit', whiteSpace: 'nowrap' as const }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, background: tagFilter ? 'var(--accent-dim)' : 'transparent', border: `0.5px solid ${tagFilter ? 'var(--accent)' : 'var(--border-mid)'}`, borderRadius: 6, padding: '4px 8px', cursor: 'pointer', color: tagFilter ? 'var(--accent)' : 'var(--text-3)', fontSize: 11, fontFamily: 'inherit', whiteSpace: 'nowrap' as const }}>
                     <i className="ti ti-tag" style={{ fontSize: 11 }} />
                     {tagFilter ?? 'Etiqueta'}
                     <i className={`ti ti-chevron-${showTagFilterPopover ? 'up' : 'down'}`} style={{ fontSize: 10 }} />
@@ -827,14 +864,14 @@ export default function App() {
                   {showTagFilterPopover && (
                     <div className="popover-enter" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, background: 'var(--bg-card)', border: '1px solid var(--border-mid)', borderRadius: 10, padding: 6, zIndex: 100, boxShadow: '0 8px 24px rgba(0,0,0,0.6)', minWidth: 160 }}>
                       <button onClick={() => { setTagFilter(null); setShowTagFilterPopover(false) }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: !tagFilter ? '#1a1a2e' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: !tagFilter ? '#3b82f6' : '#6a6a8a', fontSize: 12, fontFamily: 'inherit' }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4a4a6a', flexShrink: 0 }} />
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: !tagFilter ? 'var(--bg-card)' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: !tagFilter ? '#3b82f6' : 'var(--text-2)', fontSize: 12, fontFamily: 'inherit' }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--text-3)', flexShrink: 0 }} />
                         Todas
                         {!tagFilter && <i className="ti ti-check" style={{ fontSize: 11, marginLeft: 'auto' }} />}
                       </button>
                       {TAG_PRESETS.map(p => (
                         <button key={p.label} onClick={() => { setTagFilter(p.label); setShowTagFilterPopover(false) }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: tagFilter === p.label ? p.color + '18' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: tagFilter === p.label ? p.color : '#8080a0', fontSize: 12, fontFamily: 'inherit', transition: 'all 0.1s' }}>
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: tagFilter === p.label ? p.color + '18' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: tagFilter === p.label ? p.color : 'var(--text-2)', fontSize: 12, fontFamily: 'inherit', transition: 'all 0.1s' }}>
                           <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
                           {p.label}
                           {tagFilter === p.label && <i className="ti ti-check" style={{ fontSize: 11, marginLeft: 'auto' }} />}
@@ -851,8 +888,8 @@ export default function App() {
                     {f === 'all' ? 'Todas' : f === 'active' ? 'Activas' : f === 'pending' ? 'Pendientes' : 'Resueltas'}
                     <span style={{
                       marginLeft: 4, borderRadius: 10, padding: '0 5px', fontSize: 10,
-                      background: convFilter === f ? '#3b82f622' : '#1e1e2e',
-                      color: convFilter === f ? '#3b82f6' : '#4a4a6a',
+                      background: convFilter === f ? '#3b82f622' : 'var(--border-mid)',
+                      color: convFilter === f ? '#3b82f6' : 'var(--text-3)',
                     }}>
                       {filterCounts[f]}
                     </span>
@@ -898,7 +935,7 @@ export default function App() {
                     {/* Tags actuales */}
                     {(selectedConv.tags ?? []).map(tag => {
                       const preset = TAG_PRESETS.find(p => p.label === tag)
-                      const color = preset?.color ?? '#8080a0'
+                      const color = preset?.color ?? 'var(--text-2)'
                       return (
                         <span key={tag} style={{ fontSize: 10, fontWeight: 600, borderRadius: 5, padding: '2px 7px', background: color + '20', border: `1px solid ${color}44`, color, display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}
                           onClick={() => removeTag(tag)} title="Click para quitar">
@@ -910,17 +947,17 @@ export default function App() {
                     {/* Agregar tag */}
                     <div style={{ position: 'relative' }}>
                       <button onClick={() => setShowTagPopover(p => !p)}
-                        style={{ ...s.chip, color: '#5a5a7a' }} title="Agregar etiqueta">
+                        style={{ ...s.chip, color: 'var(--text-3)' }} title="Agregar etiqueta">
                         <i className="ti ti-tag" style={{ fontSize: 11 }} /> etiqueta
                       </button>
                       {showTagPopover && (
                         <div style={s.tagPopover} className="popover-enter">
-                          <div style={{ fontSize: 10, color: '#4a4a6a', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Agregar etiqueta</div>
+                          <div style={{ fontSize: 10, color: 'var(--text-3)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Agregar etiqueta</div>
                           {TAG_PRESETS.map(p => {
                             const active = (selectedConv.tags ?? []).includes(p.label)
                             return (
                               <button key={p.label} onClick={() => active ? removeTag(p.label) : addTag(p.label)}
-                                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: active ? p.color + '18' : 'transparent', border: 'none', borderRadius: 6, padding: '5px 8px', cursor: 'pointer', color: active ? p.color : '#8080a0', fontSize: 12, fontFamily: 'inherit', transition: 'all 0.1s' }}>
+                                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: active ? p.color + '18' : 'transparent', border: 'none', borderRadius: 6, padding: '5px 8px', cursor: 'pointer', color: active ? p.color : 'var(--text-2)', fontSize: 12, fontFamily: 'inherit', transition: 'all 0.1s' }}>
                                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
                                 {p.label}
                                 {active && <i className="ti ti-check" style={{ fontSize: 11, marginLeft: 'auto' }} />}
@@ -933,7 +970,7 @@ export default function App() {
 
                     {/* Resumen IA */}
                     <button onClick={generateSummary} disabled={summaryLoading}
-                      style={{ ...s.chip, color: summaryLoading ? '#4a4a6a' : '#3b82f6' }}
+                      style={{ ...s.chip, color: summaryLoading ? 'var(--text-3)' : '#3b82f6' }}
                       title="Generar resumen IA">
                       <i className={`ti ${summaryLoading ? 'ti-loader-2 ti-spin' : 'ti-sparkles'}`} style={{ fontSize: 11 }} />
                       {summaryLoading ? 'Resumiendo...' : 'resumen'}
@@ -941,8 +978,8 @@ export default function App() {
 
                     <div style={s.toggleWrapper} onClick={() => toggleAI(selectedConv)}
                       title={selectedConv.ai_enabled ? 'Pausar IA' : 'Activar IA'}>
-                      <i className="ti ti-robot" style={{ fontSize: 12, color: selectedConv.ai_enabled ? 'var(--accent)' : '#4a4a6a' }} aria-hidden="true" />
-                      <span style={{ ...s.toggleLabel, color: selectedConv.ai_enabled ? 'var(--accent)' : '#4a4a6a' }}>IA</span>
+                      <i className="ti ti-robot" style={{ fontSize: 12, color: selectedConv.ai_enabled ? 'var(--accent)' : 'var(--text-3)' }} aria-hidden="true" />
+                      <span style={{ ...s.toggleLabel, color: selectedConv.ai_enabled ? 'var(--accent)' : 'var(--text-3)' }}>IA</span>
                       <div style={{ ...s.toggleTrack, ...(selectedConv.ai_enabled ? s.toggleTrackOn : {}) }}>
                         <div style={{ ...s.toggleThumb, ...(selectedConv.ai_enabled ? s.toggleThumbOn : {}) }} />
                       </div>
@@ -960,7 +997,7 @@ export default function App() {
                       </button>
                     )}
                     <button onClick={() => setContactPanelOpen(p => !p)}
-                      style={{ ...s.chip, color: contactPanelOpen ? 'var(--accent)' : '#4a4a6a' }}
+                      style={{ ...s.chip, color: contactPanelOpen ? 'var(--accent)' : 'var(--text-3)' }}
                       title="Info del contacto">
                       <i className="ti ti-info-circle" style={{ fontSize: 11 }} aria-hidden="true" /> info
                     </button>
@@ -976,23 +1013,23 @@ export default function App() {
                         {getInitials(selectedConv.contact?.phone ?? '', selectedConv.contact?.name)}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', marginBottom: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 1 }}>
                           {selectedConv.contact?.name ?? 'Sin nombre'}
                         </div>
-                        <div style={{ fontSize: 11, color: '#5a5a7a', cursor: 'pointer' }} onClick={() => copyPhone(selectedConv.contact?.phone ?? '')}>
+                        <div style={{ fontSize: 11, color: 'var(--text-3)', cursor: 'pointer' }} onClick={() => copyPhone(selectedConv.contact?.phone ?? '')}>
                           {selectedConv.contact?.phone} <i className="ti ti-copy" style={{ fontSize: 10 }} />
                         </div>
                       </div>
                       {/* Estado e IA pills */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
                         <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 5,
-                          background: selectedConv.status === 'active' ? '#22c55e20' : selectedConv.status === 'pending' ? '#f59e0b20' : '#4a4a6a20',
-                          color: selectedConv.status === 'active' ? '#22c55e' : selectedConv.status === 'pending' ? '#f59e0b' : '#6a6a8a' }}>
+                          background: selectedConv.status === 'active' ? '#22c55e20' : selectedConv.status === 'pending' ? '#f59e0b20' : 'var(--text-3)20',
+                          color: selectedConv.status === 'active' ? '#22c55e' : selectedConv.status === 'pending' ? '#f59e0b' : 'var(--text-2)' }}>
                           {selectedConv.status === 'active' ? 'activa' : selectedConv.status === 'pending' ? 'pendiente' : 'resuelta'}
                         </span>
                         <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 5,
-                          background: selectedConv.ai_enabled ? 'var(--accent-dim)' : '#2e2e4e',
-                          color: selectedConv.ai_enabled ? 'var(--accent)' : '#5a5a7a' }}>
+                          background: selectedConv.ai_enabled ? 'var(--accent-dim)' : 'var(--border-mid)',
+                          color: selectedConv.ai_enabled ? 'var(--accent)' : 'var(--text-3)' }}>
                           IA {selectedConv.ai_enabled ? 'activa' : 'pausada'}
                         </span>
                       </div>
@@ -1006,8 +1043,8 @@ export default function App() {
                         { label: 'Etiquetas', value: (selectedConv.tags ?? []).length },
                       ].map(stat => (
                         <div key={stat.label} style={{ padding: '10px 14px', borderRight: '0.5px solid var(--border)', textAlign: 'center' as const }}>
-                          <div style={{ fontSize: 16, fontWeight: 700, color: '#e2e8f0', lineHeight: 1 }}>{stat.value}</div>
-                          <div style={{ fontSize: 10, color: '#4a4a6a', marginTop: 3 }}>{stat.label}</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-1)', lineHeight: 1 }}>{stat.value}</div>
+                          <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 3 }}>{stat.label}</div>
                         </div>
                       ))}
                     </div>
@@ -1017,7 +1054,7 @@ export default function App() {
                       <div style={{ padding: '10px 16px', borderBottom: '0.5px solid var(--border)', display: 'flex', flexWrap: 'wrap' as const, gap: 5 }}>
                         {(selectedConv.tags ?? []).map(tag => {
                           const preset = TAG_PRESETS.find(p => p.label === tag)
-                          const color = preset?.color ?? '#8080a0'
+                          const color = preset?.color ?? 'var(--text-2)'
                           return (
                             <span key={tag} style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: color + '20', border: `0.5px solid ${color}55`, color }}>
                               {tag}
@@ -1030,12 +1067,12 @@ export default function App() {
                     {/* Fechas */}
                     <div style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                        <span style={{ color: '#4a4a6a' }}>Primer contacto</span>
-                        <span style={{ color: '#8b8baa' }}>{fullTime(selectedConv.created_at)}</span>
+                        <span style={{ color: 'var(--text-3)' }}>Primer contacto</span>
+                        <span style={{ color: 'var(--text-2)' }}>{fullTime(selectedConv.created_at)}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                        <span style={{ color: '#4a4a6a' }}>Última actividad</span>
-                        <span style={{ color: '#8b8baa' }}>{timeAgo(selectedConv.updated_at)}</span>
+                        <span style={{ color: 'var(--text-3)' }}>Última actividad</span>
+                        <span style={{ color: 'var(--text-2)' }}>{timeAgo(selectedConv.updated_at)}</span>
                       </div>
                     </div>
                   </div>
@@ -1049,9 +1086,9 @@ export default function App() {
                         <i className="ti ti-sparkles" style={{ fontSize: 12 }} /> Resumen IA
                       </div>
                       <button onClick={() => setSummaryText(null)}
-                        style={{ background: 'none', border: 'none', color: '#4a4a6a', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+                        style={{ background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
                     </div>
-                    <div style={{ fontSize: 12, color: '#c4c4d4', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{summaryText}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-1)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{summaryText}</div>
                   </div>
                 )}
 
@@ -1136,7 +1173,7 @@ export default function App() {
 
                     <div style={{ position: 'relative' as const }} ref={quickRepliesRef}>
                       <button onClick={() => { setShowQuickReplies(p => !p); if (noteMode) setNoteMode(false) }}
-                        style={{ ...s.iconBtn, ...(showQuickReplies ? { color: '#3b82f6', background: '#1a1a2e' } : {}) }}
+                        style={{ ...s.iconBtn, ...(showQuickReplies ? { color: '#3b82f6', background: 'var(--bg-card)' } : {}) }}
                         title="Respuestas rápidas">
                         <i className="ti ti-bolt" style={{ fontSize: 14 }} aria-hidden="true" />
                       </button>
@@ -1144,7 +1181,7 @@ export default function App() {
                         <div className="popover-enter" style={s.quickRepliesPopover}>
                           <div style={s.quickRepliesTitle}>⚡ Respuestas rápidas</div>
                           {quickReplies.length === 0 && (
-                            <div style={{ fontSize: 12, color: '#4a4a6a', padding: '8px 4px', textAlign: 'center' as const }}>
+                            <div style={{ fontSize: 12, color: 'var(--text-3)', padding: '8px 4px', textAlign: 'center' as const }}>
                               Sin respuestas guardadas
                             </div>
                           )}
@@ -1155,14 +1192,14 @@ export default function App() {
                                 {qr}
                               </button>
                               <button onClick={() => saveQuickReplies(quickReplies.filter((_, j) => j !== i))}
-                                style={{ background: 'none', border: 'none', color: '#4a4a6a', cursor: 'pointer', fontSize: 14, padding: '2px 4px', lineHeight: 1, flexShrink: 0 }}
+                                style={{ background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer', fontSize: 14, padding: '2px 4px', lineHeight: 1, flexShrink: 0 }}
                                 title="Eliminar">×</button>
                             </div>
                           ))}
                           {/* Agregar nueva */}
                           <div style={{ display: 'flex', gap: 4, marginTop: 8, paddingTop: 8, borderTop: '0.5px solid var(--border)' }}>
                             <input
-                              style={{ flex: 1, background: 'var(--bg-base)', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '5px 8px', color: '#e2e8f0', fontSize: 12, fontFamily: 'inherit', outline: 'none' }}
+                              style={{ flex: 1, background: 'var(--bg-base)', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '5px 8px', color: 'var(--text-1)', fontSize: 12, fontFamily: 'inherit', outline: 'none' }}
                               placeholder="Nueva respuesta..."
                               value={newQuickReply}
                               onChange={e => setNewQuickReply(e.target.value)}
@@ -1271,7 +1308,7 @@ function DashboardHero({ name, automationRate, pending, totalMessages, onGoPendi
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: 12, marginBottom: 18 }}>
       <div>
         <div style={{ fontSize: 20, fontWeight: 600, color: '#e8e8f4' }}>{name ? `${greet}, ${name} 👋` : `${greet} 👋`}</div>
-        <div style={{ fontSize: 12, color: '#5a5a7a', marginTop: 2 }}>{dateStr}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>{dateStr}</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const }}>
         <div onClick={pending > 0 ? onGoPending : undefined}
@@ -1279,7 +1316,7 @@ function DashboardHero({ name, automationRate, pending, totalMessages, onGoPendi
           <i className={`ti ${status.icon}`} style={{ fontSize: 14 }} aria-hidden="true" />{status.label}
         </div>
         {totalMessages > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, background: '#0d0d18', border: '0.5px solid #1e1e2e', fontSize: 12, color: '#8b8baa' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', fontSize: 12, color: 'var(--text-2)' }}>
             <i className="ti ti-robot" style={{ fontSize: 14, color: '#a78bfa' }} aria-hidden="true" />
             <span style={{ color: '#a78bfa', fontWeight: 500 }}>{automationRate}%</span> automatizado
           </div>
@@ -1333,7 +1370,7 @@ function MetricCard({ label, value, sub, color, trend, trendDetail, onClick, ico
       </div>
       <div style={{ display: 'flex', gap: 4, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' as const }}>
         <div style={{ ...s.metricSub, ...(color ? { color } : {}) }}>{sub}</div>
-        {trendDetail && <div style={{ fontSize: 10, color: '#3a3a5a' }}>· {trendDetail}</div>}
+        {trendDetail && <div style={{ fontSize: 10, color: 'var(--text-faint)' }}>· {trendDetail}</div>}
       </div>
     </div>
   )
@@ -1353,7 +1390,7 @@ function ConvList({ conversations, selected, onSelect, onCopyPhone, recentId }: 
         const color = avatarColor(c.id)
         const name = c.contact?.name ?? c.contact?.phone ?? 'Desconocido'
         const preview = c.last_message?.content ?? 'Sin mensajes'
-        const statusColor = c.status === 'active' ? '#22c55e' : c.status === 'pending' ? '#f59e0b' : '#4a4a6a'
+        const statusColor = c.status === 'active' ? '#22c55e' : c.status === 'pending' ? '#f59e0b' : 'var(--text-3)'
         return (
           <div key={c.id} className={'conv-row' + (c.id === recentId ? ' conv-flash' : '')} onClick={() => onSelect(c)}
             style={{ ...s.convRow, ...(isActive ? s.convRowActive : {}) }}>
@@ -1363,14 +1400,14 @@ function ConvList({ conversations, selected, onSelect, onCopyPhone, recentId }: 
             <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 2 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
-                <span style={{ fontSize: 12, fontWeight: 500, color: '#c4c4d4', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {name}
                 </span>
               </div>
-              <div style={{ fontSize: 11, color: '#4a4a6a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{preview}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{preview}</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-              <span style={{ fontSize: 10, color: '#4a4a6a' }}>{c.last_message ? timeAgo(c.last_message.created_at) : ''}</span>
+              <span style={{ fontSize: 10, color: 'var(--text-3)' }}>{c.last_message ? timeAgo(c.last_message.created_at) : ''}</span>
               {onCopyPhone && (
                 <button onClick={e => { e.stopPropagation(); onCopyPhone(c.contact?.phone ?? '') }}
                   style={s.copyBtn} title="Copiar teléfono">
@@ -1416,11 +1453,11 @@ function SkeletonList({ count }: { count: number }) {
 function EmptyState({ icon, title, sub }: { icon: string; title: string; sub: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'center', padding: '48px 20px', gap: 10 }}>
-      <div style={{ width: 52, height: 52, borderRadius: 14, background: '#13132a', border: '1px solid #1e1e3a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 52, height: 52, borderRadius: 14, background: '#13132a', border: '1px solid var(--border-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <i className={`ti ${icon}`} style={{ fontSize: 24, color: '#3a3a6a' }} aria-hidden="true" />
       </div>
       <div style={{ fontSize: 13, color: '#7070a0', fontWeight: 600, textAlign: 'center' as const }}>{title}</div>
-      <div style={{ fontSize: 12, color: '#4a4a6a', textAlign: 'center' as const, maxWidth: 240, lineHeight: 1.5 }}>{sub}</div>
+      <div style={{ fontSize: 12, color: 'var(--text-3)', textAlign: 'center' as const, maxWidth: 240, lineHeight: 1.5 }}>{sub}</div>
     </div>
   )
 }
@@ -1429,68 +1466,68 @@ function EmptyState({ icon, title, sub }: { icon: string; title: string; sub: st
 
 const s: Record<string, React.CSSProperties> = {
   // ── Shell ───────────────────────────────────────────────────────────────────
-  shell: { display: 'grid', gridTemplateColumns: '68px 1fr', height: '100vh', background: 'var(--bg-base)', color: '#e2e8f0', fontSize: 14, overflow: 'hidden', position: 'relative' },
+  shell: { display: 'grid', gridTemplateColumns: '72px 1fr', height: '100vh', background: 'var(--bg-base)', color: 'var(--text-1)', fontSize: 14, overflow: 'hidden', position: 'relative' },
 
-  // ── Sidebar ─────────────────────────────────────────────────────────────────
-  sidebar: { background: 'var(--bg-panel)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '14px 0 10px', gap: 2 },
-  logo: { width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, var(--accent-dark), var(--accent))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', marginBottom: 10, flexShrink: 0, letterSpacing: '0.03em', boxShadow: '0 4px 12px var(--accent-glow)' },
-  sIcon: { width: 52, borderRadius: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '7px 0', cursor: 'pointer', color: '#3a3a5a', background: 'transparent', border: 'none', position: 'relative', transition: 'color 0.15s, background 0.15s' },
-  sIconActive: { background: 'var(--accent-dim)', color: 'var(--accent)' },
-  sLabel: { fontSize: 8, fontWeight: 500, letterSpacing: '0.01em', color: '#3a3a5a', textTransform: 'uppercase' as const, maxWidth: 52, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
-  badge: { position: 'absolute', top: 5, right: 5, background: '#f87171', borderRadius: 10, fontSize: 9, color: '#fff', padding: '1px 4px', fontWeight: 700, lineHeight: 1.4 },
-  userAvatar: { width: 30, height: 30, borderRadius: '50%', background: 'var(--accent-dim)', border: '1px solid var(--border-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'var(--accent)', fontWeight: 600, marginTop: 4, cursor: 'pointer' },
+  // ── Sidebar (oscuro en ambos temas) ──────────────────────────────────────────
+  sidebar: { background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0 12px', gap: 3 },
+  logo: { width: 40, height: 40, borderRadius: 12, background: 'var(--accent-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 14, flexShrink: 0, letterSpacing: '0.02em', boxShadow: '0 6px 16px var(--accent-glow)' },
+  sIcon: { width: 56, borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '8px 0', cursor: 'pointer', color: 'var(--sidebar-icon)', background: 'transparent', border: 'none', position: 'relative', transition: 'color 0.15s, background 0.15s' },
+  sIconActive: { background: 'var(--accent-grad)', color: 'var(--sidebar-icon-active)', boxShadow: '0 6px 16px var(--accent-glow)' },
+  sLabel: { fontSize: 8, fontWeight: 600, letterSpacing: '0.01em', color: 'var(--sidebar-label)', textTransform: 'uppercase' as const, maxWidth: 54, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
+  badge: { position: 'absolute', top: 5, right: 7, background: '#f87171', borderRadius: 10, fontSize: 9, color: '#fff', padding: '1px 4px', fontWeight: 700, lineHeight: 1.4 },
+  userAvatar: { width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#fff', fontWeight: 600, marginTop: 4, cursor: 'pointer' },
 
   // ── Main ────────────────────────────────────────────────────────────────────
   main: { display: 'grid', gridTemplateRows: 'auto 1fr', overflow: 'hidden' },
-  topbar: { padding: '10px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-panel)' },
-  topbarTitle: { fontSize: 13, fontWeight: 600, color: '#e2e8f0', letterSpacing: '-0.01em' },
-  prodBadge: { background: 'var(--accent-dim)', border: '1px solid var(--border-mid)', borderRadius: 6, padding: '3px 9px', fontSize: 11, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 5 },
-  liveDot: { width: 6, height: 6, borderRadius: '50%', background: '#22c55e', flexShrink: 0, animation: 'pulse 2s infinite' },
+  topbar: { padding: '12px 22px', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--topbar-grad)', boxShadow: '0 4px 18px rgba(37,99,235,0.25)', position: 'relative', zIndex: 5 },
+  topbarTitle: { fontSize: 15, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' },
+  prodBadge: { background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 8, padding: '4px 10px', fontSize: 11, color: '#fff', display: 'flex', alignItems: 'center', gap: 5, backdropFilter: 'blur(4px)' },
+  liveDot: { width: 6, height: 6, borderRadius: '50%', background: '#4ade80', flexShrink: 0, animation: 'pulse 2s infinite' },
 
   // ── Dashboard ───────────────────────────────────────────────────────────────
-  scrollArea: { overflowY: 'auto', padding: 20 },
-  metricsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 },
-  metricCard: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', borderTop: '2px solid var(--border-mid)' },
-  metricIcon: { width: 30, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  metricLabel: { fontSize: 11, color: '#5a5a7a', fontWeight: 500, letterSpacing: '0.02em' },
-  metricValue: { fontSize: 24, fontWeight: 600, color: '#f0eeff', lineHeight: 1, letterSpacing: '-0.02em' },
-  metricSub: { fontSize: 11, color: '#5a5a7a' },
-  sectionTitle: { fontSize: 11, color: '#5a5a7a', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10, marginTop: 4, fontWeight: 500 },
+  scrollArea: { overflowY: 'auto', padding: 22 },
+  metricsGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 22 },
+  metricCard: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 18px', boxShadow: 'var(--card-shadow)' },
+  metricIcon: { width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  metricLabel: { fontSize: 11, color: 'var(--text-3)', fontWeight: 500, letterSpacing: '0.02em' },
+  metricValue: { fontSize: 25, fontWeight: 700, color: 'var(--text-bright)', lineHeight: 1, letterSpacing: '-0.02em' },
+  metricSub: { fontSize: 11, color: 'var(--text-3)' },
+  sectionTitle: { fontSize: 11, color: 'var(--text-3)', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 10, marginTop: 4, fontWeight: 600 },
 
   // ── Inbox ───────────────────────────────────────────────────────────────────
   inboxLayout: { display: 'grid', gridTemplateColumns: '292px 1fr', overflow: 'hidden', height: '100%' },
   convPane: { borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-panel)' },
   convSearchBox: { padding: '10px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 },
-  convSearchInput: { background: 'transparent', border: 'none', color: '#e2e8f0', fontSize: 12, outline: 'none', flex: 1 },
+  convSearchInput: { background: 'transparent', border: 'none', color: 'var(--text-1)', fontSize: 12, outline: 'none', flex: 1 },
   filterRow: { display: 'flex', borderBottom: '1px solid var(--border)', padding: '0 6px' },
-  filterBtn: { flex: 1, background: 'transparent', border: 'none', borderBottom: '2px solid transparent', padding: '7px 2px', fontSize: 11, color: '#5a5a7a', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, fontFamily: 'inherit', fontWeight: 500 },
+  filterBtn: { flex: 1, background: 'transparent', border: 'none', borderBottom: '2px solid transparent', padding: '7px 2px', fontSize: 11, color: 'var(--text-3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, fontFamily: 'inherit', fontWeight: 500 },
   filterBtnActive: { color: 'var(--accent)', borderBottomColor: 'var(--accent)' },
   convRow: { display: 'grid', gridTemplateColumns: '34px 1fr auto', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', borderLeft: '2px solid transparent', transition: 'background 0.12s' },
   convRowActive: { background: 'var(--accent-dim)', borderLeftColor: 'var(--accent)' },
-  copyBtn: { background: 'transparent', border: 'none', color: '#3a3a5a', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' },
+  copyBtn: { background: 'transparent', border: 'none', color: 'var(--text-faint)', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' },
   avatar: { width: 34, height: 34, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600 },
 
   // ── Chat pane ───────────────────────────────────────────────────────────────
   chatPane: { display: 'grid', gridTemplateRows: 'auto auto 1fr auto', overflow: 'hidden' },
   chatHeader: { padding: '11px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, background: 'var(--bg-panel)' },
-  chatName: { fontSize: 13, fontWeight: 600, color: '#f0eeff', letterSpacing: '-0.01em' },
-  chatSub: { fontSize: 11, color: '#5a5a7a' },
+  chatName: { fontSize: 13, fontWeight: 600, color: 'var(--text-bright)', letterSpacing: '-0.01em' },
+  chatSub: { fontSize: 11, color: 'var(--text-3)' },
   chip: { background: 'var(--accent-dim)', border: '1px solid var(--border-mid)', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, transition: 'all 0.15s', color: 'var(--accent)', fontFamily: 'inherit' },
   contactPanel: { display: 'flex', flexWrap: 'wrap', padding: '10px 18px', borderBottom: '1px solid var(--border)', background: 'var(--bg-base)', gap: 0 },
   messageArea: { overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 8 },
   bubble: { padding: '9px 13px', borderRadius: 12, fontSize: 13, lineHeight: 1.6, wordBreak: 'break-word' },
-  bubbleUser: { background: '#1c1835', border: '1px solid #2e2855', color: '#d4d0f5', borderBottomLeftRadius: 4 },
-  bubbleBot: { background: '#0e1520', border: '1px solid #1a2535', color: '#c8d0dc', borderBottomRightRadius: 4 },
+  bubbleUser: { background: 'var(--bg-input)', border: '1px solid var(--border-mid)', color: 'var(--text-1)', borderBottomLeftRadius: 4 },
+  bubbleBot: { background: 'var(--accent-dim)', border: '1px solid var(--border-mid)', color: 'var(--text-1)', borderBottomRightRadius: 4 },
   aiBadge: { fontSize: 10, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 3, marginBottom: 3, fontWeight: 500 },
-  msgMeta: { fontSize: 10, color: '#3a3a5a', marginTop: 3, cursor: 'default', userSelect: 'none' },
+  msgMeta: { fontSize: 10, color: 'var(--text-faint)', marginTop: 3, cursor: 'default', userSelect: 'none' },
   inputArea: { padding: '12px 18px', borderTop: '1px solid var(--border)', background: 'var(--bg-panel)' },
   inputRow: { display: 'flex', gap: 8, alignItems: 'flex-end' },
-  textarea: { flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border-mid)', borderRadius: 10, padding: '9px 12px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', resize: 'none', outline: 'none', lineHeight: 1.5, overflowY: 'auto' },
-  iconBtn: { width: 38, height: 38, background: 'transparent', border: '1px solid var(--border-mid)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3a3a5a', cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s' },
+  textarea: { flex: 1, background: 'var(--bg-input)', border: '1px solid var(--border-mid)', borderRadius: 10, padding: '9px 12px', color: 'var(--text-1)', fontSize: 13, fontFamily: 'inherit', resize: 'none', outline: 'none', lineHeight: 1.5, overflowY: 'auto' },
+  iconBtn: { width: 38, height: 38, background: 'transparent', border: '1px solid var(--border-mid)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)', cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s' },
   sendBtn: { background: 'linear-gradient(135deg, var(--accent-dark), var(--accent))', border: 'none', borderRadius: 10, padding: '0 16px', height: 38, color: '#fff', fontSize: 14, cursor: 'pointer', flexShrink: 0, transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 500, boxShadow: '0 2px 10px var(--accent-glow)' },
   quickRepliesPopover: { position: 'absolute', bottom: '100%', right: 0, marginBottom: 8, background: 'var(--bg-card)', border: '1px solid var(--border-mid)', borderRadius: 12, padding: 8, width: 290, zIndex: 100, boxShadow: '0 12px 32px rgba(0,0,0,0.7)' },
-  quickRepliesTitle: { fontSize: 10, color: '#3a3a5a', textTransform: 'uppercase', letterSpacing: '0.07em', paddingBottom: 6, borderBottom: '1px solid var(--border)', marginBottom: 4, fontWeight: 600 },
-  quickReplyItem: { display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: '#8080a0', fontSize: 12, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.1s, color 0.1s', fontFamily: 'inherit' },
+  quickRepliesTitle: { fontSize: 10, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.07em', paddingBottom: 6, borderBottom: '1px solid var(--border)', marginBottom: 4, fontWeight: 600 },
+  quickReplyItem: { display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', color: 'var(--text-2)', fontSize: 12, padding: '8px 10px', borderRadius: 8, cursor: 'pointer', transition: 'background 0.1s, color 0.1s', fontFamily: 'inherit' },
   emptyPane: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' },
 
   // ── Toggle ──────────────────────────────────────────────────────────────────
@@ -1498,18 +1535,17 @@ const s: Record<string, React.CSSProperties> = {
   toggleLabel: { fontSize: 11, fontWeight: 500, transition: 'color 0.2s' },
   toggleTrack: { width: 32, height: 18, borderRadius: 9, background: 'var(--border-mid)', position: 'relative', transition: 'background 0.25s', flexShrink: 0 },
   toggleTrackOn: { background: 'var(--accent-dark)' },
-  toggleThumb: { position: 'absolute', top: 2, left: 2, width: 14, height: 14, borderRadius: '50%', background: '#4a4a6a', transition: 'left 0.25s, background 0.25s' },
+  toggleThumb: { position: 'absolute', top: 2, left: 2, width: 14, height: 14, borderRadius: '50%', background: 'var(--text-3)', transition: 'left 0.25s, background 0.25s' },
   toggleThumbOn: { left: 16, background: '#fff' },
 
   // ── Toasts ──────────────────────────────────────────────────────────────────
   toastContainer: { position: 'fixed', bottom: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 9999 },
   toast: { padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 500, boxShadow: '0 8px 24px rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' },
-  toastInfo:    { background: '#13132a', border: '1px solid #2a2a4a', color: '#c4c4e4' },
+  toastInfo:    { background: '#13132a', border: '1px solid #2a2a4a', color: 'var(--text-1)' },
   toastSuccess: { background: '#0a1e10', border: '1px solid #1a4a25', color: '#22c55e' },
   toastWarning: { background: '#1a1408', border: '1px solid #4a3010', color: '#f59e0b' },
-
   // ── Tags ────────────────────────────────────────────────────────────────────
-  tagPopover: { position: 'absolute', top: '100%', right: 0, marginTop: 6, background: 'var(--bg-card)', border: '1px solid var(--border-mid)', borderRadius: 12, padding: 8, width: 180, zIndex: 200, boxShadow: '0 12px 32px rgba(0,0,0,0.7)' },
+  tagPopover: { position: 'absolute', top: '100%', right: 0, marginTop: 6, background: 'var(--bg-card)', border: '1px solid var(--border-mid)', borderRadius: 12, padding: 8, width: 180, zIndex: 200, boxShadow: 'var(--card-shadow)' },
 
   // ── Summary ─────────────────────────────────────────────────────────────────
   summaryPanel: { padding: '12px 18px', borderBottom: '1px solid var(--border)', background: 'var(--bg-card)' },

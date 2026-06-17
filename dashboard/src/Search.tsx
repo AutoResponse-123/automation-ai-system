@@ -136,7 +136,7 @@ export default function Search({
     <div style={s.overlay} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div style={s.modal}>
         <div style={s.inputRow}>
-          <i className="ti ti-search" style={{ fontSize: 16, color: '#5a5a7a', flexShrink: 0 }} aria-hidden="true" />
+          <i className="ti ti-search" style={{ fontSize: 16, color: 'var(--text-3)', flexShrink: 0 }} aria-hidden="true" />
           <input
             ref={inputRef}
             style={s.input}
@@ -145,7 +145,7 @@ export default function Search({
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          {loading && <i className="ti ti-loader-2 ti-spin" style={{ fontSize: 14, color: '#5a5a7a', flexShrink: 0 }} aria-hidden="true" />}
+          {loading && <i className="ti ti-loader-2 ti-spin" style={{ fontSize: 14, color: 'var(--text-3)', flexShrink: 0 }} aria-hidden="true" />}
           <kbd style={s.esc} onClick={onClose}>Esc</kbd>
         </div>
 
@@ -172,7 +172,7 @@ export default function Search({
                           <div style={s.resultName}>{a.label}</div>
                           {a.sub && <div style={s.resultExcerpt}>{a.sub}</div>}
                         </div>
-                        {isSelected && <i className="ti ti-arrow-right" style={{ fontSize: 12, color: '#5a5a7a', flexShrink: 0 }} aria-hidden="true" />}
+                        {isSelected && <i className="ti ti-arrow-right" style={{ fontSize: 12, color: 'var(--text-3)', flexShrink: 0 }} aria-hidden="true" />}
                       </div>
                     )
                   })}
@@ -201,7 +201,7 @@ export default function Search({
                           </div>
                           <div style={s.resultExcerpt}>{excerpt}</div>
                         </div>
-                        {isSelected && <i className="ti ti-arrow-right" style={{ fontSize: 12, color: '#5a5a7a', flexShrink: 0 }} aria-hidden="true" />}
+                        {isSelected && <i className="ti ti-arrow-right" style={{ fontSize: 12, color: 'var(--text-3)', flexShrink: 0 }} aria-hidden="true" />}
                       </div>
                     )
                   })}
@@ -226,21 +226,21 @@ const s: Record<string, React.CSSProperties> = {
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 80, backdropFilter: 'blur(4px)' },
   modal: { width: '100%', maxWidth: 600, background: 'var(--bg-card)', border: '1px solid var(--border-mid)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.8)', display: 'flex', flexDirection: 'column' },
   inputRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderBottom: '1px solid var(--border)' },
-  input: { flex: 1, background: 'transparent', border: 'none', color: '#e2e8f0', fontSize: 15, outline: 'none', fontFamily: 'inherit' },
-  esc: { background: 'var(--bg-panel)', border: '1px solid var(--border-mid)', borderRadius: 6, padding: '2px 7px', fontSize: 11, color: '#5a5a7a', cursor: 'pointer', fontFamily: 'inherit' },
+  input: { flex: 1, background: 'transparent', border: 'none', color: 'var(--text-1)', fontSize: 15, outline: 'none', fontFamily: 'inherit' },
+  esc: { background: 'var(--bg-panel)', border: '1px solid var(--border-mid)', borderRadius: 6, padding: '2px 7px', fontSize: 11, color: 'var(--text-3)', cursor: 'pointer', fontFamily: 'inherit' },
   results: { maxHeight: 420, overflowY: 'auto', padding: '6px 0' },
-  resultsHeader: { fontSize: 10, color: '#4a4a6a', padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600 },
-  hint: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '40px 20px', color: '#4a4a6a', fontSize: 13 },
+  resultsHeader: { fontSize: 10, color: 'var(--text-3)', padding: '6px 16px 2px', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600 },
+  hint: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '40px 20px', color: 'var(--text-3)', fontSize: 13 },
   resultRow: { display: 'flex', alignItems: 'center', gap: 12, padding: '9px 16px', cursor: 'pointer', transition: 'background 0.1s' },
   resultRowActive: { background: 'var(--accent-dim)' },
   actionIcon: { width: 28, height: 28, borderRadius: 8, background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   senderDot: { width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginLeft: 10, marginRight: 10 },
   resultContent: { flex: 1, minWidth: 0 },
   resultMeta: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 },
-  resultName: { fontSize: 13, fontWeight: 500, color: '#c4c4d4' },
-  resultRole: { fontSize: 10, color: '#4a4a6a', background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' },
-  resultTime: { fontSize: 10, color: '#4a4a6a', marginLeft: 'auto' },
-  resultExcerpt: { fontSize: 12, color: '#6a6a8a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  footer: { display: 'flex', gap: 16, padding: '8px 16px', borderTop: '1px solid var(--border)', fontSize: 11, color: '#4a4a6a' },
-  key: { background: 'var(--bg-panel)', border: '1px solid var(--border-mid)', borderRadius: 4, padding: '1px 5px', fontSize: 10, color: '#8080a0', fontFamily: 'inherit', marginRight: 4 },
+  resultName: { fontSize: 13, fontWeight: 500, color: 'var(--text-1)' },
+  resultRole: { fontSize: 10, color: 'var(--text-3)', background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' },
+  resultTime: { fontSize: 10, color: 'var(--text-3)', marginLeft: 'auto' },
+  resultExcerpt: { fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  footer: { display: 'flex', gap: 16, padding: '8px 16px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--text-3)' },
+  key: { background: 'var(--bg-panel)', border: '1px solid var(--border-mid)', borderRadius: 4, padding: '1px 5px', fontSize: 10, color: 'var(--text-2)', fontFamily: 'inherit', marginRight: 4 },
 }

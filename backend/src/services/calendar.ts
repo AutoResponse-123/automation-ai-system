@@ -66,7 +66,23 @@ async function getCalendarClient(business: any) {
   return google.calendar({ version: 'v3', auth: client });
 }
 
-async function getAvailableSlots(business: any, date: string): Promise<string[]> {
+// Resuelve duración, grilla y buffer según la config del negocio.
+// Modo 'fixed' (default): todos los turnos duran lo mismo (fixed_duration, default 60),
+// y la grilla = esa duración (turnos consecutivos sin huecos → comportamiento clásico).
+// Modo 'per_service': usa la duración del servicio pedido y una grilla configurable.
+function resolveSlot(business: any, requestedMinutes?: number) {
+  const sch = business.schedule || {};
+  const mode = sch.slot_mode === 'per_service' ? 'per_service' : 'fixed';
+  const fixed = Math.max(5, Number(sch.fixed_duration) || 60);
+  const duration = mode === 'per_service'
+    ? Math.max(5, Number(requestedMinutes) || fixed)
+    : fixed;
+  const step = Math.max(5, Number(sch.slot_step) || (mode === 'per_service' ? 20 : duration));
+  const buffer = Math.max(0, Number(sch.buffer_minutes) || 0);
+  return { mode, duration, step, buffer };
+}
+
+async function getAvailableSlots(business: any, date: string, durationMinutes: number = 60): Promise<string[]> {
   const calendar = await getCalendarClient(business);
   const calendarId = business.google_calendar_id || 'primary';
   const tz = business.schedule?.timezone || 'America/Argentina/Buenos_Aires';
@@ -111,24 +127,30 @@ async function getAvailableSlots(business: any, date: string): Promise<string[]>
   });
   const busy: { start: string; end: string }[] = data.calendars?.[calendarId]?.busy || [];
 
-  const SLOT_MIN = 60;
+  // Duración, grilla y buffer según la config del negocio (modo fijo o por servicio).
+  const { duration, step: GRID, buffer } = resolveSlot(business, durationMinutes);
+  const bufMs = buffer * 60000;
   const now = Date.now();
   const slots: string[] = [];
 
-  for (let m = startMins; m + SLOT_MIN <= endMins; m += SLOT_MIN) {
+  // El turno debe TERMINAR antes (o justo) del cierre: m + duration <= endMins.
+  // Avanzamos en pasos de GRID (no de la duración), así no quedan huecos raros.
+  for (let m = startMins; m + duration <= endMins; m += GRID) {
     const dayOffset = Math.floor(m / 1440);
     const minInDay = m % 1440;
     const hh = Math.floor(minInDay / 60), mm = minInDay % 60;
     const slotDate = dayOffset === 0 ? date : addDaysStr(date, dayOffset);
     const slotStart = wallTimeToUtc(slotDate, `${pad(hh)}:${pad(mm)}`, tz);
-    const slotEnd = new Date(slotStart.getTime() + SLOT_MIN * 60000);
+    const slotEnd = new Date(slotStart.getTime() + duration * 60000);
 
     if (slotStart.getTime() <= now) continue;
     const inBreak = breaks.some(b => slotStart.getTime() < b.end && slotEnd.getTime() > b.start);
     if (inBreak) continue;
+    // Solapamiento con turnos existentes, inflando cada uno por el buffer en ambos
+    // lados → garantiza un hueco mínimo entre turnos.
     const isBusy = busy.some(b => {
-      const bs = new Date(b.start).getTime();
-      const be = new Date(b.end).getTime();
+      const bs = new Date(b.start).getTime() - bufMs;
+      const be = new Date(b.end).getTime() + bufMs;
       return slotStart.getTime() < be && slotEnd.getTime() > bs;
     });
     if (!isBusy) {
@@ -136,7 +158,7 @@ async function getAvailableSlots(business: any, date: string): Promise<string[]>
     }
   }
   console.log('[slots]', JSON.stringify({
-    date, weekday,
+    date, weekday, duration, grid: GRID, buffer,
     scheduleEnabled: !!business.schedule?.enabled,
     dayClosed: dayCfg?.closed ?? null,
     openClose: `${pad(openH)}:${pad(openM)}-${pad(closeH)}:${pad(closeM)}`,
@@ -152,14 +174,21 @@ async function isSlotFree(business: any, date: string, time: string, durationMin
   const calendarId = business.google_calendar_id || 'primary';
   const tz = business.schedule?.timezone || 'America/Argentina/Buenos_Aires';
   const start = wallTimeToUtc(date, time, tz);
-  const end = new Date(start.getTime() + durationMinutes * 60000);
+  const { duration, buffer } = resolveSlot(business, durationMinutes);
+  const end = new Date(start.getTime() + duration * 60000);
+  const bufMs = buffer * 60000;
+  // Consultamos una ventana ampliada por el buffer para no perder eventos cercanos.
   const { data } = await calendar.freebusy.query({
-    requestBody: { timeMin: start.toISOString(), timeMax: end.toISOString(), items: [{ id: calendarId }] },
+    requestBody: {
+      timeMin: new Date(start.getTime() - bufMs).toISOString(),
+      timeMax: new Date(end.getTime() + bufMs).toISOString(),
+      items: [{ id: calendarId }],
+    },
   });
   const busy: { start: string; end: string }[] = data.calendars?.[calendarId]?.busy || [];
   return !busy.some(b => {
-    const bs = new Date(b.start).getTime();
-    const be = new Date(b.end).getTime();
+    const bs = new Date(b.start).getTime() - bufMs;
+    const be = new Date(b.end).getTime() + bufMs;
     return start.getTime() < be && end.getTime() > bs;
   });
 }
@@ -175,7 +204,7 @@ async function createEvent(business: any, params: {
   const calendar = await getCalendarClient(business);
   const calendarId = business.google_calendar_id || 'primary';
   const tz = business.schedule?.timezone || 'America/Argentina/Buenos_Aires';
-  const duration = params.durationMinutes || 60;
+  const { duration } = resolveSlot(business, params.durationMinutes);
 
   const start = wallTimeToUtc(params.date, params.time, tz);
   const end = new Date(start.getTime() + duration * 60000);
@@ -208,4 +237,4 @@ async function cancelEvent(business: any, googleEventId: string): Promise<boolea
   }
 }
 
-module.exports = { getAuthUrl, saveTokens, getAvailableSlots, createEvent, isSlotFree, cancelEvent, wallTimeToUtc };
+module.exports = { getAuthUrl, saveTokens, getAvailableSlots, createEvent, isSlotFree, cancelEvent, wallTimeToUtc, resolveSlot };

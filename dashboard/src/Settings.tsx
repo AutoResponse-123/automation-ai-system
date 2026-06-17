@@ -42,6 +42,10 @@ interface BusinessConfig {
   schedule: {
     enabled: boolean
     timezone: string
+    slot_mode?: 'fixed' | 'per_service'
+    fixed_duration?: number
+    buffer_minutes?: number
+    slot_step?: number
     hours: Record<string, { open: string; close: string; closed: boolean; breaks?: Array<{ start: string; end: string }> }>
   }
 }
@@ -49,6 +53,9 @@ interface BusinessConfig {
 const DEFAULT_SCHEDULE = {
   enabled: false,
   timezone: 'America/Argentina/Buenos_Aires',
+  slot_mode: 'fixed',
+  fixed_duration: 60,
+  buffer_minutes: 0,
   hours: {
     lunes:    { open: '09:00', close: '18:00', closed: false },
     martes:   { open: '09:00', close: '18:00', closed: false },
@@ -98,7 +105,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
   const [newClosing, setNewClosing] = useState('')
   const isMobile = useIsMobile()
   const [showSectionDropdown, setShowSectionDropdown] = useState(false)
-  const [bgColor, setBgColor] = useState<string>(() => localStorage.getItem('ar_bg_color') ?? '#07070d')
+  const [bgColor, setBgColor] = useState<string>(() => localStorage.getItem('ar_bg_color') ?? 'var(--bg-base)')
   const [fontFamily, setFontFamily] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Inter')
 
   function applyFont(font: string) {
@@ -270,24 +277,24 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
       {/* Sidebar de secciones */}
       {isMobile ? (
         /* Mobile: dropdown selector */
-        <div style={{ padding: '10px 14px', borderBottom: '0.5px solid #1e1e2e', position: 'relative' as const }}>
+        <div style={{ padding: '10px 14px', borderBottom: '0.5px solid var(--border-mid)', position: 'relative' as const }}>
           <button
             onClick={() => setShowSectionDropdown(p => !p)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 10, padding: '10px 14px', cursor: 'pointer', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 10, padding: '10px 14px', cursor: 'pointer', color: 'var(--text-1)', fontSize: 13, fontFamily: 'inherit' }}
           >
             <i className={`ti ${sections.find(s => s.id === activeSection)?.icon}`} style={{ fontSize: 16, color: '#a78bfa' }} />
             <span style={{ flex: 1, textAlign: 'left' as const, fontWeight: 500 }}>
               {sections.find(s => s.id === activeSection)?.label}
             </span>
-            <i className={`ti ti-chevron-${showSectionDropdown ? 'up' : 'down'}`} style={{ fontSize: 14, color: '#4a4a6a' }} />
+            <i className={`ti ti-chevron-${showSectionDropdown ? 'up' : 'down'}`} style={{ fontSize: 14, color: 'var(--text-3)' }} />
           </button>
           {showSectionDropdown && (
-            <div className="popover-enter" style={{ position: 'absolute' as const, top: '100%', left: 14, right: 14, background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 10, padding: 6, zIndex: 300, boxShadow: '0 8px 24px rgba(0,0,0,0.7)', marginTop: 4 }}>
+            <div className="popover-enter" style={{ position: 'absolute' as const, top: '100%', left: 14, right: 14, background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 10, padding: 6, zIndex: 300, boxShadow: '0 8px 24px rgba(0,0,0,0.7)', marginTop: 4 }}>
               {sections.map(sec => {
                 const isActive = activeSection === sec.id
                 return (
                   <button key={sec.id} onClick={() => { setActiveSection(sec.id as Section); setShowSectionDropdown(false) }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: isActive ? '#16162a' : 'transparent', border: 'none', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', color: isActive ? '#c4b5fd' : '#8080a0', fontSize: 13, fontFamily: 'inherit' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: isActive ? 'var(--border)' : 'transparent', border: 'none', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', color: isActive ? '#c4b5fd' : 'var(--text-2)', fontSize: 13, fontFamily: 'inherit' }}
                   >
                     <i className={`ti ${sec.icon}`} style={{ fontSize: 15 }} />
                     {sec.label}
@@ -452,7 +459,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                   <input style={{ ...s.input, width: 80 }} type="number" min={1} max={50}
                     value={config.max_messages_before_escalation}
                     onChange={e => update('max_messages_before_escalation', parseInt(e.target.value))} />
-                  <span style={{ fontSize: 12, color: '#4a4a6a' }}>{uis('mensajes', 'messages')}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{uis('mensajes', 'messages')}</span>
                 </div>
               </Field>
             </div>
@@ -466,8 +473,8 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
               <Field label="">
                 <div style={s.toggleRow}>
                   <div>
-                    <div style={{ fontSize: 13, color: '#c4c4d4', fontWeight: 500 }}>{uis('Avisar cuando estás fuera de horario', 'Notify when outside business hours')}</div>
-                    <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 2 }}>{uis('Si está activado, el bot avisa "fuera de horario" en vez de atender. Dejalo desactivado para atender 24hs — los horarios de abajo definen los turnos igual.', 'If enabled, the bot replies "outside hours" instead of helping. Leave it off to attend 24/7 — the hours below still define bookings.')}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-1)', fontWeight: 500 }}>{uis('Avisar cuando estás fuera de horario', 'Notify when outside business hours')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{uis('Si está activado, el bot avisa "fuera de horario" en vez de atender. Dejalo desactivado para atender 24hs — los horarios de abajo definen los turnos igual.', 'If enabled, the bot replies "outside hours" instead of helping. Leave it off to attend 24/7 — the hours below still define bookings.')}</div>
                   </div>
                   <div style={{ ...s.toggleTrack, ...(config.schedule?.enabled ? s.toggleTrackOn : {}) }}
                     onClick={() => update('schedule', { ...config.schedule, enabled: !config.schedule?.enabled })}>
@@ -489,6 +496,21 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                     </select>
                   </Field>
 
+                  <Field label={uis('Tiempo entre turnos (buffer)', 'Time between appointments (buffer)')}>
+                    <select style={s.select} value={config.schedule?.buffer_minutes ?? 0}
+                      onChange={e => update('schedule', { ...config.schedule, buffer_minutes: Number(e.target.value) })}>
+                      <option value={0}>{uis('Sin tiempo entre turnos', 'No gap between appointments')}</option>
+                      <option value={5}>{uis('5 minutos', '5 minutes')}</option>
+                      <option value={10}>{uis('10 minutos', '10 minutes')}</option>
+                      <option value={15}>{uis('15 minutos', '15 minutes')}</option>
+                      <option value={20}>{uis('20 minutos', '20 minutes')}</option>
+                      <option value={30}>{uis('30 minutos', '30 minutes')}</option>
+                    </select>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6 }}>
+                      {uis('Hueco libre que se deja entre un turno y el siguiente (para limpiar, demoras, etc.). La duracion de cada turno la define cada servicio en la seccion Turnos.', 'Free gap left between one appointment and the next.')}
+                    </div>
+                  </Field>
+
                   <div style={s.scheduleGrid}>
                     {Object.entries(config.schedule?.hours ?? {}).map(([day, hours]) => (
                       <div key={day} style={s.scheduleRow}>
@@ -496,9 +518,9 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{
                             fontSize: 11, fontWeight: 600, minWidth: 64, textAlign: 'center',
-                            color: hours.closed ? '#4a4a6a' : '#a78bfa',
-                            background: hours.closed ? 'transparent' : '#1a1a2e',
-                            border: hours.closed ? '0.5px solid #2e2e4e' : '0.5px solid #a78bfa55',
+                            color: hours.closed ? 'var(--text-3)' : '#a78bfa',
+                            background: hours.closed ? 'transparent' : 'var(--bg-card)',
+                            border: hours.closed ? '0.5px solid var(--border-mid)' : '0.5px solid #a78bfa55',
                             borderRadius: 6, padding: '3px 8px', transition: 'all 0.2s',
                           }}>
                             {day.charAt(0).toUpperCase() + day.slice(1)}
@@ -511,7 +533,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                             <>
                               <input style={s.timeInput} type="time" value={hours.open}
                                 onChange={e => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, open: e.target.value } } })} />
-                              <span style={{ fontSize: 12, color: '#3a3a5a', fontWeight: 600 }}>→</span>
+                              <span style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 600 }}>→</span>
                               <input style={s.timeInput} type="time" value={hours.close}
                                 onChange={e => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, close: e.target.value } } })} />
                               <button
@@ -521,7 +543,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                               </button>
                             </>
                           ) : (
-                            <span style={{ fontSize: 11, color: '#4a4a6a', marginLeft: 4 }}>Cerrado</span>
+                            <span style={{ fontSize: 11, color: 'var(--text-3)', marginLeft: 4 }}>Cerrado</span>
                           )}
                         </div>
                         {/* Chips de descanso */}
@@ -535,7 +557,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                                     const nb = [...(hours.breaks ?? [])]; nb[i] = { ...nb[i], start: e.target.value };
                                     update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: nb } } });
                                   }} />
-                                <span style={{ fontSize: 11, color: '#3a3a5a', fontWeight: 600 }}>→</span>
+                                <span style={{ fontSize: 11, color: 'var(--text-faint)', fontWeight: 600 }}>→</span>
                                 <input style={s.timeInput} type="time" value={b.end}
                                   onChange={e => {
                                     const nb = [...(hours.breaks ?? [])]; nb[i] = { ...nb[i], end: e.target.value };
@@ -546,7 +568,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                                     const nb = (hours.breaks ?? []).filter((_, j) => j !== i);
                                     update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: nb } } });
                                   }}
-                                  style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: '0 2px', fontSize: 14, lineHeight: 1, marginLeft: 2 }}>×</button>
+                                  style={{ background: 'none', border: 'none', color: 'var(--text-2)', cursor: 'pointer', padding: '0 2px', fontSize: 14, lineHeight: 1, marginLeft: 2 }}>×</button>
                               </span>
                             ))}
                           </div>
@@ -565,8 +587,8 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
               <SectionHeader icon="ti-bell" title={uis('Notificaciones', 'Notifications')} subtitle={uis('Cómo y cuándo te avisamos sobre tu cuenta', 'How and when we notify you about your account')} />
 
               <Field label={uis('Email para escalaciones', 'Escalation email')} hint={uis('Te mandamos un email cuando el bot derive una conversación a humano', 'We send you an email when the bot transfers a conversation to a human')}>
-                <div style={{ fontSize: 12, color: '#8b8baa', marginBottom: 6 }}>
-                  {uis('Email de la cuenta:', 'Account email:')} <strong style={{ color: '#c4c4d4' }}>{userEmail || '—'}</strong>
+                <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 6 }}>
+                  {uis('Email de la cuenta:', 'Account email:')} <strong style={{ color: 'var(--text-1)' }}>{userEmail || '—'}</strong>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: useAlternateEmail ? 10 : 0 }}>
                   <div
@@ -578,7 +600,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                     }}>
                     <div style={{ ...s.toggleThumb, ...(useAlternateEmail ? s.toggleThumbOn : {}) }} />
                   </div>
-                  <span style={{ fontSize: 12, color: '#8b8baa' }}>{uis('Usar otro email para notificaciones', 'Use a different email for notifications')}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-2)' }}>{uis('Usar otro email para notificaciones', 'Use a different email for notifications')}</span>
                 </div>
                 {useAlternateEmail && (
                   <input style={s.input} type="email" value={config.escalation_email}
@@ -590,14 +612,14 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
               <Field label="">
                 <div style={s.toggleRow}>
                   <div>
-                    <div style={{ fontSize: 13, color: '#c4c4d4', fontWeight: 500 }}>{uis('Resumen por email', 'Email summary')}</div>
-                    <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 2 }}>{uis('Recibí un resumen con las métricas de tu negocio', 'Receive a summary with your business metrics')}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-1)', fontWeight: 500 }}>{uis('Resumen por email', 'Email summary')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{uis('Recibí un resumen con las métricas de tu negocio', 'Receive a summary with your business metrics')}</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {config.daily_summary && (
                       <select value={config.summary_frequency}
                         onChange={e => update('summary_frequency', e.target.value)}
-                        style={{ background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 6, padding: '4px 8px', color: '#c4c4d4', fontSize: 11, cursor: 'pointer' }}>
+                        style={{ background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '4px 8px', color: 'var(--text-1)', fontSize: 11, cursor: 'pointer' }}>
                         <option value="daily">{uis('Diario', 'Daily')}</option>
                         <option value="weekly">{uis('Semanal', 'Weekly')}</option>
                       </select>
@@ -625,7 +647,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                   <input type="color" value={config.accent_color}
                     onChange={e => { update('accent_color', e.target.value); onThemeChange?.(e.target.value, bgColor) }}
                     style={{ width: 44, height: 44, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 10, padding: 2 }} />
-                  <span style={{ fontSize: 9, color: '#4a4a6a' }}>{uis('click para personalizar', 'click to customize')}</span>
+                  <span style={{ fontSize: 9, color: 'var(--text-3)' }}>{uis('click para personalizar', 'click to customize')}</span>
                   </div>
                   <input style={{ ...s.input, width: 110, fontFamily: 'monospace', fontSize: 12 }}
                     value={config.accent_color}
@@ -649,13 +671,13 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                   <input type="color" value={bgColor}
                     onChange={e => { setBgColor(e.target.value); onThemeChange?.(config.accent_color, e.target.value) }}
                     style={{ width: 44, height: 44, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 10, padding: 2 }} />
-                  <span style={{ fontSize: 9, color: '#4a4a6a' }}>{uis('click para personalizar', 'click to customize')}</span>
+                  <span style={{ fontSize: 9, color: 'var(--text-3)' }}>{uis('click para personalizar', 'click to customize')}</span>
                   </div>
                   <input style={{ ...s.input, width: 110, fontFamily: 'monospace', fontSize: 12 }}
                     value={bgColor}
                     onChange={e => { setBgColor(e.target.value); onThemeChange?.(config.accent_color, e.target.value) }} />
                   <div style={{ display: 'flex', gap: 6 }}>
-                    {['#07070d','#0a0a0f','#060610','#070d07','#0d0709','#07090d','#0a0808','#08080a'].map(c => (
+                    {['var(--bg-base)','#0a0a0f','#060610','#070d07','#0d0709','#07090d','#0a0808','#08080a'].map(c => (
                       <div key={c} onClick={() => { setBgColor(c); onThemeChange?.(config.accent_color, c) }}
                         style={{ width: 22, height: 22, borderRadius: '50%', background: c, cursor: 'pointer',
                           border: bgColor === c ? '2px solid #fff' : '1px solid #333',
@@ -667,11 +689,11 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
 
               {/* Preview */}
               <div style={{ marginTop: 8, padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-card)' }}>
-                <div style={{ fontSize: 11, color: '#5a5a7a', marginBottom: 10, fontWeight: 500, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Preview</div>
+                <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 10, fontWeight: 500, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Preview</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const }}>
                   <div style={{ background: 'linear-gradient(135deg, var(--accent-dark), var(--accent))', borderRadius: 8, padding: '6px 14px', fontSize: 12, color: '#fff', fontWeight: 500 }}>{uis('Botón principal', 'Main button')}</div>
                   <div style={{ background: 'var(--accent-dim)', border: '1px solid var(--border-mid)', borderRadius: 8, padding: '6px 14px', fontSize: 12, color: 'var(--accent)' }}>{uis('Badge acento', 'Accent badge')}</div>
-                  <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 14px', fontSize: 12, color: '#e2e8f0' }}>{uis('Fondo panel', 'Panel background')}</div>
+                  <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 14px', fontSize: 12, color: 'var(--text-1)' }}>{uis('Fondo panel', 'Panel background')}</div>
                 </div>
               </div>
 
@@ -696,16 +718,16 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                       {FONTS.map(f => (
                         <div key={f.id} onClick={() => applyFont(f.id)}
                           style={{
-                            background: fontFamily === f.id ? 'var(--accent-dim)' : '#0d0d14',
-                            border: `0.5px solid ${fontFamily === f.id ? 'var(--accent)' : '#1e1e2e'}`,
+                            background: fontFamily === f.id ? 'var(--accent-dim)' : 'var(--bg-card)',
+                            border: `0.5px solid ${fontFamily === f.id ? 'var(--accent)' : 'var(--border-mid)'}`,
                             borderRadius: 10, padding: '10px 14px', cursor: 'pointer',
                             transition: 'all 0.15s',
                           }}>
-                          <div style={{ fontSize: 15, fontWeight: 600, color: fontFamily === f.id ? 'var(--accent)' : '#c4c4d4', fontFamily: `'${f.id}', system-ui, sans-serif`, marginBottom: 3 }}>
+                          <div style={{ fontSize: 15, fontWeight: 600, color: fontFamily === f.id ? 'var(--accent)' : 'var(--text-1)', fontFamily: `'${f.id}', system-ui, sans-serif`, marginBottom: 3 }}>
                             {f.id}
                           </div>
-                          <div style={{ fontSize: 10, color: '#5a5a7a' }}>{f.desc}</div>
-                          <div style={{ fontSize: 11, color: fontFamily === f.id ? 'var(--accent)' : '#4a4a6a', fontFamily: `'${f.id}', system-ui, sans-serif`, marginTop: 4 }}>
+                          <div style={{ fontSize: 10, color: 'var(--text-3)' }}>{f.desc}</div>
+                          <div style={{ fontSize: 11, color: fontFamily === f.id ? 'var(--accent)' : 'var(--text-3)', fontFamily: `'${f.id}', system-ui, sans-serif`, marginTop: 4 }}>
                             {uis('Hola, ¿cómo estás?', 'Hello, how are you?')}
                           </div>
                         </div>
@@ -721,7 +743,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                   {(['es', 'en'] as const).map(l => (
                     <button key={l}
                       onClick={() => setLang(l)}
-                      style={{ padding: '6px 18px', borderRadius: 8, border: `1px solid ${lang === l ? 'var(--accent)' : '#2d2d3d'}`, background: lang === l ? 'var(--accent-dim)' : '#1a1a2e', color: lang === l ? 'var(--accent)' : '#6b7280', fontSize: 13, cursor: 'pointer', fontWeight: lang === l ? 600 : 400 }}>
+                      style={{ padding: '6px 18px', borderRadius: 8, border: `1px solid ${lang === l ? 'var(--accent)' : '#2d2d3d'}`, background: lang === l ? 'var(--accent-dim)' : 'var(--bg-card)', color: lang === l ? 'var(--accent)' : 'var(--text-2)', fontSize: 13, cursor: 'pointer', fontWeight: lang === l ? 600 : 400 }}>
                       {l === 'es' ? '🇦🇷 Español' : '🇺🇸 English'}
                     </button>
                   ))}
@@ -737,14 +759,14 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
 
               {/* Google Calendar */}
               {!isPro ? (
-                <div style={{ background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 10, padding: '14px 16px', marginBottom: 10, opacity: 0.6 }}>
+                <div style={{ background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 10, padding: '14px 16px', marginBottom: 10, opacity: 0.6 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <i className="ti ti-calendar" style={{ fontSize: 18, color: '#4285f4' }} />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>Google Calendar</div>
-                      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{uis('Disponible en el plan Pro', 'Available on the Pro plan')}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>Google Calendar</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2 }}>{uis('Disponible en el plan Pro', 'Available on the Pro plan')}</div>
                     </div>
                     <span style={{ fontSize: 10, fontWeight: 700, background: '#2563eb22', color: '#60a5fa', border: '1px solid #2563eb44', borderRadius: 4, padding: '2px 8px' }}>PRO</span>
                   </div>
@@ -770,14 +792,14 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
               )}
 
               {/* Recordatorios automáticos */}
-              <div style={{ background: '#0d0d14', border: `0.5px solid ${config.reminders_enabled ? '#2a3a2a' : '#1e1e2e'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
+              <div style={{ background: 'var(--bg-card)', border: `0.5px solid ${config.reminders_enabled ? '#2a3a2a' : 'var(--border-mid)'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <i className="ti ti-bell-ringing" style={{ fontSize: 18, color: '#f59e0b' }} />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>{uis('Recordatorios automáticos', 'Automatic reminders')}</div>
-                    <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{uis('Recordatorios automáticos', 'Automatic reminders')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2 }}>
                       {!config.google_refresh_token ? uis('Requiere Google Calendar conectado', 'Requires Google Calendar connected') : uis('Enviá recordatorios de turno por WhatsApp', 'Send appointment reminders via WhatsApp')}
                     </div>
                   </div>
@@ -792,7 +814,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                   </div>
                 </div>
                 {config.reminders_enabled && config.google_refresh_token && (
-                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #1e1e2e' }}>
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border-mid)' }}>
                     <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 8 }}>
                       {uis('¿Cuándo enviar el recordatorio? Podés elegir más de uno.', 'When to send the reminder? You can pick more than one.')}
                     </div>
@@ -807,7 +829,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                         const active = (config.reminder_hours_before || []).includes(opt.value)
                         return (
                           <button key={opt.value}
-                            style={{ padding: '5px 12px', borderRadius: 6, border: `1px solid ${active ? '#7c3aed' : opt.rec ? '#4c3a7a' : '#2d2d3d'}`, background: active ? '#3b1f6e' : '#1a1a2e', color: active ? '#c4b5fd' : '#6b7280', fontSize: 12, cursor: 'pointer' }}
+                            style={{ padding: '5px 12px', borderRadius: 6, border: `1px solid ${active ? '#7c3aed' : opt.rec ? '#4c3a7a' : '#2d2d3d'}`, background: active ? '#3b1f6e' : 'var(--bg-card)', color: active ? '#c4b5fd' : 'var(--text-2)', fontSize: 12, cursor: 'pointer' }}
                             onClick={async () => {
                               const current = config.reminder_hours_before || []
                               const next = (active ? current.filter((h: number) => h !== opt.value) : [...current, opt.value]).sort((a: number, b: number) => a - b)
@@ -820,7 +842,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                         )
                       })}
                     </div>
-                    <div style={{ fontSize: 10, color: '#5a5a7a', marginTop: 8 }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 8 }}>
                       {uis('★ Recomendado. El de 24 h es el más efectivo para reducir ausencias.', '★ Recommended. 24 h is the most effective at reducing no-shows.')}
                     </div>
                   </div>
@@ -829,14 +851,14 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
 
               {/* Mercado Pago */}
               {!isPro ? (
-                <div style={{ background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 10, padding: '14px 16px', marginBottom: 10, opacity: 0.6 }}>
+                <div style={{ background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 10, padding: '14px 16px', marginBottom: 10, opacity: 0.6 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <i className="ti ti-brand-mastercard" style={{ fontSize: 18, color: '#00b1ea' }} />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>Mercado Pago</div>
-                      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{uis('Disponible en el plan Pro', 'Available on the Pro plan')}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>Mercado Pago</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2 }}>{uis('Disponible en el plan Pro', 'Available on the Pro plan')}</div>
                     </div>
                     <span style={{ fontSize: 10, fontWeight: 700, background: '#2563eb22', color: '#60a5fa', border: '1px solid #2563eb44', borderRadius: 4, padding: '2px 8px' }}>PRO</span>
                   </div>
@@ -862,17 +884,17 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
               )}
 
               {/* Google Sheets */}
-              <div style={{ background: '#0d0d14', border: `0.5px solid ${config.sheets_refresh_token ? '#2a3a2a' : '#1e1e2e'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
+              <div style={{ background: 'var(--bg-card)', border: `0.5px solid ${config.sheets_refresh_token ? '#2a3a2a' : 'var(--border-mid)'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <i className="ti ti-table" style={{ fontSize: 18, color: '#34d399' }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>Google Sheets</span>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-1)' }}>Google Sheets</span>
                       {config.sheets_refresh_token && <span style={{ fontSize: 10, background: '#0a2e14', border: '0.5px solid #1a4a25', color: '#22c55e', borderRadius: 4, padding: '1px 6px' }}>Activo</span>}
                     </div>
-                    <div style={{ fontSize: 11, color: '#4a4a6a', marginTop: 2 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
                       {config.sheets_refresh_token
                         ? config.sheets_spreadsheet_id
                           ? 'Sincronizado — contactos, turnos y conversaciones'
@@ -895,7 +917,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                               if (id) update('sheets_spreadsheet_id', id)
                             } catch { alert('Error exportando. Intentá de nuevo.') }
                           }}
-                          style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: '#16162a', color: '#a78bfa', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                          style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: 'var(--border)', color: '#a78bfa', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
                           Exportar
                         </button>
                         {config.sheets_spreadsheet_id && (
@@ -937,15 +959,83 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
           {/* ── Turnos ── */}
           {activeSection === 'turnos' && (
             <div style={s.section}>
-              <SectionHeader icon="ti-calendar-event" title={uis('Configuración de turnos', 'Appointment settings')} subtitle={uis('Definí las categorías de servicio y su duración por defecto', 'Define service categories and their default duration')} />
+              <SectionHeader icon="ti-calendar-event" title={uis('Configuración de turnos', 'Appointment settings')} subtitle={uis('Elegí cómo se calculan los horarios y definí tus servicios', 'Choose how slots are calculated and define your services')} />
+
+              {/* ── Modo de turnos ── */}
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>{uis('Modo de turnos', 'Scheduling mode')}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 12 }}>{uis('Por defecto todos los turnos duran lo mismo. Activá "por servicio" para que cada uno dure lo suyo.', 'By default every appointment lasts the same. Switch to per-service so each uses its own length.')}</div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div onClick={() => update('schedule', { ...config.schedule, slot_mode: 'fixed' })}
+                    style={{ cursor: 'pointer', background: 'var(--bg-card)', borderRadius: 12, padding: '14px 16px', transition: 'border-color 0.15s',
+                      border: `1.5px solid ${(config.schedule?.slot_mode ?? 'fixed') === 'fixed' ? 'var(--accent)' : 'var(--border-mid)'}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <i className="ti ti-clock-hour-4" style={{ fontSize: 18, color: 'var(--accent)' }} aria-hidden="true" />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{uis('Duración fija', 'Fixed duration')}</span>
+                      {(config.schedule?.slot_mode ?? 'fixed') === 'fixed' && <i className="ti ti-check" style={{ fontSize: 16, color: 'var(--accent)', marginLeft: 'auto' }} aria-hidden="true" />}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>{uis('Todos los turnos duran lo mismo. Simple y recomendado para empezar.', 'Every appointment lasts the same. Simple, recommended to start.')}</div>
+                  </div>
+
+                  <div onClick={() => update('schedule', { ...config.schedule, slot_mode: 'per_service' })}
+                    style={{ cursor: 'pointer', background: 'var(--bg-card)', borderRadius: 12, padding: '14px 16px', transition: 'border-color 0.15s',
+                      border: `1.5px solid ${config.schedule?.slot_mode === 'per_service' ? 'var(--accent)' : 'var(--border-mid)'}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      <i className="ti ti-layout-list" style={{ fontSize: 18, color: 'var(--accent)' }} aria-hidden="true" />
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{uis('Duración por servicio', 'Per-service duration')}</span>
+                      {config.schedule?.slot_mode === 'per_service' && <i className="ti ti-check" style={{ fontSize: 16, color: 'var(--accent)', marginLeft: 'auto' }} aria-hidden="true" />}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>{uis('Cada servicio dura lo suyo (corte 40, barba 20…) y se aprovecha mejor la agenda.', 'Each service uses its own length and fills the day better.')}</div>
+                  </div>
+                </div>
+
+                {(config.schedule?.slot_mode ?? 'fixed') === 'fixed' && (
+                  <div style={{ marginTop: 14 }}>
+                    <Field label={uis('Duración de cada turno', 'Length of each appointment')}>
+                      <select style={{ ...s.select, maxWidth: 220 }} value={config.schedule?.fixed_duration ?? 60}
+                        onChange={e => update('schedule', { ...config.schedule, fixed_duration: Number(e.target.value) })}>
+                        <option value={15}>15 min</option>
+                        <option value={20}>20 min</option>
+                        <option value={30}>30 min</option>
+                        <option value={45}>45 min</option>
+                        <option value={60}>{uis('1 hora', '1 hour')}</option>
+                        <option value={90}>{uis('1 hora 30 min', '1h 30m')}</option>
+                        <option value={120}>{uis('2 horas', '2 hours')}</option>
+                      </select>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6 }}>{uis('Todos los turnos tendrán esta duración, sin importar el servicio.', 'Every appointment uses this length, regardless of service.')}</div>
+                    </Field>
+                  </div>
+                )}
+
+                {config.schedule?.slot_mode === 'per_service' && (
+                  <div style={{ marginTop: 14 }}>
+                    <Field label={uis('Cada cuánto pueden empezar los turnos', 'How often appointments can start')}>
+                      <select style={{ ...s.select, maxWidth: 260 }} value={config.schedule?.slot_step ?? 20}
+                        onChange={e => update('schedule', { ...config.schedule, slot_step: Number(e.target.value) })}>
+                        <option value={10}>{uis('Cada 10 minutos', 'Every 10 minutes')}</option>
+                        <option value={15}>{uis('Cada 15 minutos', 'Every 15 minutes')}</option>
+                        <option value={20}>{uis('Cada 20 minutos (recomendado)', 'Every 20 minutes (recommended)')}</option>
+                        <option value={30}>{uis('Cada 30 minutos', 'Every 30 minutes')}</option>
+                        <option value={60}>{uis('Cada 1 hora', 'Every hour')}</option>
+                      </select>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6 }}>{uis('Los horarios ofrecidos arrancan en estos intervalos. Con 20 min calzan servicios de 20, 40 y 60.', 'Offered times start at these intervals. 20 min fits 20/40/60-minute services.')}</div>
+                    </Field>
+                    <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 8, padding: '10px 12px', background: 'var(--accent-dim)', borderRadius: 8, display: 'flex', gap: 8 }}>
+                      <i className="ti ti-info-circle" style={{ fontSize: 16, color: 'var(--accent)', flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
+                      <span>{uis('La duración de cada servicio la configurás en la lista de abajo.', 'Set each service duration in the list below.')}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Lista de categorías */}
               <div style={{ marginBottom: 20 }}>
                 {(config.appointment_categories ?? []).length === 0 && (
-                  <div style={{ fontSize: 13, color: '#4a4a6a', padding: '16px 0' }}>{uis('No hay categorías todavía. Agregá una abajo.', 'No categories yet. Add one below.')}</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-3)', padding: '16px 0' }}>{uis('No hay categorías todavía. Agregá una abajo.', 'No categories yet. Add one below.')}</div>
                 )}
                 {(config.appointment_categories ?? []).map((cat) => (
-                  <div key={cat.id} style={{ background: '#0d0d14', border: `0.5px solid ${editingCatId === cat.id ? cat.color + '88' : '#1e1e2e'}`, borderRadius: 10, padding: '12px 16px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div key={cat.id} style={{ background: 'var(--bg-card)', border: `0.5px solid ${editingCatId === cat.id ? cat.color + '88' : 'var(--border-mid)'}`, borderRadius: 10, padding: '12px 16px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 14, height: 14, borderRadius: '50%', background: cat.color, flexShrink: 0 }} />
                     {editingCatId === cat.id ? (
                       <div style={{ flex: 1, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' as const }}>
@@ -961,7 +1051,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                             value={cat.duration_minutes}
                             onChange={e => update('appointment_categories', config.appointment_categories.map(c => c.id === cat.id ? { ...c, duration_minutes: parseInt(e.target.value) } : c))}
                           />
-                          <span style={{ fontSize: 12, color: '#4a4a6a', whiteSpace: 'nowrap' as const }}>min</span>
+                          <span style={{ fontSize: 12, color: 'var(--text-3)', whiteSpace: 'nowrap' as const }}>min</span>
                         </div>
                         <input type="color" value={cat.color}
                           onChange={e => update('appointment_categories', config.appointment_categories.map(c => c.id === cat.id ? { ...c, color: e.target.value } : c))}
@@ -971,10 +1061,10 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                     ) : (
                       <>
                         <div style={{ flex: 1 }}>
-                          <span style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>{cat.name}</span>
-                          <span style={{ fontSize: 12, color: '#4a4a6a', marginLeft: 10 }}>⏱ {cat.duration_minutes} min</span>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-1)' }}>{cat.name}</span>
+                          <span style={{ fontSize: 12, color: 'var(--text-3)', marginLeft: 10 }}>⏱ {cat.duration_minutes} min</span>
                         </div>
-                        <button onClick={() => setEditingCatId(cat.id)} style={{ background: 'none', border: 'none', color: '#6a6a8a', cursor: 'pointer', fontSize: 13, padding: '4px 6px' }}>
+                        <button onClick={() => setEditingCatId(cat.id)} style={{ background: 'none', border: 'none', color: 'var(--text-2)', cursor: 'pointer', fontSize: 13, padding: '4px 6px' }}>
                           <i className="ti ti-pencil" />
                         </button>
                         <button onClick={() => update('appointment_categories', config.appointment_categories.filter(c => c.id !== cat.id))}
@@ -988,8 +1078,8 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
               </div>
 
               {/* Agregar categoría */}
-              <div style={{ background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 10, padding: '14px 16px' }}>
-                <div style={{ fontSize: 12, color: '#8b8baa', marginBottom: 10, fontWeight: 500 }}>{uis('Nueva categoría', 'New category')}</div>
+              <div style={{ background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 10, padding: '14px 16px' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 10, fontWeight: 500 }}>{uis('Nueva categoría', 'New category')}</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'center' }}>
                   <input
                     style={{ ...s.input, flex: 1, minWidth: 140 }}
@@ -1010,7 +1100,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                       value={newCatDuration}
                       onChange={e => setNewCatDuration(parseInt(e.target.value))}
                     />
-                    <span style={{ fontSize: 12, color: '#4a4a6a', whiteSpace: 'nowrap' as const }}>min</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-3)', whiteSpace: 'nowrap' as const }}>min</span>
                   </div>
                   <input type="color" value={newCatColor} onChange={e => setNewCatColor(e.target.value)}
                     style={{ width: 36, height: 36, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 6, padding: 2 }} />
@@ -1024,7 +1114,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                     + {uis('Agregar', 'Add')}
                   </button>
                 </div>
-                <div style={{ fontSize: 11, color: '#3a3a5a', marginTop: 8 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 8 }}>
                   {uis('Las categorías aparecerán como filtros en la sección Turnos y definen la duración por defecto de cada servicio.', 'Categories appear as filters in the Appointments section and define the default duration per service.')}
                 </div>
               </div>
@@ -1035,7 +1125,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
 
         {/* Save bar */}
         <div style={s.saveBar}>
-          <span style={{ fontSize: 12, color: '#4a4a6a' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
             {saved ? uis('✅ Guardado correctamente', '✅ Saved successfully') : uis('Los cambios se aplican en la próxima conversación', 'Changes apply from the next conversation')}
           </span>
           <button onClick={saveConfig} disabled={saving} style={s.saveBtn}>
@@ -1058,17 +1148,17 @@ function IntegrationCard({ icon, iconColor, name, description, status, connectLa
   const isConnected = status === 'connected'
   const isDisabled = status === 'disabled'
   return (
-    <div style={{ background: '#0d0d14', border: `0.5px solid ${isConnected ? '#2a3a2a' : '#1e1e2e'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
+    <div style={{ background: 'var(--bg-card)', border: `0.5px solid ${isConnected ? '#2a3a2a' : 'var(--border-mid)'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 8, background: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <i className={`ti ${icon}`} style={{ fontSize: 18, color: iconColor }} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 500, color: '#e2e8f0' }}>{name}</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-1)' }}>{name}</span>
             {isConnected && <span style={{ fontSize: 10, background: '#0a2e14', border: '0.5px solid #1a4a25', color: '#22c55e', borderRadius: 4, padding: '1px 6px' }}>Activo</span>}
           </div>
-          <div style={{ fontSize: 11, color: isDisabled ? '#2a2a4a' : '#4a4a6a', marginTop: 2 }}>{description}</div>
+          <div style={{ fontSize: 11, color: isDisabled ? '#2a2a4a' : 'var(--text-3)', marginTop: 2 }}>{description}</div>
         </div>
         {!isDisabled && (
           isConnected ? (
@@ -1093,9 +1183,9 @@ function SectionHeader({ icon, title, subtitle }: { icon: string; title: string;
     <div style={{ marginBottom: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
         <i className={`ti ${icon}`} style={{ fontSize: 16, color: '#a78bfa' }} aria-hidden="true" />
-        <h2 style={{ fontSize: 15, fontWeight: 600, color: '#e2e8f0', margin: 0 }}>{title}</h2>
+        <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-1)', margin: 0 }}>{title}</h2>
       </div>
-      <p style={{ fontSize: 12, color: '#4a4a6a', margin: 0, paddingLeft: 24 }}>{subtitle}</p>
+      <p style={{ fontSize: 12, color: 'var(--text-3)', margin: 0, paddingLeft: 24 }}>{subtitle}</p>
     </div>
   )
 }
@@ -1103,8 +1193,8 @@ function SectionHeader({ icon, title, subtitle }: { icon: string; title: string;
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      {label && <div style={{ fontSize: 12, fontWeight: 500, color: '#8b8baa', marginBottom: 6 }}>{label}</div>}
-      {hint && <div style={{ fontSize: 11, color: '#4a4a6a', marginBottom: 6 }}>{hint}</div>}
+      {label && <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)', marginBottom: 6 }}>{label}</div>}
+      {hint && <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 6 }}>{hint}</div>}
       {children}
     </div>
   )
@@ -1119,12 +1209,12 @@ function TagInput({ tags, value, onChange, onAdd, onRemove, placeholder, color }
     <div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
         {tags.map((tag, i) => (
-          <span key={i} style={{ background: '#1a1a2e', border: `0.5px solid ${color}44`, borderRadius: 6, padding: '3px 8px', fontSize: 12, color, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span key={i} style={{ background: 'var(--bg-card)', border: `0.5px solid ${color}44`, borderRadius: 6, padding: '3px 8px', fontSize: 12, color, display: 'flex', alignItems: 'center', gap: 4 }}>
             {tag}
             <button onClick={() => onRemove(i)} style={{ background: 'none', border: 'none', color, cursor: 'pointer', fontSize: 13, padding: 0, lineHeight: 1 }}>×</button>
           </span>
         ))}
-        {tags.length === 0 && <span style={{ fontSize: 12, color: '#4a4a6a' }}>Sin palabras clave todavía</span>}
+        {tags.length === 0 && <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Sin palabras clave todavía</span>}
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         <input style={{ ...s.input, flex: 1 }} value={value} onChange={e => onChange(e.target.value)}
@@ -1140,34 +1230,34 @@ function TagInput({ tags, value, onChange, onAdd, onRemove, placeholder, color }
 
 const s: Record<string, React.CSSProperties> = {
   container: { display: 'grid', gridTemplateColumns: '200px 1fr', height: '100%', overflow: 'hidden' },
-  sectNav: { background: '#0d0d14', borderRight: '0.5px solid #1e1e2e', padding: '16px 8px', display: 'flex', flexDirection: 'column', gap: 1, overflowY: 'auto', overflowX: 'hidden' as const },
-  sectNavTitle: { fontSize: 8.5, color: '#3a3a5a', textTransform: 'uppercase', letterSpacing: 0, fontWeight: 600, padding: '0 4px', marginBottom: 8, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' },
+  sectNav: { background: 'var(--bg-card)', borderRight: '0.5px solid var(--border-mid)', padding: '16px 8px', display: 'flex', flexDirection: 'column', gap: 1, overflowY: 'auto', overflowX: 'hidden' as const },
+  sectNavTitle: { fontSize: 8.5, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0, fontWeight: 600, padding: '0 4px', marginBottom: 8, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' },
   sectBtn: { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 7, border: 'none', background: 'transparent', color: '#7a7a9a', fontSize: 12, fontWeight: 500, cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'color 0.15s, background 0.15s', letterSpacing: '0.01em' },
-  sectBtnActive: { background: '#16162a', color: '#c4b5fd' },
+  sectBtnActive: { background: 'var(--border)', color: '#c4b5fd' },
   content: { display: 'grid', gridTemplateRows: '1fr auto', overflow: 'hidden' },
   contentInner: { overflowY: 'auto', padding: 24 },
   section: { maxWidth: 680 },
-  loading: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#4a4a6a', fontSize: 13 },
+  loading: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-3)', fontSize: 13 },
   row2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 },
-  input: { width: '100%', background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const },
-  textarea: { width: '100%', background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'vertical' as const, boxSizing: 'border-box' as const, minHeight: 80 },
-  select: { width: '100%', background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 8, padding: '8px 10px', color: '#e2e8f0', fontSize: 13, outline: 'none' },
+  input: { width: '100%', background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 8, padding: '8px 10px', color: 'var(--text-1)', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const },
+  textarea: { width: '100%', background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 8, padding: '8px 10px', color: 'var(--text-1)', fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'vertical' as const, boxSizing: 'border-box' as const, minHeight: 80 },
+  select: { width: '100%', background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 8, padding: '8px 10px', color: 'var(--text-1)', fontSize: 13, outline: 'none' },
   toneGrid: { display: 'flex', flexWrap: 'wrap' as const, gap: 6 },
   langGrid: { display: 'flex', gap: 6 },
-  toneBtn: { background: '#0d0d14', border: '0.5px solid #2e2e4e', borderRadius: 6, padding: '5px 12px', fontSize: 12, color: '#8b8baa', cursor: 'pointer' },
-  toneBtnActive: { background: '#1a1a2e', borderColor: '#a78bfa', color: '#a78bfa' },
-  addBtn: { background: '#1a1a2e', border: '0.5px solid #2e2e4e', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#a78bfa', cursor: 'pointer', whiteSpace: 'nowrap' as const, flexShrink: 0 },
-  toggleRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 10, padding: '12px 14px' },
-  toggleTrack: { width: 40, height: 22, borderRadius: 11, background: '#2e2e4e', position: 'relative' as const, cursor: 'pointer', transition: 'background 0.25s', flexShrink: 0 },
+  toneBtn: { background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '5px 12px', fontSize: 12, color: 'var(--text-2)', cursor: 'pointer' },
+  toneBtnActive: { background: 'var(--bg-card)', borderColor: '#a78bfa', color: '#a78bfa' },
+  addBtn: { background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#a78bfa', cursor: 'pointer', whiteSpace: 'nowrap' as const, flexShrink: 0 },
+  toggleRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 10, padding: '12px 14px' },
+  toggleTrack: { width: 40, height: 22, borderRadius: 11, background: 'var(--border-mid)', position: 'relative' as const, cursor: 'pointer', transition: 'background 0.25s', flexShrink: 0 },
   toggleTrackOn: { background: '#7c3aed' },
-  toggleThumb: { position: 'absolute' as const, top: '50%', transform: 'translateY(-50%)', left: 3, width: 16, height: 16, borderRadius: '50%', background: '#6a6a8a', transition: 'left 0.25s, background 0.25s' },
+  toggleThumb: { position: 'absolute' as const, top: '50%', transform: 'translateY(-50%)', left: 3, width: 16, height: 16, borderRadius: '50%', background: 'var(--text-2)', transition: 'left 0.25s, background 0.25s' },
   toggleThumbOn: { left: 21, background: '#fff' },
-  toggleTrackSm: { width: 32, height: 18, borderRadius: 9, background: '#2e2e4e', position: 'relative' as const, cursor: 'pointer', transition: 'background 0.25s', flexShrink: 0 },
-  toggleThumbSm: { position: 'absolute' as const, top: 2, left: 2, width: 14, height: 14, borderRadius: '50%', background: '#6a6a8a', transition: 'left 0.25s, background 0.25s' },
+  toggleTrackSm: { width: 32, height: 18, borderRadius: 9, background: 'var(--border-mid)', position: 'relative' as const, cursor: 'pointer', transition: 'background 0.25s', flexShrink: 0 },
+  toggleThumbSm: { position: 'absolute' as const, top: 2, left: 2, width: 14, height: 14, borderRadius: '50%', background: 'var(--text-2)', transition: 'left 0.25s, background 0.25s' },
   scheduleGrid: { display: 'flex', flexDirection: 'column' as const, gap: 8 },
-  scheduleRow: { display: 'flex', flexDirection: 'column' as const, gap: 6, background: '#0d0d14', border: '0.5px solid #1e1e2e', borderRadius: 10, padding: '10px 14px' },
-  dayLabel: { fontSize: 12, fontWeight: 500, color: '#c4c4d4' },
-  timeInput: { background: '#111122', border: '0.5px solid #2e2e4e', borderRadius: 6, padding: '4px 6px', color: '#e2e8f0', fontSize: 12, outline: 'none' },
-  saveBar: { borderTop: '0.5px solid #1e1e2e', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0d0d14' },
+  scheduleRow: { display: 'flex', flexDirection: 'column' as const, gap: 6, background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 10, padding: '10px 14px' },
+  dayLabel: { fontSize: 12, fontWeight: 500, color: 'var(--text-1)' },
+  timeInput: { background: '#111122', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '4px 6px', color: 'var(--text-1)', fontSize: 12, outline: 'none' },
+  saveBar: { borderTop: '0.5px solid var(--border-mid)', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-card)' },
   saveBtn: { background: '#a78bfa', border: 'none', borderRadius: 8, padding: '8px 20px', color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer' },
 }
