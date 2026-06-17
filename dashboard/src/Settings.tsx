@@ -1257,7 +1257,7 @@ const s: Record<string, React.CSSProperties> = {
   scheduleGrid: { display: 'flex', flexDirection: 'column' as const, gap: 8 },
   scheduleRow: { display: 'flex', flexDirection: 'column' as const, gap: 6, background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 10, padding: '10px 14px' },
   dayLabel: { fontSize: 12, fontWeight: 500, color: 'var(--text-1)' },
-  timeInput: { background: '#111122', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '4px 6px', color: 'var(--text-1)', fontSize: 12, outline: 'none' },
+  timeInput: { background: 'var(--bg-input)', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '4px 6px', color: 'var(--text-1)', fontSize: 12, outline: 'none' },
   saveBar: { borderTop: '0.5px solid var(--border-mid)', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-card)' },
   saveBtn: { background: '#a78bfa', border: 'none', borderRadius: 8, padding: '8px 20px', color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer' },
 }

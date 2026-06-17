@@ -1307,7 +1307,7 @@ function DashboardHero({ name, automationRate, pending, totalMessages, onGoPendi
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: 12, marginBottom: 18 }}>
       <div>
-        <div style={{ fontSize: 20, fontWeight: 600, color: '#e8e8f4' }}>{name ? `${greet}, ${name} 👋` : `${greet} 👋`}</div>
+        <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-bright)' }}>{name ? `${greet}, ${name} 👋` : `${greet} 👋`}</div>
         <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>{dateStr}</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const }}>
