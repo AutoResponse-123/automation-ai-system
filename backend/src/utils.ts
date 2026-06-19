@@ -53,19 +53,23 @@ export function buildSystemPrompt(business: any, contactSummary?: string): strin
     parts.push(`\nAl cerrar una conversación, usá esta frase: "${randomClosing}"`);
   }
 
-  if (business.appointment_categories?.length > 0) {
+  // Nombre configurable de la agenda (turnos / reservas / sesiones / etc.) y on/off.
+  const apptEnabled = business.schedule?.appointments_enabled !== false;
+  const apptLabel = (business.schedule?.label || '').trim() || 'turnos';
+
+  if (apptEnabled && business.appointment_categories?.length > 0) {
     const cats = business.appointment_categories.map((c: any) => `- ${c.name} (${c.duration_minutes} min)`).join('\n');
-    parts.push(`\nCategorías de servicio disponibles:\n${cats}\nUsá estas categorías y duraciones al crear turnos.`);
+    parts.push(`\nCategorías de servicio disponibles:\n${cats}\nUsá estas categorías y duraciones al agendar.`);
   }
 
-  if (hasProFeatures(business.plan) && business.google_refresh_token) {
-    parts.push(`\nTenés acceso al calendario del negocio. SIEMPRE seguí este flujo para agendar turnos:
+  if (apptEnabled && hasProFeatures(business.plan) && business.google_refresh_token) {
+    parts.push(`\nTenés acceso al calendario del negocio para gestionar ${apptLabel}. SIEMPRE seguí este flujo para agendar:
 1) Preguntá qué fecha prefiere el cliente
 2) OBLIGATORIO: llamá get_available_slots para esa fecha ANTES de confirmar cualquier hora
 3) Mostrá SOLO los horarios que devuelve la herramienta — no inventes ni sugieras horas
 4) Si el cliente pide una hora que NO está en la lista, decile "ese horario no está disponible" y mostrá las opciones disponibles
 5) Cuando el cliente elija una hora disponible, pedí su nombre y llamá create_appointment
-6) NUNCA confirmes un turno sin haber llamado create_appointment primero. Si no llamaste al tool, NO digas que el turno está agendado.`);
+6) NUNCA confirmes sin haber llamado create_appointment primero. Si no llamaste al tool, NO digas que quedó agendado.`);
   }
 
   if (hasProFeatures(business.plan) && business.mp_payment_link) {

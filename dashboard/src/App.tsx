@@ -603,12 +603,15 @@ export default function App() {
     metrics.todayMessages > yesterdayMsgCount ? 'up' :
     metrics.todayMessages < yesterdayMsgCount ? 'down' : 'neutral'
 
+  const apptEnabled = businessData?.schedule?.appointments_enabled !== false
+  const apptLabel = (businessData?.schedule?.label || '').trim() || tr('nav_appointments', lang)
+
   const navItems: { id: Tab; icon: string; label: string }[] = [
     { id: 'dashboard',    icon: 'ti-layout-dashboard', label: tr('nav_dashboard', lang) },
     { id: 'inbox',        icon: 'ti-message-2',        label: tr('nav_inbox', lang) },
     { id: 'analytics',    icon: 'ti-chart-bar',        label: tr('nav_analytics', lang) },
     { id: 'contacts',     icon: 'ti-users',            label: tr('nav_contacts', lang) },
-    { id: 'appointments', icon: 'ti-calendar',         label: tr('nav_appointments', lang) },
+    ...(apptEnabled ? [{ id: 'appointments' as Tab, icon: 'ti-calendar', label: apptLabel }] : []),
     { id: 'activity',     icon: 'ti-activity',         label: tr('nav_activity', lang) },
     { id: 'settings',     icon: 'ti-settings',         label: tr('nav_settings', lang) },
   ]
@@ -803,10 +806,10 @@ export default function App() {
               </div>
             )}
             {/* Turnos de hoy */}
-            {todayAppts.length > 0 && (
+            {apptEnabled && todayAppts.length > 0 && (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, marginTop: 4 }}>
-                  <div style={s.sectionTitle}>Turnos de hoy</div>
+                  <div style={s.sectionTitle}>{apptLabel} {lang === 'en' ? 'today' : 'de hoy'}</div>
                   <button onClick={() => setTab('appointments')} style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--accent)', cursor: 'pointer', fontFamily: 'inherit' }}>Ver todos →</button>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
@@ -1246,7 +1249,7 @@ export default function App() {
             if (conv) { setSelectedConv(conv); setTab('inbox') }
           }} />
         )}
-        {tab === 'appointments' && businessId && <Appointments businessId={businessId} />}
+        {tab === 'appointments' && businessId && apptEnabled && <Appointments businessId={businessId} label={apptLabel} />}
         {tab === 'activity' && <Activity />}
         {tab === 'settings' && <Settings businessId={businessId} onThemeChange={applyTheme} onFontChange={f => { setDashFont(f); localStorage.setItem('ar_font', f) }} plan={businessData?.plan ?? 'trial'} />}
       </div>
@@ -1277,7 +1280,7 @@ export default function App() {
           actions={[
             { label: 'Inbox', sub: 'Ver conversaciones', icon: 'ti-message-2', keywords: 'mensajes chat conversaciones', run: () => setTab('inbox') },
             { label: 'Pendientes', sub: 'Conversaciones sin responder', icon: 'ti-clock-exclamation', keywords: 'pendientes atencion', run: () => { setConvFilter('pending'); setTab('inbox') } },
-            { label: 'Turnos', sub: 'Citas agendadas', icon: 'ti-calendar', keywords: 'appointments citas reservas', run: () => setTab('appointments') },
+            ...(apptEnabled ? [{ label: apptLabel, sub: lang === 'en' ? 'Booked appointments' : 'Citas agendadas', icon: 'ti-calendar', keywords: 'appointments citas reservas turnos', run: () => setTab('appointments') }] : []),
             { label: 'Analytics', sub: 'Métricas y gráficos', icon: 'ti-chart-bar', keywords: 'estadisticas metricas', run: () => setTab('analytics') },
             { label: 'Contactos', sub: 'Tus clientes', icon: 'ti-users', keywords: 'clientes', run: () => setTab('contacts') },
             { label: 'Actividad', sub: 'Historial de eventos', icon: 'ti-activity', keywords: 'historial log', run: () => setTab('activity') },

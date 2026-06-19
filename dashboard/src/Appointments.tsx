@@ -142,7 +142,7 @@ function ApptCard({ appt, today, categories, confirmingId, setConfirmingId, canc
   )
 }
 
-export default function Appointments({ businessId }: { businessId: string }) {
+export default function Appointments({ businessId, label }: { businessId: string; label?: string }) {
   const t = useT()
   const [appts, setAppts] = useState<Appointment[]>([])
   const [filter, setFilter] = useState<Filter>('upcoming')
@@ -260,7 +260,7 @@ export default function Appointments({ businessId }: { businessId: string }) {
     <div style={s.wrap}>
       <div style={s.header}>
         <div>
-          <h2 style={s.title}>📅 {t('appointments_title')}</h2>
+          <h2 style={s.title}>📅 {label || t('appointments_title')}</h2>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button onClick={exportCSV} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-mid)', background: 'transparent', color: 'var(--text-2)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>

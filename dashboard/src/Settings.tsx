@@ -46,6 +46,8 @@ interface BusinessConfig {
     fixed_duration?: number
     buffer_minutes?: number
     slot_step?: number
+    appointments_enabled?: boolean
+    label?: string
     hours: Record<string, { open: string; close: string; closed: boolean; breaks?: Array<{ start: string; end: string }> }>
   }
 }
@@ -56,6 +58,8 @@ const DEFAULT_SCHEDULE = {
   slot_mode: 'fixed',
   fixed_duration: 60,
   buffer_minutes: 0,
+  appointments_enabled: true,
+  label: '',
   hours: {
     lunes:    { open: '09:00', close: '18:00', closed: false },
     martes:   { open: '09:00', close: '18:00', closed: false },
@@ -105,6 +109,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
   const [newClosing, setNewClosing] = useState('')
   const isMobile = useIsMobile()
   const [showSectionDropdown, setShowSectionDropdown] = useState(false)
+  const [fixedDurCustom, setFixedDurCustom] = useState(false)
   const [bgColor, setBgColor] = useState<string>(() => localStorage.getItem('ar_bg_color') ?? 'var(--bg-base)')
   const [fontFamily, setFontFamily] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Inter')
 
@@ -257,7 +262,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
     notificaciones: ['Notificaciones',   'Notifications'],
     apariencia:     ['Apariencia',       'Appearance'],
     integraciones:  ['Integraciones',    'Integrations'],
-    turnos:         ['Turnos',           'Appointments'],
+    turnos:         [config.schedule?.label?.trim() || 'Turnos', config.schedule?.label?.trim() || 'Appointments'],
   }
   const sl = (id: Section) => lang === 'en' ? sectionLabels[id][1] : sectionLabels[id][0]
 
@@ -961,6 +966,33 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
             <div style={s.section}>
               <SectionHeader icon="ti-calendar-event" title={uis('Configuración de turnos', 'Appointment settings')} subtitle={uis('Elegí cómo se calculan los horarios y definí tus servicios', 'Choose how slots are calculated and define your services')} />
 
+              {/* Activar / desactivar agenda */}
+              <div style={{ background: 'var(--bg-card)', border: `0.5px solid ${(config.schedule?.appointments_enabled !== false) ? 'var(--accent)' : 'var(--border-mid)'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{uis('Activar agenda de turnos', 'Enable scheduling')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2 }}>{uis('Si lo desactivás, el bot no ofrece agendar y se oculta del panel. Útil si usás el Pro por otros beneficios.', 'If you turn this off, the bot will not offer scheduling and it is hidden from the dashboard.')}</div>
+                  </div>
+                  <div style={{ ...s.toggleTrack, ...((config.schedule?.appointments_enabled !== false) ? s.toggleTrackOn : {}) }}
+                    onClick={() => update('schedule', { ...config.schedule, appointments_enabled: !(config.schedule?.appointments_enabled !== false) })}>
+                    <div style={{ ...s.toggleThumb, ...((config.schedule?.appointments_enabled !== false) ? s.toggleThumbOn : {}) }} />
+                  </div>
+                </div>
+              </div>
+
+              {(config.schedule?.appointments_enabled !== false) && (<>
+
+              {/* Nombre personalizado de la sección */}
+              <div style={{ marginBottom: 20 }}>
+                <Field label={uis('¿Cómo querés llamar a esta sección?', 'What do you want to call this section?')}>
+                  <input style={{ ...s.input, maxWidth: 280 }}
+                    placeholder={uis('Turnos (ej: Reservas, Sesiones, Retiros…)', 'Appointments (e.g. Bookings, Sessions…)')}
+                    value={config.schedule?.label ?? ''}
+                    onChange={e => update('schedule', { ...config.schedule, label: e.target.value })} />
+                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6 }}>{uis('Aparece en el panel y lo usa el bot al hablar con los clientes. Vacío = "Turnos".', 'Shown in the dashboard and used by the bot. Empty = "Appointments".')}</div>
+                </Field>
+              </div>
+
               {/* ── Modo de turnos ── */}
               <div style={{ marginBottom: 24 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>{uis('Modo de turnos', 'Scheduling mode')}</div>
@@ -975,7 +1007,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{uis('Duración fija', 'Fixed duration')}</span>
                       {(config.schedule?.slot_mode ?? 'fixed') === 'fixed' && <i className="ti ti-check" style={{ fontSize: 16, color: 'var(--accent)', marginLeft: 'auto' }} aria-hidden="true" />}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>{uis('Todos los turnos duran lo mismo. Simple y recomendado para empezar.', 'Every appointment lasts the same. Simple, recommended to start.')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>{uis('Todos los turnos duran lo mismo.', 'Every appointment lasts the same.')}</div>
                   </div>
 
                   <div onClick={() => update('schedule', { ...config.schedule, slot_mode: 'per_service' })}
@@ -986,23 +1018,42 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{uis('Duración por servicio', 'Per-service duration')}</span>
                       {config.schedule?.slot_mode === 'per_service' && <i className="ti ti-check" style={{ fontSize: 16, color: 'var(--accent)', marginLeft: 'auto' }} aria-hidden="true" />}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>{uis('Cada servicio dura lo suyo (corte 40, barba 20…) y se aprovecha mejor la agenda.', 'Each service uses its own length and fills the day better.')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', lineHeight: 1.5 }}>{uis('Cada servicio dura lo suyo y se aprovecha mejor la agenda.', 'Each service uses its own length and fills the day better.')}</div>
                   </div>
                 </div>
 
                 {(config.schedule?.slot_mode ?? 'fixed') === 'fixed' && (
                   <div style={{ marginTop: 14 }}>
                     <Field label={uis('Duración de cada turno', 'Length of each appointment')}>
-                      <select style={{ ...s.select, maxWidth: 220 }} value={config.schedule?.fixed_duration ?? 60}
-                        onChange={e => update('schedule', { ...config.schedule, fixed_duration: Number(e.target.value) })}>
-                        <option value={15}>15 min</option>
-                        <option value={20}>20 min</option>
-                        <option value={30}>30 min</option>
-                        <option value={45}>45 min</option>
-                        <option value={60}>{uis('1 hora', '1 hour')}</option>
-                        <option value={90}>{uis('1 hora 30 min', '1h 30m')}</option>
-                        <option value={120}>{uis('2 horas', '2 hours')}</option>
-                      </select>
+                      {(() => {
+                        const PRESETS = [15, 20, 30, 45, 60, 90, 120]
+                        const cur = config.schedule?.fixed_duration ?? 60
+                        const isCustom = fixedDurCustom || !PRESETS.includes(cur)
+                        return (<>
+                          <select style={{ ...s.select, maxWidth: 220 }} value={isCustom ? 'custom' : String(cur)}
+                            onChange={e => {
+                              if (e.target.value === 'custom') { setFixedDurCustom(true) }
+                              else { setFixedDurCustom(false); update('schedule', { ...config.schedule, fixed_duration: Number(e.target.value) }) }
+                            }}>
+                            <option value={15}>15 min</option>
+                            <option value={20}>20 min</option>
+                            <option value={30}>30 min</option>
+                            <option value={45}>45 min</option>
+                            <option value={60}>{uis('1 hora', '1 hour')}</option>
+                            <option value={90}>{uis('1 hora 30 min', '1h 30m')}</option>
+                            <option value={120}>{uis('2 horas', '2 hours')}</option>
+                            <option value="custom">{uis('Personalizada', 'Custom')}</option>
+                          </select>
+                          {isCustom && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                              <input style={{ ...s.input, width: 90 }} type="number" min={5} max={1440} step={5}
+                                value={cur}
+                                onChange={e => update('schedule', { ...config.schedule, fixed_duration: Math.max(5, Number(e.target.value) || 5) })} />
+                              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>min</span>
+                            </div>
+                          )}
+                        </>)
+                      })()}
                       <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6 }}>{uis('Todos los turnos tendrán esta duración, sin importar el servicio.', 'Every appointment uses this length, regardless of service.')}</div>
                     </Field>
                   </div>
@@ -1118,6 +1169,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                   {uis('Las categorías aparecerán como filtros en la sección Turnos y definen la duración por defecto de cada servicio.', 'Categories appear as filters in the Appointments section and define the default duration per service.')}
                 </div>
               </div>
+            </>)}
             </div>
           )}
 
