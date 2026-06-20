@@ -110,6 +110,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
   const isMobile = useIsMobile()
   const [showSectionDropdown, setShowSectionDropdown] = useState(false)
   const [fixedDurCustom, setFixedDurCustom] = useState(false)
+  const [bufferCustom, setBufferCustom] = useState(false)
   const [bgColor, setBgColor] = useState<string>(() => localStorage.getItem('ar_bg_color') ?? 'var(--bg-base)')
   const [fontFamily, setFontFamily] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Inter')
 
@@ -502,15 +503,34 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                   </Field>
 
                   <Field label={uis('Tiempo entre turnos (buffer)', 'Time between appointments (buffer)')}>
-                    <select style={s.select} value={config.schedule?.buffer_minutes ?? 0}
-                      onChange={e => update('schedule', { ...config.schedule, buffer_minutes: Number(e.target.value) })}>
-                      <option value={0}>{uis('Sin tiempo entre turnos', 'No gap between appointments')}</option>
-                      <option value={5}>{uis('5 minutos', '5 minutes')}</option>
-                      <option value={10}>{uis('10 minutos', '10 minutes')}</option>
-                      <option value={15}>{uis('15 minutos', '15 minutes')}</option>
-                      <option value={20}>{uis('20 minutos', '20 minutes')}</option>
-                      <option value={30}>{uis('30 minutos', '30 minutes')}</option>
-                    </select>
+                    {(() => {
+                      const PRESETS = [0, 5, 10, 15, 20, 30]
+                      const cur = config.schedule?.buffer_minutes ?? 0
+                      const isCustom = bufferCustom || !PRESETS.includes(cur)
+                      return (<>
+                        <select style={s.select} value={isCustom ? 'custom' : String(cur)}
+                          onChange={e => {
+                            if (e.target.value === 'custom') { setBufferCustom(true) }
+                            else { setBufferCustom(false); update('schedule', { ...config.schedule, buffer_minutes: Number(e.target.value) }) }
+                          }}>
+                          <option value={0}>{uis('Sin tiempo entre turnos', 'No gap between appointments')}</option>
+                          <option value={5}>{uis('5 minutos', '5 minutes')}</option>
+                          <option value={10}>{uis('10 minutos', '10 minutes')}</option>
+                          <option value={15}>{uis('15 minutos', '15 minutes')}</option>
+                          <option value={20}>{uis('20 minutos', '20 minutes')}</option>
+                          <option value={30}>{uis('30 minutos', '30 minutes')}</option>
+                          <option value="custom">{uis('Personalizado', 'Custom')}</option>
+                        </select>
+                        {isCustom && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                            <input style={{ ...s.input, width: 90 }} type="number" min={0} max={240} step={5}
+                              value={cur}
+                              onChange={e => update('schedule', { ...config.schedule, buffer_minutes: Math.max(0, Number(e.target.value) || 0) })} />
+                            <span style={{ fontSize: 12, color: 'var(--text-3)' }}>min</span>
+                          </div>
+                        )}
+                      </>)
+                    })()}
                     <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6 }}>
                       {uis('Hueco libre que se deja entre un turno y el siguiente (para limpiar, demoras, etc.). La duracion de cada turno la define cada servicio en la seccion Turnos.', 'Free gap left between one appointment and the next.')}
                     </div>
