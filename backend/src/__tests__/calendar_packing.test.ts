@@ -99,4 +99,24 @@ describe('packFreeStarts — empaquetado dinámico de turnos', () => {
     expect(fmt(starts)).toEqual(['09:00', '10:00', '11:00'])
 
   })
+
+  it('cierre clásico (barbería 13-20, turnos 60min): último arranque 19:00', () => {
+    const starts = packFreeStarts({
+      dayStartMs: ms('13:00'), dayEndMs: ms('20:00'),
+      durationMs: 60 * 60000, stepMs: 60 * 60000, bufferMs: 0,
+      busy: [], breaks: [], nowMs: PAST,
+    })
+    const arr = fmt(starts)
+    expect(arr[arr.length - 1]).toBe('19:00')
+  })
+
+  it('cierre "arranca al cierre" (dayEnd extendido por la duración): último arranque 20:00', () => {
+    const starts = packFreeStarts({
+      dayStartMs: ms('13:00'), dayEndMs: ms('21:00'),
+      durationMs: 60 * 60000, stepMs: 60 * 60000, bufferMs: 0,
+      busy: [], breaks: [], nowMs: PAST,
+    })
+    const arr = fmt(starts)
+    expect(arr[arr.length - 1]).toBe('20:00')
+  })
 })

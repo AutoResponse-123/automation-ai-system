@@ -175,20 +175,26 @@ async function getAvailableSlots(business: any, date: string, durationMinutes: n
     ? wallTimeToUtc(addDaysStr(date, 1), `${pad(closeH)}:${pad(closeM)}`, tz)
     : wallTimeToUtc(date, `${pad(closeH)}:${pad(closeM)}`, tz);
 
+  const { duration, step, buffer } = resolveSlot(business, durationMinutes);
+  // Semantica del cierre: si last_slot_starts_at_close, la hora de cierre es el ULTIMO
+  // ARRANQUE posible (el turno termina despues). Lo logramos extendiendo el horizonte de
+  // calculo por la duracion: asi "t + duration <= dayEndFit" equivale a "t <= cierre".
+  // Default (false): el turno debe TERMINAR antes del cierre (comportamiento clasico).
+  const lastStartAtClose = business.schedule?.last_slot_starts_at_close === true;
+  const dayEndFit = lastStartAtClose ? new Date(dayEnd.getTime() + duration * 60000) : dayEnd;
+
   const { data } = await calendar.freebusy.query({
     requestBody: {
       timeMin: dayStart.toISOString(),
-      timeMax: dayEnd.toISOString(),
+      timeMax: dayEndFit.toISOString(),
       items: [{ id: calendarId }],
     },
   });
   const busyRaw: { start: string; end: string }[] = data.calendars?.[calendarId]?.busy || [];
 
-  const { duration, step, buffer } = resolveSlot(business, durationMinutes);
-
   const startMs = packFreeStarts({
     dayStartMs: dayStart.getTime(),
-    dayEndMs: dayEnd.getTime(),
+    dayEndMs: dayEndFit.getTime(),
     durationMs: duration * 60000,
     stepMs: step * 60000,
     bufferMs: buffer * 60000,
@@ -208,6 +214,7 @@ async function getAvailableSlots(business: any, date: string, durationMinutes: n
     openClose: `${pad(openH)}:${pad(openM)}-${pad(closeH)}:${pad(closeM)}`,
     busyBlocks: busyRaw.length,
     slotsFound: slots.length,
+    lastStartAtClose,
   }));
   return slots;
 }

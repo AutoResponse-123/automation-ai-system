@@ -48,6 +48,7 @@ interface BusinessConfig {
     slot_step?: number
     appointments_enabled?: boolean
     label?: string
+    last_slot_starts_at_close?: boolean
     hours: Record<string, { open: string; close: string; closed: boolean; breaks?: Array<{ start: string; end: string }> }>
   }
 }
@@ -60,6 +61,7 @@ const DEFAULT_SCHEDULE = {
   buffer_minutes: 0,
   appointments_enabled: true,
   label: '',
+  last_slot_starts_at_close: false,
   hours: {
     lunes:    { open: '09:00', close: '18:00', closed: false },
     martes:   { open: '09:00', close: '18:00', closed: false },
@@ -533,6 +535,19 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                     })()}
                     <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 6 }}>
                       {uis('Hueco libre que se deja entre un turno y el siguiente (para limpiar, demoras, etc.). La duracion de cada turno la define cada servicio en la seccion Turnos.', 'Free gap left between one appointment and the next.')}
+                    </div>
+                  </Field>
+
+                  <Field label="">
+                    <div style={s.toggleRow}>
+                      <div>
+                        <div style={{ fontSize: 13, color: 'var(--text-1)', fontWeight: 500 }}>{uis('El último turno puede arrancar a la hora de cierre', 'Last appointment can start at closing time')}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{uis('Activado: a la hora de cierre arranca el último turno y termina después (ideal barbería/peluquería). Desactivado: el último turno debe terminar antes del cierre.', 'On: the last appointment starts at closing time and finishes afterwards (ideal for barbers/salons). Off: the last appointment must end before closing.')}</div>
+                      </div>
+                      <div style={{ ...s.toggleTrack, ...(config.schedule?.last_slot_starts_at_close ? s.toggleTrackOn : {}) }}
+                        onClick={() => update('schedule', { ...config.schedule, last_slot_starts_at_close: !config.schedule?.last_slot_starts_at_close })}>
+                        <div style={{ ...s.toggleThumb, ...(config.schedule?.last_slot_starts_at_close ? s.toggleThumbOn : {}) }} />
+                      </div>
                     </div>
                   </Field>
 
