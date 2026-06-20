@@ -6,7 +6,8 @@ const { getAuthUrl, saveTokens } = require('../services/calendar');
 const { getSheetsAuthUrl, saveSheetsTokens, exportToSheets } = require('../services/sheets');
 const { sendEscalationEmail } = require('../services/email');
 const { supabase } = require('../config/supabase');
-const { buildSystemPrompt, checkEscalation, isOutsideHours } = require('../utils');
+const { buildSystemPrompt, checkEscalation, isOutsideHours, hasProFeatures } = require('../utils');
+const { transcribeAudio } = require('../services/transcribe');
 
 const router = express.Router();
 
@@ -85,11 +86,14 @@ router.post('/whatsapp', async (req: any, res: any) => {
     const rawBody = req.body.Body || '';
     const numMedia = parseInt(req.body.NumMedia || '0', 10);
     const mediaType = req.body.MediaContentType0 || '';
+    const mediaUrl = req.body.MediaUrl0 || '';
+    const isAudio = numMedia > 0 && !rawBody && mediaType.startsWith('audio/');
     let messageBody = rawBody;
 
     if (numMedia > 0 && !rawBody) {
       if (mediaType.startsWith('audio/')) {
-        messageBody = '[El usuario envió un mensaje de voz]';
+        // Fallback si la transcripción no aplica (plan sin audios) o falla: guía al bot a pedir texto.
+        messageBody = '[El usuario envió un mensaje de voz que no puedo escuchar. Pedile amablemente que escriba su consulta por texto.]';
       } else if (mediaType.startsWith('image/')) {
         messageBody = '[El usuario envió una imagen]';
       } else if (mediaType.startsWith('video/')) {
@@ -164,6 +168,22 @@ router.post('/whatsapp', async (req: any, res: any) => {
           res.type('text/xml');
           return res.send(twimlLP.toString());
         }
+      }
+    }
+
+    // Notas de voz: si es audio y el plan lo permite, transcribimos con Whisper y usamos
+    // el texto como si el cliente lo hubiera escrito. Si falla, pedimos que lo escriban.
+    if (isAudio && hasProFeatures(business.plan)) {
+      const transcript = await transcribeAudio(mediaUrl, mediaType);
+      if (transcript) {
+        messageBody = transcript;
+        console.log('[webhook] audio transcripto:', transcript.slice(0, 80));
+      } else {
+        const { sendWhatsAppMessage } = require('../services/twilio');
+        const askText = 'Perdón, no pude escuchar bien el audio 🙉 ¿Me lo escribís por texto, porfa?';
+        await sendWhatsAppMessage(fromPhone, askText, process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!, business.phone_whatsapp);
+        res.status(200).send('<Response/>');
+        return;
       }
     }
 
