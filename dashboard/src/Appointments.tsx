@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useT } from './i18n'
 import { supabase } from './supabase'
+import { useIsMobile } from './hooks/useIsMobile'
 
 interface Appointment {
   id: string
@@ -143,6 +144,7 @@ function ApptCard({ appt, today, categories, confirmingId, setConfirmingId, canc
 }
 
 export default function Appointments({ businessId, label }: { businessId: string; label?: string }) {
+  const isMobile = useIsMobile()
   const t = useT()
   const [appts, setAppts] = useState<Appointment[]>([])
   const [filter, setFilter] = useState<Filter>('upcoming')
@@ -161,18 +163,37 @@ export default function Appointments({ businessId, label }: { businessId: string
     setEditingNoteId(null)
   }
 
-  function exportCSV() {
+  function buildCSV() {
     const rows = [['Cliente', 'Teléfono', 'Servicio', 'Categoría', 'Fecha', 'Hora', 'Estado', 'Notas']]
     filtered.forEach(a => rows.push([
       a.client_name || '', a.client_phone || '', a.title || '',
-      a.category || '', a.appointment_date, String(a.appointment_time).slice(0,5),
+      a.category || '', a.appointment_date, String(a.appointment_time).slice(0, 5),
       a.status || 'scheduled', a.notes || ''
     ]))
-    const csv = rows.map(r => r.map(v => '"' + v + '"').join(',')).join('\n')
+    const esc = (v: any) => '"' + String(v ?? '').replace(/"/g, '""') + '"'
+    // BOM (\uFEFF) => Excel detecta UTF-8 y no rompe los acentos.
+    // Separador ';' => Excel en español separa en columnas correctamente.
+    return '\uFEFF' + rows.map(r => r.map(esc).join(';')).join('\r\n')
+  }
+
+  async function exportCSV() {
+    const csv = buildCSV()
+    const fname = 'turnos_' + new Date().toISOString().slice(0, 10) + '.csv'
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const nav: any = navigator
+    // En celular: usar el menú nativo de compartir (WhatsApp, mail, Drive…) si está disponible.
+    try {
+      const file = new File([blob], fname, { type: 'text/csv' })
+      if (isMobile && nav.canShare && nav.canShare({ files: [file] })) {
+        await nav.share({ files: [file], title: t('appointments_title'), text: 'Lista de turnos' })
+        return
+      }
+    } catch { /* si el usuario cancela o falla, caemos a descarga */ }
     const el = document.createElement('a')
-    el.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
-    el.download = 'turnos_' + new Date().toISOString().slice(0,10) + '.csv'
+    el.href = URL.createObjectURL(blob)
+    el.download = fname
     el.click()
+    URL.revokeObjectURL(el.href)
   }
 
   async function cancelAppt(apptId: string) {
@@ -264,7 +285,7 @@ export default function Appointments({ businessId, label }: { businessId: string
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button onClick={exportCSV} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-mid)', background: 'transparent', color: 'var(--text-2)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-            <i className="ti ti-download" style={{ fontSize: 13 }} /> CSV
+            <i className={isMobile ? 'ti ti-share' : 'ti ti-download'} style={{ fontSize: 13 }} /> {isMobile ? 'Compartir' : 'CSV'}
           </button>
           <div style={s.filters}>
           {(['upcoming', 'today', 'past'] as Filter[]).map(f => (
