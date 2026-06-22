@@ -49,6 +49,7 @@ interface BusinessConfig {
     appointments_enabled?: boolean
     label?: string
     last_slot_starts_at_close?: boolean
+    session_timeout_hours?: number
     hours: Record<string, { open: string; close: string; closed: boolean; breaks?: Array<{ start: string; end: string }> }>
   }
 }
@@ -62,6 +63,7 @@ const DEFAULT_SCHEDULE = {
   appointments_enabled: true,
   label: '',
   last_slot_starts_at_close: false,
+  session_timeout_hours: 6,
   hours: {
     lunes:    { open: '09:00', close: '18:00', closed: false },
     martes:   { open: '09:00', close: '18:00', closed: false },
@@ -113,6 +115,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
   const [showSectionDropdown, setShowSectionDropdown] = useState(false)
   const [fixedDurCustom, setFixedDurCustom] = useState(false)
   const [bufferCustom, setBufferCustom] = useState(false)
+  const [sessionTimeoutCustom, setSessionTimeoutCustom] = useState(false)
   const [bgColor, setBgColor] = useState<string>(() => localStorage.getItem('ar_bg_color') ?? 'var(--bg-base)')
   const [fontFamily, setFontFamily] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Inter')
 
@@ -469,6 +472,38 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                     onChange={e => update('max_messages_before_escalation', parseInt(e.target.value))} />
                   <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{uis('mensajes', 'messages')}</span>
                 </div>
+              </Field>
+
+              <Field label={uis('Reiniciar la conversación tras inactividad', 'Reset conversation after inactivity')} hint={uis('Si un cliente vuelve a escribir después de este tiempo, el bot arranca una conversación nueva y no arrastra contexto viejo (fechas, horarios ofrecidos, etc.). El historial y el resumen del cliente se mantienen.', 'If a client writes again after this time, the bot starts a fresh conversation and does not carry old context. The client history/summary is kept.')}>
+                {(() => {
+                  const PRESETS = [1, 3, 6, 12, 24, 48]
+                  const cur = config.schedule?.session_timeout_hours ?? 6
+                  const isCustom = sessionTimeoutCustom || (cur !== 0 && !PRESETS.includes(cur))
+                  return (<>
+                    <select style={{ ...s.select, maxWidth: 260 }} value={cur === 0 ? '0' : (isCustom ? 'custom' : String(cur))}
+                      onChange={e => {
+                        if (e.target.value === 'custom') { setSessionTimeoutCustom(true) }
+                        else { setSessionTimeoutCustom(false); update('schedule', { ...config.schedule, session_timeout_hours: Number(e.target.value) }) }
+                      }}>
+                      <option value="0">{uis('Nunca reiniciar', 'Never reset')}</option>
+                      <option value={1}>{uis('1 hora', '1 hour')}</option>
+                      <option value={3}>{uis('3 horas', '3 hours')}</option>
+                      <option value={6}>{uis('6 horas (recomendado)', '6 hours (recommended)')}</option>
+                      <option value={12}>{uis('12 horas', '12 hours')}</option>
+                      <option value={24}>{uis('24 horas', '24 hours')}</option>
+                      <option value={48}>{uis('48 horas', '48 hours')}</option>
+                      <option value="custom">{uis('Personalizado', 'Custom')}</option>
+                    </select>
+                    {isCustom && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                        <input style={{ ...s.input, width: 90 }} type="number" min={1} max={720} step={1}
+                          value={cur}
+                          onChange={e => update('schedule', { ...config.schedule, session_timeout_hours: Math.max(1, Number(e.target.value) || 1) })} />
+                        <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{uis('horas', 'hours')}</span>
+                      </div>
+                    )}
+                  </>)
+                })()}
               </Field>
             </div>
           )}

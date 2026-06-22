@@ -187,7 +187,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
       }
     }
 
-    const { conversationId, contactId, contactSummary } = await getOrCreateConversation(business.id, fromPhone);
+    const { conversationId, contactId, contactSummary } = await getOrCreateConversation(business.id, fromPhone, business.schedule?.session_timeout_hours ?? 6);
 
     await saveMessage(conversationId, 'user', messageBody);
 
@@ -213,7 +213,21 @@ router.post('/whatsapp', async (req: any, res: any) => {
       return res.send(twiml.toString());
     }
 
-    const history = await getConversationHistory(conversationId);
+    const today = new Date().toISOString().split('T')[0];
+    // Paralelizamos las dos consultas independientes (historial + próximos turnos) para
+    // arrancar a pensar la respuesta antes (menos latencia percibida por el cliente).
+    const [history, upcomingApptsRes] = await Promise.all([
+      getConversationHistory(conversationId),
+      supabase
+        .from('appointments')
+        .select('title, client_name, appointment_date, appointment_time')
+        .eq('business_id', business.id)
+        .eq('client_phone', fromPhone)
+        .gte('appointment_date', today)
+        .order('appointment_date').order('appointment_time')
+        .limit(3),
+    ]);
+    const upcomingAppts = upcomingApptsRes.data;
     const msgCount = history.filter((m: any) => m.sender === 'user').length;
     const maxMsgs = business.max_messages_before_escalation || 10;
 
@@ -228,16 +242,6 @@ router.post('/whatsapp', async (req: any, res: any) => {
       res.type('text/xml');
       return res.send(twiml.toString());
     }
-
-    const today = new Date().toISOString().split('T')[0];
-    const { data: upcomingAppts } = await supabase
-      .from('appointments')
-      .select('title, client_name, appointment_date, appointment_time')
-      .eq('business_id', business.id)
-      .eq('client_phone', fromPhone)
-      .gte('appointment_date', today)
-      .order('appointment_date').order('appointment_time')
-      .limit(3);
 
     let systemPrompt = buildSystemPrompt(business, contactSummary || undefined);
     if (upcomingAppts && upcomingAppts.length > 0) {

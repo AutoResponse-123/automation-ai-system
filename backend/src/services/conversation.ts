@@ -3,7 +3,8 @@ const { supabase } = require('../config/supabase');
 
 async function getOrCreateConversation(
   businessId: string,
-  contactPhone: string
+  contactPhone: string,
+  sessionTimeoutHours: number = 6
 ) {
   // Contacto: buscar; si no existe, crear tolerando carrera (índice único
   // contacts(business_id, phone) → si otro proceso lo creó a la vez, re-leemos).
@@ -32,7 +33,11 @@ async function getOrCreateConversation(
   const contactId: string = contact.id;
   const contactSummary: string | null = contact.summary || null;
 
-  // Conversación activa: mismo patrón (índice único parcial garantiza una sola activa).
+  // Conversación activa con EXPIRACIÓN por inactividad: si la última actividad fue hace
+  // mucho (sesión vieja, otro día), cerramos esa conversación y arrancamos una nueva. Así
+  // el bot no retoma contexto viejo (ej. seguir ofreciendo "mañana sábado" 3 días después).
+  // El resumen del contacto (memoria de largo plazo) se mantiene igual.
+  const SESSION_TIMEOUT_MS = Math.max(0, Number(sessionTimeoutHours) || 0) * 60 * 60 * 1000; // configurable; 0 = nunca reinicia
   let conversation: any = (await supabase
     .from('conversations')
     .select('id')
@@ -40,6 +45,23 @@ async function getOrCreateConversation(
     .eq('contact_id', contactId)
     .eq('status', 'active')
     .maybeSingle()).data;
+
+  if (conversation && SESSION_TIMEOUT_MS > 0) {
+    const { data: lastMsgs } = await supabase
+      .from('messages')
+      .select('created_at')
+      .eq('conversation_id', conversation.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    const lastTs = lastMsgs && lastMsgs[0]?.created_at ? new Date(lastMsgs[0].created_at).getTime() : null;
+    if (lastTs && Date.now() - lastTs > SESSION_TIMEOUT_MS) {
+      await supabase
+        .from('conversations')
+        .update({ status: 'resolved', updated_at: new Date().toISOString() })
+        .eq('id', conversation.id);
+      conversation = null; // forzar nueva conversación => contexto limpio, fecha de hoy
+    }
+  }
 
   if (!conversation) {
     const ins = await supabase

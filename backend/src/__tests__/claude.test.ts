@@ -3,6 +3,8 @@ export {};
 
 const mockCreate = jest.fn()
 const mockApptInsert = jest.fn().mockResolvedValue({ error: null })
+// Fecha siempre futura (evita que normalizeFutureDate la empuje al año siguiente cuando el test envejece).
+const FUTURE_DATE = new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10)
 
 jest.mock('@anthropic-ai/sdk', () => ({
   __esModule: true,
@@ -72,7 +74,7 @@ describe('callClaude — create_appointment en conversación nueva', () => {
             type: 'tool_use',
             id: 'tu_1',
             name: 'create_appointment',
-            input: { title: 'Corte', date: '2026-06-20', time: '14:00', client_name: 'Juan', duration_minutes: 30 },
+            input: { title: 'Corte', date: FUTURE_DATE, time: '14:00', client_name: 'Juan', duration_minutes: 30 },
           },
         ],
       })
@@ -96,7 +98,7 @@ describe('callClaude — create_appointment en conversación nueva', () => {
     expect(inserted).toMatchObject({
       business_id: 'biz_1',
       title: 'Corte',
-      appointment_date: '2026-06-20',
+      appointment_date: FUTURE_DATE,
       appointment_time: '14:00:00',
       client_name: 'Juan',
       client_phone: '+5491100000000',
@@ -123,7 +125,7 @@ describe('callClaude — create_appointment en conversación nueva', () => {
             type: 'tool_use',
             id: 'tu_2',
             name: 'create_appointment',
-            input: { title: 'Corte', date: '2026-06-20', time: '14:00', client_name: 'Juan' },
+            input: { title: 'Corte', date: FUTURE_DATE, time: '14:00', client_name: 'Juan' },
           },
         ],
       })

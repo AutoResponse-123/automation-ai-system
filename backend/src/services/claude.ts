@@ -143,9 +143,9 @@ async function callClaude(
   let totalTokens = 0;
   const MAX_TOOL_ROUNDS = 5; // seguridad para evitar loops infinitos
 
-  // Tiering por plan: Pro/Enterprise/trial usan Sonnet (más inteligente, y el trial
-  // muestra la mejor versión); Basic usa Haiku (más rápido y económico → protege margen).
-  const model = entitledPro ? 'claude-sonnet-4-5' : 'claude-haiku-4-5-20251001';
+  // Velocidad: usamos Haiku en TODOS los planes para que el bot responda lo más rápido
+  // posible (es muy capaz para atención + turnos). Antes Pro/trial usaba Sonnet (más lento).
+  const model = 'claude-haiku-4-5-20251001';
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
     const response = await client.messages.create({
@@ -317,4 +317,4 @@ async function callClaude(
 }
 
 module.exports = { callClaude };
-// Modelo por plan: Basic/trial → Haiku, Pro/Enterprise → Sonnet (ver callClaude).
+// Modelo: Haiku en todos los planes (prioriza velocidad de respuesta; ver callClaude).
