@@ -482,12 +482,14 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                 </div>
               </Field>
 
+{(config.schedule?.escalation_keyword_enabled !== false) && (
               <Field label={uis('Palabras clave para escalar', 'Keywords to escalate')} hint={uis('Si el cliente escribe alguna de estas palabras, la conversación se escala automáticamente a un humano', 'If the client writes any of these words, the conversation is automatically escalated to a human')}>
                 <TagInput tags={config.escalation_keywords} value={newKeyword} onChange={setNewKeyword}
                   onAdd={() => addTag('escalation_keywords', newKeyword, setNewKeyword)}
                   onRemove={(i) => removeTag('escalation_keywords', i)}
                   placeholder={uis('Ej: hablar con alguien, persona, urgente', 'E.g.: speak to someone, human, urgent')} color="#f59e0b" />
               </Field>
+              )}
 
               <Field label="">
                 <div style={s.toggleRow}>
@@ -502,6 +504,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                 </div>
               </Field>
 
+{(config.schedule?.escalation_limit_enabled !== false) && (
               <Field label={uis('Máximo de mensajes antes de escalar', 'Max messages before escalating')} hint={uis('Si la conversación supera este número sin resolverse, se escala automáticamente', 'If the conversation exceeds this number without resolution, it escalates automatically')}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <input style={{ ...s.input, width: 80 }} type="number" min={1} max={50}
@@ -510,6 +513,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                   <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{uis('mensajes', 'messages')}</span>
                 </div>
               </Field>
+              )}
 
               {/* Derivar ante error técnico */}
               <Field label="">
