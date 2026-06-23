@@ -154,7 +154,7 @@ describe('callClaude — create_appointment en conversación nueva', () => {
       content: [{ type: 'text', text: 'Hola! ¿En qué te ayudo?' }],
     })
 
-    const bizSinIntegraciones = { id: 'biz_2', name: 'Negocio', google_refresh_token: null, mp_access_token: null }
+    const bizSinIntegraciones = { id: 'biz_2', name: 'Negocio', google_refresh_token: null, mp_access_token: null, schedule: { escalation_bot_decides: false } }
     await callClaude([{ role: 'user', content: 'Hola' }], 'system', 300, bizSinIntegraciones, '+5491100000000')
 
     const callArgs = mockCreate.mock.calls[0][0]

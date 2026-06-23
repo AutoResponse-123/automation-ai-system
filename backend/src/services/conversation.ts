@@ -33,33 +33,39 @@ async function getOrCreateConversation(
   const contactId: string = contact.id;
   const contactSummary: string | null = contact.summary || null;
 
-  // Conversación activa con EXPIRACIÓN por inactividad: si la última actividad fue hace
-  // mucho (sesión vieja, otro día), cerramos esa conversación y arrancamos una nueva. Así
-  // el bot no retoma contexto viejo (ej. seguir ofreciendo "mañana sábado" 3 días después).
-  // El resumen del contacto (memoria de largo plazo) se mantiene igual.
-  const SESSION_TIMEOUT_MS = Math.max(0, Number(sessionTimeoutHours) || 0) * 60 * 60 * 1000; // configurable; 0 = nunca reinicia
-  let conversation: any = (await supabase
+  // Conversación abierta (activa o pendiente/derivada). Se reutiliza para no perder el hilo
+  // ni "reactivar" sin querer una conversación derivada a un humano. Solo las 'resolved' se
+  // consideran cerradas (=> se crea una nueva).
+  const SESSION_TIMEOUT_MS = Math.max(0, Number(sessionTimeoutHours) || 0) * 60 * 60 * 1000; // 0 = nunca reinicia
+  let conversation: any = ((await supabase
     .from('conversations')
-    .select('id')
+    .select('id, ai_enabled')
     .eq('business_id', businessId)
     .eq('contact_id', contactId)
-    .eq('status', 'active')
-    .maybeSingle()).data;
+    .in('status', ['active', 'pending'])
+    .order('created_at', { ascending: false })
+    .limit(1)).data || [])[0] || null;
 
-  if (conversation && SESSION_TIMEOUT_MS > 0) {
+  let lastMessageAt: string | null = null;
+  if (conversation) {
     const { data: lastMsgs } = await supabase
       .from('messages')
       .select('created_at')
       .eq('conversation_id', conversation.id)
       .order('created_at', { ascending: false })
       .limit(1);
-    const lastTs = lastMsgs && lastMsgs[0]?.created_at ? new Date(lastMsgs[0].created_at).getTime() : null;
-    if (lastTs && Date.now() - lastTs > SESSION_TIMEOUT_MS) {
+    lastMessageAt = (lastMsgs && lastMsgs[0]?.created_at) || null;
+    const lastTs = lastMessageAt ? new Date(lastMessageAt).getTime() : null;
+    const paused = conversation.ai_enabled === false;
+    // Reinicio por inactividad SOLO si NO está pausada (derivada). Las derivadas las maneja
+    // el webhook (reactivación manual o automática configurable), no este timer.
+    if (!paused && SESSION_TIMEOUT_MS > 0 && lastTs && Date.now() - lastTs > SESSION_TIMEOUT_MS) {
       await supabase
         .from('conversations')
         .update({ status: 'resolved', updated_at: new Date().toISOString() })
         .eq('id', conversation.id);
-      conversation = null; // forzar nueva conversación => contexto limpio, fecha de hoy
+      conversation = null;
+      lastMessageAt = null;
     }
   }
 
@@ -67,11 +73,11 @@ async function getOrCreateConversation(
     const ins = await supabase
       .from('conversations')
       .insert({ business_id: businessId, contact_id: contactId, status: 'active' })
-      .select('id')
+      .select('id, ai_enabled')
       .maybeSingle();
     conversation = ins.data || (await supabase
       .from('conversations')
-      .select('id')
+      .select('id, ai_enabled')
       .eq('business_id', businessId)
       .eq('contact_id', contactId)
       .eq('status', 'active')
@@ -79,7 +85,13 @@ async function getOrCreateConversation(
     if (!conversation) throw ins.error || new Error('No se pudo crear/obtener la conversación');
   }
 
-  return { contactId, conversationId: conversation.id, contactSummary };
+  return {
+    contactId,
+    conversationId: conversation.id,
+    contactSummary,
+    aiEnabled: conversation.ai_enabled !== false,
+    lastMessageAt,
+  };
 }
 
 async function updateContactSummary(contactId: string, conversationId: string, business: any) {

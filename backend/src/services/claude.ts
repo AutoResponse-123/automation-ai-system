@@ -69,6 +69,17 @@ const calendarTools = [
     },
   },
   {
+    name: 'escalate_to_human',
+    description: 'Derivá la conversación a un humano del equipo cuando: no puedas resolver lo que pide el cliente, haya un error que te impida continuar, o el cliente pida explícitamente hablar con una persona. Después de llamarlo, respondé al cliente avisándole brevemente que lo derivás. NO lo uses para consultas normales que sí podés responder vos.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        reason: { type: 'string', description: 'Motivo breve de la derivación (opcional)' },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'create_appointment',
     description: 'Crea un turno/cita en el calendario del negocio.',
     input_schema: {
@@ -131,16 +142,21 @@ async function callClaude(
   const apptEnabled = business?.schedule?.appointments_enabled !== false;
   const hasCalendar = entitledPro && !!business?.google_refresh_token && apptEnabled;
   const hasMP = entitledPro && !!business?.mp_access_token;
+  // El bot puede derivar a un humano por su cuenta (si el negocio lo habilita).
+  const botDecides = business?.schedule?.escalation_bot_decides !== false;
   const activeTools = calendarTools.filter((t: any) => {
     if (t.name === 'create_payment_link') return hasMP;
-    if (t.name === 'cancel_appointment') return true; // siempre disponible
+    if (t.name === 'cancel_appointment') return hasCalendar;
+    if (t.name === 'escalate_to_human') return botDecides;
     return hasCalendar;
   });
-  const tools = (hasCalendar || hasMP) ? activeTools : undefined;
-  const effectiveMaxTokens = (hasCalendar || hasMP) ? Math.max(maxTokens, 1000) : maxTokens;
+  const tools = activeTools.length > 0 ? activeTools : undefined;
+  const effectiveMaxTokens = tools ? Math.max(maxTokens, 1000) : maxTokens;
 
   let currentMessages = [...messages];
   let totalTokens = 0;
+  let escalateRequested = false;
+  let escalateReason = '';
   const MAX_TOOL_ROUNDS = 5; // seguridad para evitar loops infinitos
 
   // Velocidad: usamos Haiku en TODOS los planes para que el bot responda lo más rápido
@@ -161,7 +177,7 @@ async function callClaude(
     // Si no hay tool call, devolver respuesta final
     if (response.stop_reason !== 'tool_use') {
       const content = response.content.find((c: any) => c.type === 'text');
-      return { text: content?.text || '', tokens: totalTokens };
+      return { text: content?.text || '', tokens: totalTokens, escalate: escalateRequested, escalateReason };
     }
 
     // Procesar TODAS las tool calls de la respuesta. Claude puede pedir varias en
@@ -170,7 +186,7 @@ async function callClaude(
     const toolUseBlocks = response.content.filter((c: any) => c.type === 'tool_use');
     if (toolUseBlocks.length === 0) {
       const content = response.content.find((c: any) => c.type === 'text');
-      return { text: content?.text || '', tokens: totalTokens };
+      return { text: content?.text || '', tokens: totalTokens, escalate: escalateRequested, escalateReason };
     }
 
     // En paralelo: si Claude pide varios slots (un día por tool), se consultan todos
@@ -282,6 +298,11 @@ async function callClaude(
           toolResult = `Turno cancelado: ${appt.title} del ${appt.appointment_date} a las ${String(appt.appointment_time).slice(0, 5)}.`;
           console.log(`[cancel_appointment] Cancelado turno ${appt.id} de ${clientPhone}`);
         }
+      } else if (toolUseBlock.name === 'escalate_to_human') {
+        escalateRequested = true;
+        escalateReason = toolUseBlock.input?.reason || '';
+        toolResult = 'Derivación registrada. Avisale al cliente en UNA frase corta y amable que lo vas a derivar con una persona del equipo y que le responderán en breve. No menciones datos de contacto.';
+        console.log('[escalate_to_human] solicitada:', escalateReason);
       } else if (toolUseBlock.name === 'create_payment_link') {
         if (!business.mp_access_token) {
           toolResult = 'Mercado Pago no está configurado en este negocio.';
@@ -313,7 +334,7 @@ async function callClaude(
     ];
   }
 
-  return { text: 'No se pudo completar la operación.', tokens: totalTokens };
+  return { text: 'No se pudo completar la operación.', tokens: totalTokens, escalate: escalateRequested, escalateReason };
 }
 
 module.exports = { callClaude };

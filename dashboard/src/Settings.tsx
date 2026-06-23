@@ -50,6 +50,9 @@ interface BusinessConfig {
     label?: string
     last_slot_starts_at_close?: boolean
     session_timeout_hours?: number
+    escalation_on_error?: boolean
+    escalation_bot_decides?: boolean
+    escalation_auto_resume_hours?: number
     hours: Record<string, { open: string; close: string; closed: boolean; breaks?: Array<{ start: string; end: string }> }>
   }
 }
@@ -64,6 +67,9 @@ const DEFAULT_SCHEDULE = {
   label: '',
   last_slot_starts_at_close: false,
   session_timeout_hours: 6,
+  escalation_on_error: true,
+  escalation_bot_decides: true,
+  escalation_auto_resume_hours: 0,
   hours: {
     lunes:    { open: '09:00', close: '18:00', closed: false },
     martes:   { open: '09:00', close: '18:00', closed: false },
@@ -116,6 +122,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
   const [fixedDurCustom, setFixedDurCustom] = useState(false)
   const [bufferCustom, setBufferCustom] = useState(false)
   const [sessionTimeoutCustom, setSessionTimeoutCustom] = useState(false)
+  const [autoResumeCustom, setAutoResumeCustom] = useState(false)
   const [bgColor, setBgColor] = useState<string>(() => localStorage.getItem('ar_bg_color') ?? 'var(--bg-base)')
   const [fontFamily, setFontFamily] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Inter')
 
@@ -472,6 +479,65 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                     onChange={e => update('max_messages_before_escalation', parseInt(e.target.value))} />
                   <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{uis('mensajes', 'messages')}</span>
                 </div>
+              </Field>
+
+              {/* Derivar ante error técnico */}
+              <Field label="">
+                <div style={s.toggleRow}>
+                  <div>
+                    <div style={{ fontSize: 13, color: 'var(--text-1)', fontWeight: 500 }}>{uis('Derivar a un humano ante un error técnico', 'Hand off to a human on technical error')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{uis('Si el bot tiene un error, deja de responder y avisa al equipo en vez de seguir solo.', 'If the bot errors, it stops and notifies the team instead of continuing alone.')}</div>
+                  </div>
+                  <div style={{ ...s.toggleTrack, ...((config.schedule?.escalation_on_error !== false) ? s.toggleTrackOn : {}) }}
+                    onClick={() => update('schedule', { ...config.schedule, escalation_on_error: !(config.schedule?.escalation_on_error !== false) })}>
+                    <div style={{ ...s.toggleThumb, ...((config.schedule?.escalation_on_error !== false) ? s.toggleThumbOn : {}) }} />
+                  </div>
+                </div>
+              </Field>
+
+              {/* El bot puede derivar por su cuenta */}
+              <Field label="">
+                <div style={s.toggleRow}>
+                  <div>
+                    <div style={{ fontSize: 13, color: 'var(--text-1)', fontWeight: 500 }}>{uis('Permitir que el bot derive cuando no puede ayudar', 'Let the bot hand off when it cannot help')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{uis('El bot puede pasar la conversación a una persona si no puede resolverla o si el cliente lo pide.', 'The bot can pass the chat to a person if it cannot solve it or the client asks.')}</div>
+                  </div>
+                  <div style={{ ...s.toggleTrack, ...((config.schedule?.escalation_bot_decides !== false) ? s.toggleTrackOn : {}) }}
+                    onClick={() => update('schedule', { ...config.schedule, escalation_bot_decides: !(config.schedule?.escalation_bot_decides !== false) })}>
+                    <div style={{ ...s.toggleThumb, ...((config.schedule?.escalation_bot_decides !== false) ? s.toggleThumbOn : {}) }} />
+                  </div>
+                </div>
+              </Field>
+
+              <Field label={uis('Reactivar la IA automáticamente tras derivar', 'Auto-resume AI after handoff')} hint={uis('Al derivar, la IA queda en pausa y atiende un humano. Por defecto la reactiva el dueño desde el panel; acá podés hacer que vuelva sola tras un tiempo sin actividad.', 'After a handoff the AI is paused and a human takes over. By default a human resumes it; here you can make it auto-resume after some inactivity.')}>
+                {(() => {
+                  const RES_PRESETS = [1, 3, 6, 12, 24]
+                  const cur = config.schedule?.escalation_auto_resume_hours ?? 0
+                  const isCustom = autoResumeCustom || (cur !== 0 && !RES_PRESETS.includes(cur))
+                  return (<>
+                    <select style={{ ...s.select, maxWidth: 280 }} value={cur === 0 ? '0' : (isCustom ? 'custom' : String(cur))}
+                      onChange={e => {
+                        if (e.target.value === 'custom') { setAutoResumeCustom(true) }
+                        else { setAutoResumeCustom(false); update('schedule', { ...config.schedule, escalation_auto_resume_hours: Number(e.target.value) }) }
+                      }}>
+                      <option value="0">{uis('Solo manual (recomendado)', 'Manual only (recommended)')}</option>
+                      <option value={1}>{uis('Tras 1 hora', 'After 1 hour')}</option>
+                      <option value={3}>{uis('Tras 3 horas', 'After 3 hours')}</option>
+                      <option value={6}>{uis('Tras 6 horas', 'After 6 hours')}</option>
+                      <option value={12}>{uis('Tras 12 horas', 'After 12 hours')}</option>
+                      <option value={24}>{uis('Tras 24 horas', 'After 24 hours')}</option>
+                      <option value="custom">{uis('Personalizado', 'Custom')}</option>
+                    </select>
+                    {isCustom && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                        <input style={{ ...s.input, width: 90 }} type="number" min={1} max={720} step={1}
+                          value={cur}
+                          onChange={e => update('schedule', { ...config.schedule, escalation_auto_resume_hours: Math.max(1, Number(e.target.value) || 1) })} />
+                        <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{uis('horas', 'hours')}</span>
+                      </div>
+                    )}
+                  </>)
+                })()}
               </Field>
 
               <Field label={uis('Reiniciar la conversación tras inactividad', 'Reset conversation after inactivity')} hint={uis('Si un cliente vuelve a escribir después de este tiempo, el bot arranca una conversación nueva y no arrastra contexto viejo (fechas, horarios ofrecidos, etc.). El historial y el resumen del cliente se mantienen.', 'If a client writes again after this time, the bot starts a fresh conversation and does not carry old context. The client history/summary is kept.')}>

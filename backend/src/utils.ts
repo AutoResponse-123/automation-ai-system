@@ -81,6 +81,9 @@ export function buildSystemPrompt(business: any, contactSummary?: string): strin
   }
 
   parts.push(`\nSi no sabés algo, decilo honestamente y ofrecé derivar al equipo humano.`);
+  if (business.schedule?.escalation_bot_decides !== false) {
+    parts.push(`\nSi NO podés resolver lo que pide el cliente, ocurre un error que te impide continuar, o el cliente pide hablar con una persona: usá la herramienta escalate_to_human para derivarlo. No te limites a decir que lo derivás — llamá a la herramienta para que un humano tome la conversación.`);
+  }
   parts.push(`No inventes información sobre precios, disponibilidad o servicios que no se mencionan arriba.`);
   parts.push(`IMPORTANTE: Cuando haya un error técnico o necesites derivar a un humano, NUNCA menciones datos de contacto (Instagram, dirección, teléfono). Solo decí que vas a derivar al equipo y que alguien se va a comunicar.`);
 

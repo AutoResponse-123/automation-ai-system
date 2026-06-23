@@ -187,9 +187,25 @@ router.post('/whatsapp', async (req: any, res: any) => {
       }
     }
 
-    const { conversationId, contactId, contactSummary } = await getOrCreateConversation(business.id, fromPhone, business.schedule?.session_timeout_hours ?? 6);
+    const { conversationId, contactId, contactSummary, aiEnabled, lastMessageAt } = await getOrCreateConversation(business.id, fromPhone, business.schedule?.session_timeout_hours ?? 6);
 
     await saveMessage(conversationId, 'user', messageBody);
+
+    // Conversación derivada a un humano => la IA está en pausa y el bot NO responde
+    // (el humano la atiende desde el panel). Excepción: reactivación automática configurable.
+    if (!aiEnabled) {
+      const autoResumeH = Math.max(0, Number(business.schedule?.escalation_auto_resume_hours) || 0);
+      const lastTs = lastMessageAt ? new Date(lastMessageAt).getTime() : null;
+      const resume = autoResumeH > 0 && lastTs !== null && (Date.now() - lastTs) >= autoResumeH * 60 * 60 * 1000;
+      if (resume) {
+        await supabase.from('conversations').update({ status: 'active', ai_enabled: true, updated_at: new Date().toISOString() }).eq('id', conversationId);
+        console.log('[handoff] IA reactivada automáticamente tras inactividad:', conversationId);
+      } else {
+        res.type('text/xml');
+        res.send('<Response/>');
+        return;
+      }
+    }
 
     if (isOutsideHours(business.schedule)) {
       const offMsg = `Hola! En este momento estamos fuera de nuestro horario de atención. Te respondemos a la brevedad. ${business.closing_phrases?.[0] || ''}`.trim();
@@ -201,7 +217,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
     }
 
     if (checkEscalation(messageBody, business.escalation_keywords)) {
-      await updateConversationStatus(conversationId, 'pending');
+      await supabase.from('conversations').update({ status: 'pending', ai_enabled: false, updated_at: new Date().toISOString() }).eq('id', conversationId);
       supabase.from('escalations').insert({ business_id: business.id, conversation_id: conversationId, contact_phone: fromPhone, reason: 'keyword' }).then((r: any) => { if (r.error) console.error('[escalation]', r.error.message); });
       const matchedKw = business.escalation_keywords?.find((kw: string) => messageBody.toLowerCase().includes(kw.toLowerCase()));
       sendEscalationEmail({ to: business.escalation_email, businessName: business.name, botName: business.bot_name, clientPhone: fromPhone, reason: 'keyword', keyword: matchedKw }).catch(console.error);
@@ -232,7 +248,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
     const maxMsgs = business.max_messages_before_escalation || 10;
 
     if (msgCount >= maxMsgs) {
-      await updateConversationStatus(conversationId, 'pending');
+      await supabase.from('conversations').update({ status: 'pending', ai_enabled: false, updated_at: new Date().toISOString() }).eq('id', conversationId);
       supabase.from('escalations').insert({ business_id: business.id, conversation_id: conversationId, contact_phone: fromPhone, reason: 'limit' }).then((r: any) => { if (r.error) console.error('[escalation]', r.error.message); });
       sendEscalationEmail({ to: business.escalation_email, businessName: business.name, botName: business.bot_name, clientPhone: fromPhone, reason: 'limit' }).catch(console.error);
       const limitMsg = `Gracias por tu paciencia! Para darte una mejor atención, voy a derivarte con uno de nuestros agentes.`;
@@ -263,10 +279,18 @@ router.post('/whatsapp', async (req: any, res: any) => {
 
     (async () => {
       try {
-        const { text: assistantMessage, tokens } = await callClaude(messages, systemPrompt, business.max_tokens || 600, business, fromPhone);
+        const { text: assistantMessage, tokens, escalate } = await callClaude(messages, systemPrompt, business.max_tokens || 600, business, fromPhone);
         await saveMessage(conversationId, 'assistant', assistantMessage, tokens);
         const { sendWhatsAppMessage } = require('../services/twilio');
         await sendWhatsAppMessage(fromPhone, assistantMessage, process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!, business.phone_whatsapp);
+
+        // El bot decidió derivar a un humano: pausamos la IA y avisamos al equipo.
+        if (escalate) {
+          await supabase.from('conversations').update({ status: 'pending', ai_enabled: false, updated_at: new Date().toISOString() }).eq('id', conversationId);
+          supabase.from('escalations').insert({ business_id: business.id, conversation_id: conversationId, contact_phone: fromPhone, reason: 'bot' }).then((r: any) => { if (r.error) console.error('[escalation]', r.error.message); });
+          sendEscalationEmail({ to: business.escalation_email, businessName: business.name, botName: business.bot_name, clientPhone: fromPhone, reason: 'bot' }).catch(console.error);
+          console.log('[handoff] el bot derivó a un humano:', conversationId);
+        }
 
         const userMsgCount = history.filter((m: any) => m.sender === 'user').length + 1;
         if (userMsgCount % 10 === 0 && contactId) {
@@ -276,6 +300,16 @@ router.post('/whatsapp', async (req: any, res: any) => {
         const { captureError } = require('../services/logger');
         captureError(err, 'webhook-ai-async');
         console.error('[webhook-ai-async]', err?.message || err);
+        // Error técnico => derivar a un humano (si el negocio lo tiene activado).
+        if (business.schedule?.escalation_on_error !== false) {
+          try {
+            await supabase.from('conversations').update({ status: 'pending', ai_enabled: false, updated_at: new Date().toISOString() }).eq('id', conversationId);
+            supabase.from('escalations').insert({ business_id: business.id, conversation_id: conversationId, contact_phone: fromPhone, reason: 'error' }).then((r: any) => { if (r.error) console.error('[escalation]', r.error.message); });
+            sendEscalationEmail({ to: business.escalation_email, businessName: business.name, botName: business.bot_name, clientPhone: fromPhone, reason: 'error' }).catch(() => {});
+            const { sendWhatsAppMessage } = require('../services/twilio');
+            await sendWhatsAppMessage(fromPhone, 'Disculpá, tuve un inconveniente para procesar tu mensaje. Ya avisé al equipo y alguien te va a responder en breve.', process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!, business.phone_whatsapp);
+          } catch (e2: any) { console.error('[handoff on_error]', e2?.message || e2); }
+        }
       }
     })();
     return;
