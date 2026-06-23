@@ -50,6 +50,8 @@ interface BusinessConfig {
     label?: string
     last_slot_starts_at_close?: boolean
     session_timeout_hours?: number
+    escalation_keyword_enabled?: boolean
+    escalation_limit_enabled?: boolean
     escalation_on_error?: boolean
     escalation_bot_decides?: boolean
     escalation_auto_resume_hours?: number
@@ -67,6 +69,8 @@ const DEFAULT_SCHEDULE = {
   label: '',
   last_slot_starts_at_close: false,
   session_timeout_hours: 6,
+  escalation_keyword_enabled: true,
+  escalation_limit_enabled: true,
   escalation_on_error: true,
   escalation_bot_decides: true,
   escalation_auto_resume_hours: 0,
@@ -465,11 +469,37 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
             <div style={s.section}>
               <SectionHeader icon="ti-user-bolt" title={uis('Escalación a humano', 'Human Escalation')} subtitle={uis('Cuándo y cómo el bot deriva la conversación a un agente real', 'When and how the bot transfers the conversation to a human agent')} />
 
+              <Field label="">
+                <div style={s.toggleRow}>
+                  <div>
+                    <div style={{ fontSize: 13, color: 'var(--text-1)', fontWeight: 500 }}>{uis('Derivar por palabras clave', 'Hand off on keywords')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{uis('Derivar a un humano cuando el cliente escribe alguna de las palabras de abajo.', 'Hand off when the client writes one of the keywords below.')}</div>
+                  </div>
+                  <div style={{ ...s.toggleTrack, ...((config.schedule?.escalation_keyword_enabled !== false) ? s.toggleTrackOn : {}) }}
+                    onClick={() => update('schedule', { ...config.schedule, escalation_keyword_enabled: !(config.schedule?.escalation_keyword_enabled !== false) })}>
+                    <div style={{ ...s.toggleThumb, ...((config.schedule?.escalation_keyword_enabled !== false) ? s.toggleThumbOn : {}) }} />
+                  </div>
+                </div>
+              </Field>
+
               <Field label={uis('Palabras clave para escalar', 'Keywords to escalate')} hint={uis('Si el cliente escribe alguna de estas palabras, la conversación se escala automáticamente a un humano', 'If the client writes any of these words, the conversation is automatically escalated to a human')}>
                 <TagInput tags={config.escalation_keywords} value={newKeyword} onChange={setNewKeyword}
                   onAdd={() => addTag('escalation_keywords', newKeyword, setNewKeyword)}
                   onRemove={(i) => removeTag('escalation_keywords', i)}
                   placeholder={uis('Ej: hablar con alguien, persona, urgente', 'E.g.: speak to someone, human, urgent')} color="#f59e0b" />
+              </Field>
+
+              <Field label="">
+                <div style={s.toggleRow}>
+                  <div>
+                    <div style={{ fontSize: 13, color: 'var(--text-1)', fontWeight: 500 }}>{uis('Derivar por cantidad de mensajes', 'Hand off by message count')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{uis('Derivar si la conversación supera el máximo de abajo sin resolverse.', 'Hand off if the chat exceeds the max below without resolution.')}</div>
+                  </div>
+                  <div style={{ ...s.toggleTrack, ...((config.schedule?.escalation_limit_enabled !== false) ? s.toggleTrackOn : {}) }}
+                    onClick={() => update('schedule', { ...config.schedule, escalation_limit_enabled: !(config.schedule?.escalation_limit_enabled !== false) })}>
+                    <div style={{ ...s.toggleThumb, ...((config.schedule?.escalation_limit_enabled !== false) ? s.toggleThumbOn : {}) }} />
+                  </div>
+                </div>
               </Field>
 
               <Field label={uis('Máximo de mensajes antes de escalar', 'Max messages before escalating')} hint={uis('Si la conversación supera este número sin resolverse, se escala automáticamente', 'If the conversation exceeds this number without resolution, it escalates automatically')}>

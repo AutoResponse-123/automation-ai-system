@@ -216,7 +216,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
       return res.send(twiml.toString());
     }
 
-    if (checkEscalation(messageBody, business.escalation_keywords)) {
+    if (business.schedule?.escalation_keyword_enabled !== false && checkEscalation(messageBody, business.escalation_keywords)) {
       await supabase.from('conversations').update({ status: 'pending', ai_enabled: false, updated_at: new Date().toISOString() }).eq('id', conversationId);
       supabase.from('escalations').insert({ business_id: business.id, conversation_id: conversationId, contact_phone: fromPhone, reason: 'keyword' }).then((r: any) => { if (r.error) console.error('[escalation]', r.error.message); });
       const matchedKw = business.escalation_keywords?.find((kw: string) => messageBody.toLowerCase().includes(kw.toLowerCase()));
@@ -247,7 +247,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
     const msgCount = history.filter((m: any) => m.sender === 'user').length;
     const maxMsgs = business.max_messages_before_escalation || 10;
 
-    if (msgCount >= maxMsgs) {
+    if (business.schedule?.escalation_limit_enabled !== false && msgCount >= maxMsgs) {
       await supabase.from('conversations').update({ status: 'pending', ai_enabled: false, updated_at: new Date().toISOString() }).eq('id', conversationId);
       supabase.from('escalations').insert({ business_id: business.id, conversation_id: conversationId, contact_phone: fromPhone, reason: 'limit' }).then((r: any) => { if (r.error) console.error('[escalation]', r.error.message); });
       sendEscalationEmail({ to: business.escalation_email, businessName: business.name, botName: business.bot_name, clientPhone: fromPhone, reason: 'limit' }).catch(console.error);
