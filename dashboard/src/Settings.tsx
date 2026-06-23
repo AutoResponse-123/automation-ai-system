@@ -127,6 +127,8 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
   const [bufferCustom, setBufferCustom] = useState(false)
   const [sessionTimeoutCustom, setSessionTimeoutCustom] = useState(false)
   const [autoResumeCustom, setAutoResumeCustom] = useState(false)
+  const [newReminderQty, setNewReminderQty] = useState('')
+  const [newReminderUnit, setNewReminderUnit] = useState('min')
   const [bgColor, setBgColor] = useState<string>(() => localStorage.getItem('ar_bg_color') ?? 'var(--bg-base)')
   const [fontFamily, setFontFamily] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Inter')
 
@@ -1017,6 +1019,47 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                         )
                       })}
                     </div>
+                    {(config.reminder_hours_before || []).filter((h: number) => ![0.5, 1, 2, 24, 48].includes(h)).length > 0 && (
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                        {(config.reminder_hours_before || []).filter((h: number) => ![0.5, 1, 2, 24, 48].includes(h)).map((h: number) => {
+                          const mins = Math.round(h * 60)
+                          const lbl = mins % 60 === 0 ? `${mins / 60} h antes` : `${mins} min antes`
+                          return (
+                            <span key={h} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 8px 5px 12px', borderRadius: 6, border: '1px solid #7c3aed', background: '#3b1f6e', color: '#c4b5fd', fontSize: 12 }}>
+                              {lbl}
+                              <button onClick={async () => {
+                                const next = (config.reminder_hours_before || []).filter((x: number) => x !== h)
+                                const { error } = await supabase.from('businesses').update({ reminder_hours_before: next }).eq('id', businessId!)
+                                if (error) { alert(uis('No se pudo guardar: ', 'Could not save: ') + error.message); return }
+                                update('reminder_hours_before', next)
+                              }} style={{ background: 'none', border: 'none', color: '#c4b5fd', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                            </span>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 10 }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{uis('Personalizado:', 'Custom:')}</span>
+                      <input type="number" min={1} max={1000} value={newReminderQty} onChange={e => setNewReminderQty(e.target.value)} style={{ ...s.input, width: 90 }} placeholder={uis('Ej: 45', 'E.g. 45')} />
+                      <select value={newReminderUnit} onChange={e => setNewReminderUnit(e.target.value)} style={{ ...s.select, maxWidth: 130 }}>
+                        <option value="min">{uis('minutos', 'minutes')}</option>
+                        <option value="hours">{uis('horas', 'hours')}</option>
+                      </select>
+                      <button style={s.addBtn} onClick={async () => {
+                        const qty = Number(newReminderQty)
+                        if (!qty || qty <= 0) return
+                        const h = newReminderUnit === 'min' ? Math.round((qty / 60) * 1000) / 1000 : qty
+                        const current = config.reminder_hours_before || []
+                        if (current.includes(h)) { setNewReminderQty(''); return }
+                        const next = [...current, h].sort((a: number, b: number) => a - b)
+                        const { error } = await supabase.from('businesses').update({ reminder_hours_before: next }).eq('id', businessId!)
+                        if (error) { alert(uis('No se pudo guardar: ', 'Could not save: ') + error.message); return }
+                        update('reminder_hours_before', next)
+                        setNewReminderQty('')
+                      }}>+ {uis('Agregar', 'Add')}</button>
+                    </div>
+
                     <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 8 }}>
                       {uis('★ Recomendado. El de 24 h es el más efectivo para reducir ausencias.', '★ Recommended. 24 h is the most effective at reducing no-shows.')}
                     </div>
