@@ -10,15 +10,16 @@ interface Contact {
   name?: string
   interaction_count: number
   created_at: string
+  last_interaction?: string
   conversation_count?: number
   last_message?: string
   last_activity?: string
   status?: 'active' | 'inactive'
 }
 
+const PAGE_SIZE = 50
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-
 
 function timeAgo(dateStr?: string): string {
   if (!dateStr) return '—'
@@ -45,96 +46,122 @@ function getInitials(phone: string, name?: string): string {
   return phone.replace(/\D/g, '').slice(-2)
 }
 
+// Enriquece UNA página de contactos con datos de conversaciones/mensajes usando
+// 2 consultas en bloque (no una por contacto). Antes esto hacía 2 queries por
+// cada contacto (N+1); ahora son 2 fijas por página sin importar cuántos sean.
+async function enrichPage(rows: Contact[]): Promise<Contact[]> {
+  const ids = rows.map(r => r.id)
+  if (!ids.length) return rows
+
+  const { data: convs } = await supabase
+    .from('conversations')
+    .select('id, contact_id, updated_at')
+    .in('contact_id', ids)
+    .order('updated_at', { ascending: false })
+
+  const byContact: Record<string, { count: number; lastConvId: string | null; lastActivity: string | null }> = {}
+  for (const cv of convs || []) {
+    const e = byContact[cv.contact_id] || (byContact[cv.contact_id] = { count: 0, lastConvId: null, lastActivity: null })
+    e.count++
+    if (!e.lastConvId) { e.lastConvId = cv.id; e.lastActivity = cv.updated_at }
+  }
+
+  const lastConvIds = Object.values(byContact).map(e => e.lastConvId).filter(Boolean) as string[]
+  const lastMsgByConv: Record<string, string> = {}
+  if (lastConvIds.length) {
+    const { data: msgs } = await supabase
+      .from('messages')
+      .select('conversation_id, content, created_at')
+      .in('conversation_id', lastConvIds)
+      .order('created_at', { ascending: false })
+    for (const m of msgs || []) {
+      if (!lastMsgByConv[m.conversation_id]) lastMsgByConv[m.conversation_id] = m.content
+    }
+  }
+
+  return rows.map(r => {
+    const e = byContact[r.id]
+    const lastActivity = e?.lastActivity || r.last_interaction
+    const days = lastActivity ? (Date.now() - new Date(lastActivity).getTime()) / 86400000 : 999
+    return {
+      ...r,
+      conversation_count: e?.count ?? 0,
+      last_message: e?.lastConvId ? (lastMsgByConv[e.lastConvId] || '') : '',
+      last_activity: lastActivity || undefined,
+      status: days < 7 ? 'active' : 'inactive',
+    } as Contact
+  })
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Contacts({ onOpenChat }: { onOpenChat?: (contactId: string) => void }) {
   const t = useT()
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+  const [total, setTotal] = useState(0)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [sortBy, setSortBy] = useState<'last_activity' | 'interaction_count' | 'created_at'>('last_activity')
+
+  // Debounce de la búsqueda (evita una consulta por cada tecla)
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search.trim()), 300)
+    return () => clearTimeout(id)
+  }, [search])
+
+  // Recarga desde cero al cambiar orden o búsqueda
+  useEffect(() => {
+    loadPage(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortBy, debouncedSearch])
+
+  function orderColumn() {
+    if (sortBy === 'interaction_count') return { col: 'interaction_count', asc: false }
+    if (sortBy === 'created_at') return { col: 'created_at', asc: false }
+    return { col: 'last_interaction', asc: false } // last_activity
+  }
+
+  async function loadPage(reset: boolean) {
+    if (reset) setLoading(true); else setLoadingMore(true)
+    const offset = reset ? 0 : contacts.length
+    const { col, asc } = orderColumn()
+
+    let query = supabase
+      .from('contacts')
+      .select('id, phone, name, interaction_count, created_at, last_interaction', { count: 'exact' })
+      .order(col, { ascending: asc, nullsFirst: false })
+      .range(offset, offset + PAGE_SIZE - 1)
+
+    if (debouncedSearch) {
+      const q = debouncedSearch.replace(/[%,]/g, '')
+      query = query.or(`phone.ilike.%${q}%,name.ilike.%${q}%`)
+    }
+
+    const { data, count } = await query
+    const enriched = await enrichPage((data as Contact[]) || [])
+
+    setContacts(prev => reset ? enriched : [...prev, ...enriched])
+    setTotal(count ?? 0)
+    setHasMore((offset + enriched.length) < (count ?? 0))
+    setLoading(false)
+    setLoadingMore(false)
+  }
 
   function exportCSV() {
     const rows = [['Nombre', 'Teléfono', 'Interacciones', 'Último contacto']]
-    filtered.forEach(c => rows.push([
+    contacts.forEach(c => rows.push([
       c.name || '', c.phone, String(c.interaction_count ?? 0),
-      c.last_interaction ? new Date(c.last_interaction).toLocaleDateString('es-AR') : ''
+      c.last_activity ? new Date(c.last_activity).toLocaleDateString('es-AR') : ''
     ]))
     const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n')
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
-    a.download = `contactos_${new Date().toISOString().slice(0,10)}.csv`
+    a.download = `contactos_${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
   }
-
-  useEffect(() => {
-    loadContacts()
-  }, [])
-
-  async function loadContacts() {
-    setLoading(true)
-
-    const { data: contactsData } = await supabase
-      .from('contacts')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (!contactsData) { setLoading(false); return }
-
-    const enriched = await Promise.all(
-      contactsData.map(async (c) => {
-        // Get conversation count and last activity
-        const { data: convs } = await supabase
-          .from('conversations')
-          .select('id, updated_at')
-          .eq('contact_id', c.id)
-          .order('updated_at', { ascending: false })
-
-        const lastConvId = convs?.[0]?.id
-        const lastActivity = convs?.[0]?.updated_at
-
-        let lastMessage = ''
-        if (lastConvId) {
-          const { data: msgs } = await supabase
-            .from('messages')
-            .select('content')
-            .eq('conversation_id', lastConvId)
-            .order('created_at', { ascending: false })
-            .limit(1)
-          lastMessage = msgs?.[0]?.content ?? ''
-        }
-
-        const daysSinceActivity = lastActivity
-          ? (Date.now() - new Date(lastActivity).getTime()) / 86400000
-          : 999
-
-        return {
-          ...c,
-          conversation_count: convs?.length ?? 0,
-          last_message: lastMessage,
-          last_activity: lastActivity,
-          status: daysSinceActivity < 7 ? 'active' : 'inactive'
-        } as Contact
-      })
-    )
-
-    setContacts(enriched)
-    setLoading(false)
-  }
-
-  const filtered = contacts
-    .filter(c => {
-      const q = search.toLowerCase()
-      return (
-        c.phone.includes(q) ||
-        (c.name ?? '').toLowerCase().includes(q)
-      )
-    })
-    .sort((a, b) => {
-      if (sortBy === 'interaction_count') return (b.interaction_count ?? 0) - (a.interaction_count ?? 0)
-      if (sortBy === 'created_at') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      return new Date(b.last_activity ?? 0).getTime() - new Date(a.last_activity ?? 0).getTime()
-    })
 
   const totalActive = contacts.filter(c => c.status === 'active').length
 
@@ -144,7 +171,7 @@ export default function Contacts({ onOpenChat }: { onOpenChat?: (contactId: stri
       <div style={s.header}>
         <div>
           <span style={s.headerTitle}>{t('contacts_title')}</span>
-          <span style={s.headerCount}>{contacts.length} total · {totalActive} activos</span>
+          <span style={s.headerCount}>{total} total · {totalActive} activos (cargados)</span>
         </div>
         <div style={s.headerRight}>
           <div style={s.searchBox}>
@@ -179,7 +206,7 @@ export default function Contacts({ onOpenChat }: { onOpenChat?: (contactId: stri
 
       {loading ? (
         <div style={s.loading}>{t('contacts_loading')}</div>
-      ) : filtered.length === 0 ? (
+      ) : contacts.length === 0 ? (
         <div style={s.loading}>{t('contacts_empty')}</div>
       ) : (
         <>
@@ -195,7 +222,7 @@ export default function Contacts({ onOpenChat }: { onOpenChat?: (contactId: stri
 
           {/* Rows */}
           <div style={s.tableBody}>
-            {filtered.map(c => {
+            {contacts.map(c => {
               const color = avatarColor(c.id)
               return (
                 <div key={c.id} style={s.row}>
@@ -227,6 +254,14 @@ export default function Contacts({ onOpenChat }: { onOpenChat?: (contactId: stri
               )
             })}
           </div>
+
+          {hasMore && (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0' }}>
+              <button onClick={() => loadPage(false)} disabled={loadingMore} style={s.loadMore}>
+                {loadingMore ? t('contacts_loading') : `${t('contacts_load_more')} (${total - contacts.length})`}
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -247,6 +282,7 @@ const s: Record<string, React.CSSProperties> = {
   sortBtn: { background: 'transparent', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '4px 10px', fontSize: 11, color: 'var(--text-3)', cursor: 'pointer' },
   sortBtnActive: { background: 'var(--bg-card)', borderColor: 'var(--border-mid)', color: '#a78bfa' },
   loading: { color: 'var(--text-3)', fontSize: 13, padding: 32, textAlign: 'center' },
+  loadMore: { background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 8, padding: '8px 18px', fontSize: 12, color: '#a78bfa', cursor: 'pointer', fontFamily: 'inherit' },
   tableHeader: { display: 'grid', gridTemplateColumns: '28px 1fr 100px 1fr 80px 80px 80px', gap: 12, padding: '6px 12px', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '0.5px solid var(--border-mid)', marginBottom: 4 },
   tableBody: { display: 'flex', flexDirection: 'column', gap: 2 },
   row: { display: 'grid', gridTemplateColumns: '28px 1fr 100px 1fr 80px 80px 80px', gap: 12, padding: '8px 12px', alignItems: 'center', borderRadius: 8, cursor: 'default', background: 'var(--bg-card)', border: '0.5px solid transparent' },

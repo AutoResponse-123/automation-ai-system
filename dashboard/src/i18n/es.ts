@@ -97,6 +97,7 @@ export const es = {
   contacts_col_conversations: 'Conversaciones',
   contacts_col_last_message: 'Último mensaje',
   contacts_col_status: 'Estado',
+  contacts_load_more: 'Cargar más',
 
   // Appointments
   appointments_title: 'Turnos',

@@ -50,10 +50,13 @@ export default function Pipeline({ onOpenChat }: { onOpenChat?: (contactId: stri
 
   async function load() {
     setLoading(true)
+    // Tope de 500 tarjetas (las más recientes por movimiento de etapa) para no
+    // cargar miles de contactos de una en el tablero.
     const { data } = await supabase
       .from('contacts')
       .select('id, phone, name, stage, interaction_count, summary, last_interaction')
       .order('stage_updated_at', { ascending: false })
+      .limit(500)
     setContacts((data as Contact[]) || [])
     setLoading(false)
   }
