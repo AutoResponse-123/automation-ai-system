@@ -239,6 +239,9 @@ async function callClaude(
           duration_minutes: resolveSlot(business, toolUseBlock.input.duration_minutes).duration,
         });
         if (insertErr) console.error('[appointments insert]', insertErr.message);
+        // Embudo: el cliente agendó → etapa 'agendó'.
+        const { advanceStage } = require('./pipeline');
+        advanceStage(contactData?.id, 'agendó').catch((e: any) => console.error('[pipeline async]', e.message));
         toolResult = `Turno creado exitosamente. ID: ${eventId}`;
         console.log(`[create_appointment] OK — Event ID: ${eventId}`);
         }

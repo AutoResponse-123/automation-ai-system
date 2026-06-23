@@ -5,8 +5,20 @@ export const en = {
   nav_activity: 'Activity',
   nav_analytics: 'Analytics',
   nav_contacts: 'Contacts',
+  nav_pipeline: 'Pipeline',
   nav_appointments: 'Appointments',
   nav_settings: 'Settings',
+
+  // Pipeline
+  pipeline_title: 'Customer pipeline',
+  pipeline_clients: 'clients',
+  pipeline_open_chat: 'Chat',
+  pipeline_stage_nuevo: 'New',
+  pipeline_stage_contactado: 'Contacted',
+  'pipeline_stage_agendó': 'Booked',
+  'pipeline_stage_atendió': 'Served',
+  pipeline_stage_recurrente: 'Returning',
+  pipeline_stage_perdido: 'Lost',
 
   // Login
   login_title: 'Sign in',

@@ -284,6 +284,10 @@ router.post('/whatsapp', async (req: any, res: any) => {
         const { sendWhatsAppMessage } = require('../services/twilio');
         await sendWhatsAppMessage(fromPhone, assistantMessage, process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!, business.phone_whatsapp);
 
+        // Embudo: el negocio ya le respondió a este cliente → etapa 'contactado'.
+        const { advanceStage } = require('../services/pipeline');
+        advanceStage(contactId, 'contactado').catch((e: any) => console.error('[pipeline async]', e.message));
+
         // El bot decidió derivar a un humano: pausamos la IA y avisamos al equipo.
         if (escalate) {
           await supabase.from('conversations').update({ status: 'pending', ai_enabled: false, updated_at: new Date().toISOString() }).eq('id', conversationId);

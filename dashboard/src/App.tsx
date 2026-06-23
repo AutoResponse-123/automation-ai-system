@@ -8,6 +8,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import Analytics from './Analytics'
 import Contacts from './Contacts'
+import Pipeline from './Pipeline'
 import Activity from './Activity'
 import Settings from './Settings'
 import Appointments from './Appointments'
@@ -83,7 +84,7 @@ interface Toast {
   type: 'info' | 'success' | 'warning'
 }
 
-type Tab = 'dashboard' | 'inbox' | 'analytics' | 'contacts' | 'activity' | 'appointments' | 'settings'
+type Tab = 'dashboard' | 'inbox' | 'analytics' | 'contacts' | 'pipeline' | 'activity' | 'appointments' | 'settings'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -611,6 +612,7 @@ export default function App() {
     { id: 'inbox',        icon: 'ti-message-2',        label: tr('nav_inbox', lang) },
     { id: 'analytics',    icon: 'ti-chart-bar',        label: tr('nav_analytics', lang) },
     { id: 'contacts',     icon: 'ti-users',            label: tr('nav_contacts', lang) },
+    { id: 'pipeline',     icon: 'ti-layout-kanban',    label: tr('nav_pipeline', lang) },
     ...(apptEnabled ? [{ id: 'appointments' as Tab, icon: 'ti-calendar', label: apptLabel }] : []),
     { id: 'activity',     icon: 'ti-activity',         label: tr('nav_activity', lang) },
     { id: 'settings',     icon: 'ti-settings',         label: tr('nav_settings', lang) },
@@ -1245,6 +1247,12 @@ export default function App() {
         {tab === 'analytics' && <Analytics businessId={businessId} />}
         {tab === 'contacts' && (
           <Contacts onOpenChat={contactId => {
+            const conv = conversations.find(c => c.contact_id === contactId)
+            if (conv) { setSelectedConv(conv); setTab('inbox') }
+          }} />
+        )}
+        {tab === 'pipeline' && (
+          <Pipeline onOpenChat={contactId => {
             const conv = conversations.find(c => c.contact_id === contactId)
             if (conv) { setSelectedConv(conv); setTab('inbox') }
           }} />

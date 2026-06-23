@@ -13,23 +13,39 @@ async function autoCompleteAppointments() {
 
     const { data, error } = await supabase
       .from('appointments')
-      .select('id, appointment_date, appointment_time, businesses(schedule)')
+      .select('id, contact_id, appointment_date, appointment_time, businesses(schedule)')
       .eq('status', 'scheduled')
       .lte('appointment_date', tomorrow);
 
     if (error || !data?.length) return;
 
-    const toComplete = data
-      .filter((appt: any) => {
-        const tz = appt.businesses?.schedule?.timezone || 'America/Argentina/Buenos_Aires';
-        const startUtc = wallTimeToUtc(appt.appointment_date, String(appt.appointment_time).slice(0, 5), tz);
-        return startUtc.getTime() < now.getTime();
-      })
-      .map((appt: any) => appt.id);
+    const passed = data.filter((appt: any) => {
+      const tz = appt.businesses?.schedule?.timezone || 'America/Argentina/Buenos_Aires';
+      const startUtc = wallTimeToUtc(appt.appointment_date, String(appt.appointment_time).slice(0, 5), tz);
+      return startUtc.getTime() < now.getTime();
+    });
+    const toComplete = passed.map((appt: any) => appt.id);
 
     if (toComplete.length) {
       await supabase.from('appointments').update({ status: 'completed' }).in('id', toComplete);
       console.log(`[reminders] Auto-completados ${toComplete.length} turnos pasados`);
+
+      // Embudo: cada contacto con un turno cumplido pasa a 'atendió' (o 'recurrente'
+      // si ya acumula 2+ turnos completados en su historial).
+      const { advanceStage } = require('./pipeline');
+      const contactIds: string[] = Array.from(new Set(passed.map((a: any) => a.contact_id).filter(Boolean)));
+      for (const contactId of contactIds) {
+        try {
+          const { count } = await supabase
+            .from('appointments')
+            .select('id', { count: 'exact', head: true })
+            .eq('contact_id', contactId)
+            .eq('status', 'completed');
+          await advanceStage(contactId, (count || 0) >= 2 ? 'recurrente' : 'atendió');
+        } catch (e: any) {
+          console.error('[pipeline atendió]', e.message);
+        }
+      }
     }
   } catch (err: any) {
     console.error('[autoComplete]', err.message);
