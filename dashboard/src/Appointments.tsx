@@ -273,8 +273,8 @@ export default function Appointments({ businessId, label }: { businessId: string
     meta: { fontSize: 12, color: 'var(--text-2)', display: 'flex', gap: 10, flexWrap: 'wrap' as const, alignItems: 'center' },
     empty: { textAlign: 'center' as const, padding: '48px 0', color: 'var(--text-3)', fontSize: 14 },
     stat: { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 18px', display: 'flex', flexDirection: 'column' as const, gap: 2 } as React.CSSProperties,
-    statVal: { fontSize: 24, fontWeight: 700, color: 'var(--accent)' },
-    statLabel: { fontSize: 11, color: 'var(--text-3)' },
+    statVal: { fontSize: 27, fontWeight: 600, color: 'var(--text-1)', letterSpacing: '-0.02em', lineHeight: 1.1 },
+    statLabel: { fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginTop: 3 },
   }
 
   return (

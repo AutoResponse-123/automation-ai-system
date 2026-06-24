@@ -31,6 +31,10 @@ html, body, #root { transition: background-color 0.25s ease; }
 
   /* Topbar: banda sólida al tono del sidebar (sin degradado) */
   --topbar-grad: linear-gradient(0deg, #14241D 0%, #14241D 100%);
+
+  /* Alias de superficies (resuelven al tono de tarjeta/input de cada tema) */
+  --surface:   var(--bg-card);
+  --surface-2: var(--bg-input);
 }
 
 /* ── Tema OSCURO (default) ── */
