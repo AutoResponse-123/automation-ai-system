@@ -163,6 +163,21 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
     }
   }
 
+  async function deactivateMenu() {
+    setMenuMsg(null)
+    setMenuSaving(true)
+    try {
+      const { error } = await supabase.from('businesses').update({ menu_content_sid: null }).eq('id', businessId)
+      if (error) throw error
+      update('menu_content_sid', null)
+      setMenuMsg({ kind: 'ok', text: 'Menú desactivado. El bot ya no muestra botones.' })
+    } catch (e: any) {
+      setMenuMsg({ kind: 'err', text: 'No se pudo desactivar.' })
+    } finally {
+      setMenuSaving(false)
+    }
+  }
+
   function applyFont(font: string) {
     const existing = document.getElementById('ar-font-link')
     if (existing) existing.remove()
@@ -1015,6 +1030,11 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                   <button type="button" onClick={saveMenu} disabled={menuSaving} style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
                     {menuSaving ? uis('Creando…', 'Creating…') : (config.menu_content_sid ? uis('Actualizar menú', 'Update menu') : uis('Crear menú', 'Create menu'))}
                   </button>
+                  {config.menu_content_sid && (
+                    <button type="button" onClick={deactivateMenu} disabled={menuSaving} style={{ background: 'transparent', color: 'var(--text-2)', border: '0.5px solid var(--border-mid)', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {uis('Desactivar', 'Turn off')}
+                    </button>
+                  )}
                   {menuMsg && <span style={{ fontSize: 12, color: menuMsg.kind === 'ok' ? '#2E8B57' : '#dc2626' }}>{menuMsg.text}</span>}
                 </div>
               </div>
