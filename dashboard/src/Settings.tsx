@@ -38,6 +38,7 @@ interface BusinessConfig {
   mp_payment_link: string | null
   sheets_refresh_token: string | null
   sheets_spreadsheet_id: string | null
+  menu_content_sid: string | null
   appointment_categories: AppointmentCategory[]
   schedule: {
     enabled: boolean
@@ -198,6 +199,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
         sheets_spreadsheet_id: data.sheets_spreadsheet_id ?? null,
         appointment_categories: data.appointment_categories ?? [],
         schedule: data.schedule ?? DEFAULT_SCHEDULE,
+        menu_content_sid: data.menu_content_sid ?? null,
       })
     }
     // If saved escalation_email differs from auth email, show alternate email checkbox
@@ -236,6 +238,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
       accent_color: config.accent_color,
       schedule: config.schedule,
       appointment_categories: config.appointment_categories,
+      menu_content_sid: config.menu_content_sid,
       updated_at: new Date().toISOString(),
     }).eq('id', businessId!)
     setSaving(false)
@@ -933,6 +936,25 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
           {activeSection === 'integraciones' && (
             <div style={s.section}>
               <SectionHeader icon="ti-plug" title={uis('Integraciones', 'Integrations')} subtitle={uis('Conectá servicios externos a tu bot', 'Connect external services to your bot')} />
+
+              {/* Menú de botones (WhatsApp quick reply) */}
+              <div style={{ background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <i className="ti ti-layout-grid" style={{ fontSize: 18, color: 'var(--accent)' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{uis('Menú de botones', 'Quick-reply menu')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2 }}>{uis('Content SID de una plantilla quick-reply de Twilio. El bot la usa para ofrecer botones tocables.', 'Content SID of a Twilio quick-reply template. The bot uses it to offer tappable buttons.')}</div>
+                  </div>
+                </div>
+                <input
+                  style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-input)', border: '0.5px solid var(--border-mid)', borderRadius: 8, padding: '9px 11px', color: 'var(--text-1)', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
+                  value={config.menu_content_sid ?? ''}
+                  onChange={e => update('menu_content_sid', e.target.value || null)}
+                  placeholder="HXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                />
+              </div>
 
               {/* Google Calendar */}
               {!isPro ? (

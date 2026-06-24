@@ -6,6 +6,7 @@ export const es = {
   nav_analytics: 'Analytics',
   nav_contacts: 'Contactos',
   nav_pipeline: 'Embudo',
+  nav_broadcasts: 'Difusiones',
   nav_appointments: 'Turnos',
   nav_settings: 'Configuración',
 
@@ -19,6 +20,9 @@ export const es = {
   'pipeline_stage_atendió': 'Atendió',
   pipeline_stage_recurrente: 'Recurrente',
   pipeline_stage_perdido: 'Perdido',
+
+  // Difusiones
+  broadcasts_title: 'Difusiones',
 
   // Login
   login_title: 'Iniciar sesión',

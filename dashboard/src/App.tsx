@@ -9,6 +9,7 @@ import { supabase } from './supabase'
 import Analytics from './Analytics'
 import Contacts from './Contacts'
 import Pipeline from './Pipeline'
+import Broadcasts from './Broadcasts'
 import Activity from './Activity'
 import Settings from './Settings'
 import Appointments from './Appointments'
@@ -84,7 +85,7 @@ interface Toast {
   type: 'info' | 'success' | 'warning'
 }
 
-type Tab = 'dashboard' | 'inbox' | 'analytics' | 'contacts' | 'pipeline' | 'activity' | 'appointments' | 'settings'
+type Tab = 'dashboard' | 'inbox' | 'analytics' | 'contacts' | 'pipeline' | 'broadcasts' | 'activity' | 'appointments' | 'settings'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -613,6 +614,7 @@ export default function App() {
     { id: 'analytics',    icon: 'ti-chart-bar',        label: tr('nav_analytics', lang) },
     { id: 'contacts',     icon: 'ti-users',            label: tr('nav_contacts', lang) },
     { id: 'pipeline',     icon: 'ti-layout-kanban',    label: tr('nav_pipeline', lang) },
+    { id: 'broadcasts',   icon: 'ti-speakerphone',     label: tr('nav_broadcasts', lang) },
     ...(apptEnabled ? [{ id: 'appointments' as Tab, icon: 'ti-calendar', label: apptLabel }] : []),
     { id: 'activity',     icon: 'ti-activity',         label: tr('nav_activity', lang) },
     { id: 'settings',     icon: 'ti-settings',         label: tr('nav_settings', lang) },
@@ -1257,6 +1259,7 @@ export default function App() {
             if (conv) { setSelectedConv(conv); setTab('inbox') }
           }} />
         )}
+        {tab === 'broadcasts' && businessId && <Broadcasts businessId={businessId} />}
         {tab === 'appointments' && businessId && apptEnabled && <Appointments businessId={businessId} label={apptLabel} />}
         {tab === 'activity' && <Activity />}
         {tab === 'settings' && <Settings businessId={businessId} onThemeChange={applyTheme} onFontChange={f => { setDashFont(f); localStorage.setItem('ar_font', f) }} plan={businessData?.plan ?? 'trial'} />}

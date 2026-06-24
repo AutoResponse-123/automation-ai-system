@@ -6,6 +6,7 @@ const webhookRouter = require('./api/webhooks');
 const cronRouter = require('./api/cron');
 const adminRouter = require('./api/admin');
 const contactRouter = require('./api/contact');
+const broadcastRouter = require('./api/broadcasts');
 const authRouter = require('./api/auth').default;
 const { startRemindersJob } = require('./services/reminders');
 const { initLogger, errorHandler } = require('./services/logger');
@@ -80,6 +81,7 @@ app.use('/api/webhooks', webhookLimiter, webhookRouter);
 app.use('/api/cron', cronRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/contact', contactLimiter, contactRouter);
+app.use('/api/broadcasts', broadcastRouter);
 app.use('/api/auth', signupLimiter, authRouter);
 
 // ── Manejo global de errores (al final de las rutas) ────────────────────────────

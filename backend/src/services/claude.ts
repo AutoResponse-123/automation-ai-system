@@ -80,6 +80,15 @@ const calendarTools = [
     },
   },
   {
+    name: 'send_menu',
+    description: 'Mostrale al cliente un menú de botones rápidos (opciones tocables) en lugar de pedirle que escriba. Útil para ofrecer acciones claras al inicio o cuando hay que elegir entre opciones. Llamalo cuando botones tocables agilicen la conversación. Después de llamarlo NO repitas las opciones en texto.',
+    input_schema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
+  {
     name: 'create_appointment',
     description: 'Crea un turno/cita en el calendario del negocio.',
     input_schema: {
@@ -148,6 +157,7 @@ async function callClaude(
     if (t.name === 'create_payment_link') return hasMP;
     if (t.name === 'cancel_appointment') return hasCalendar;
     if (t.name === 'escalate_to_human') return botDecides;
+    if (t.name === 'send_menu') return !!business?.menu_content_sid;
     return hasCalendar;
   });
   const tools = activeTools.length > 0 ? activeTools : undefined;
@@ -317,6 +327,15 @@ async function callClaude(
           });
           toolResult = `Link de pago generado: ${url}`;
           console.log(`[create_payment_link] OK — ${url}`);
+        }
+      } else if (toolUseBlock.name === 'send_menu') {
+        if (!business.menu_content_sid) {
+          toolResult = 'El menú de botones no está configurado en este negocio.';
+        } else {
+          const { sendWhatsAppTemplate } = require('./twilio');
+          await sendWhatsAppTemplate(clientPhone || '', business.menu_content_sid, {}, process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN, business.phone_whatsapp);
+          toolResult = 'Menú de botones enviado al cliente. No repitas las opciones en texto.';
+          console.log('[send_menu] menú enviado a', clientPhone);
         }
       } else {
         toolResult = `Tool desconocido: ${toolUseBlock.name}`;
