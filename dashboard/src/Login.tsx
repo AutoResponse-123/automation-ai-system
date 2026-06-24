@@ -81,7 +81,7 @@ export default function Login() {
             left: `${orb.x}%`, top: `${orb.y}%`,
             width: orb.size, height: orb.size,
             opacity: orb.opacity,
-            background: i % 3 === 0 ? '#a78bfa' : i % 3 === 1 ? '#60a5fa' : '#818cf8',
+            background: i % 3 === 0 ? '#2E8B57' : i % 3 === 1 ? '#3FA86B' : '#3FA86B',
             animationDuration: `${orb.speed}s`,
           }} />
         ))}
@@ -185,9 +185,9 @@ const s: Record<string, React.CSSProperties> = {
   orb: { position: 'absolute', borderRadius: '50%', filter: 'blur(90px)', animation: 'float ease-in-out infinite' },
   card: { position: 'relative', zIndex: 1, background: 'rgba(10,8,22,0.82)', backdropFilter: 'blur(28px)', border: '1px solid rgba(167,139,250,0.15)', borderRadius: 22, padding: '36px 32px 28px', width: 388, maxWidth: 'calc(100vw - 32px)', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 0 80px rgba(167,139,250,0.07), 0 32px 64px rgba(0,0,0,0.55)' },
   logoWrap: { position: 'relative', marginBottom: 14 },
-  logo: { width: 52, height: 52, borderRadius: 15, background: 'linear-gradient(135deg, #a78bfa 0%, #6366f1 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, color: '#fff', boxShadow: '0 0 28px rgba(167,139,250,0.45)' },
+  logo: { width: 52, height: 52, borderRadius: 15, background: 'linear-gradient(135deg, #2E8B57 0%, #6366f1 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, color: '#fff', boxShadow: '0 0 28px rgba(167,139,250,0.45)' },
   logoGlow: { position: 'absolute', inset: -12, borderRadius: 24, background: 'radial-gradient(circle, rgba(167,139,250,0.2) 0%, transparent 70%)', pointerEvents: 'none' },
-  brand: { fontSize: 23, fontWeight: 700, background: 'linear-gradient(90deg, #c4b5fd, #93c5fd)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 4 },
+  brand: { fontSize: 23, fontWeight: 700, background: 'linear-gradient(90deg, #3FA86B, #93c5fd)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 4 },
   tagline: { fontSize: 13, color: '#5a5478', marginBottom: 24 },
   tabs: { display: 'flex', width: '100%', background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 11, padding: 4, position: 'relative', marginBottom: 20 },
   tab: { flex: 1, padding: '8px 0', fontSize: 13, fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', color: '#5a5478', borderRadius: 8, position: 'relative', zIndex: 1, transition: 'color .2s', fontFamily: 'inherit' },
@@ -202,6 +202,6 @@ const s: Record<string, React.CSSProperties> = {
   eyeBtn: { position: 'absolute', right: 10, background: 'none', border: 'none', cursor: 'pointer', color: '#4a4268', padding: 0, display: 'flex', alignItems: 'center' },
   alertError: { display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(248,113,113,0.07)', border: '1px solid rgba(248,113,113,0.18)', borderRadius: 9, padding: '8px 12px', fontSize: 12, color: '#f87171', width: '100%', boxSizing: 'border-box' as const, marginTop: 10 },
   alertSuccess: { display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(52,211,153,0.07)', border: '1px solid rgba(52,211,153,0.18)', borderRadius: 9, padding: '8px 12px', fontSize: 12, color: '#34d399', width: '100%', boxSizing: 'border-box' as const, marginTop: 10 },
-  btn: { marginTop: 16, width: '100%', background: 'linear-gradient(135deg, #a78bfa 0%, #6366f1 100%)', border: 'none', borderRadius: 11, padding: '12px', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 4px 24px rgba(167,139,250,0.3)', transition: 'opacity .15s', fontFamily: 'inherit' },
+  btn: { marginTop: 16, width: '100%', background: 'linear-gradient(135deg, #2E8B57 0%, #6366f1 100%)', border: 'none', borderRadius: 11, padding: '12px', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 4px 24px rgba(167,139,250,0.3)', transition: 'opacity .15s', fontFamily: 'inherit' },
   trialBadge: { display: 'flex', alignItems: 'center', gap: 5, marginTop: 14, fontSize: 11, color: '#4a4268' },
 }

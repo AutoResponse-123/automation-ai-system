@@ -51,7 +51,7 @@ const TAG_PRESETS: { label: string; color: string }[] = [
   { label: 'Venta',        color: '#22c55e' },
   { label: 'Soporte',      color: '#38bdf8' },
   { label: 'Urgente',      color: '#f87171' },
-  { label: 'Turno',        color: '#3b82f6' },
+  { label: 'Turno',        color: '#2E8B57' },
   { label: 'Consulta',     color: '#f59e0b' },
   { label: 'Seguimiento',  color: '#fb923c' },
   { label: 'Reclamo',      color: '#e879f9' },
@@ -119,7 +119,7 @@ function lightenHex(hex: string, amount: number): string {
   return '#' + l(r) + l(g) + l(b)
 }
 
-const AVATAR_COLORS = ['#3b82f6','#f59e0b','#22c55e','#f87171','#38bdf8','#fb923c','#e879f9','#34d399']
+const AVATAR_COLORS = ['#2E8B57','#f59e0b','#22c55e','#f87171','#38bdf8','#fb923c','#e879f9','#34d399']
 function avatarColor(id: string): string {
   let hash = 0
   for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash)
@@ -151,7 +151,7 @@ function ThemeToggle({ theme, setTheme }: { theme: 'light' | 'dark'; setTheme: (
 export default function App() {
   const [lang, setLang] = useState<Lang>(() => (localStorage.getItem('ui_lang') as Lang) || 'es')
   const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('ui_theme') as 'light' | 'dark') || 'dark')
-  const [dashFont, setDashFont] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Inter')
+  const [dashFont, setDashFont] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Bricolage Grotesque')
   const [tab, setTab] = useState<Tab>('dashboard')
   const [session, setSession] = useState<Session | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
@@ -224,7 +224,7 @@ export default function App() {
   // (controles de formulario, modales, toasts, login, etc.)
   useEffect(() => {
     document.documentElement.style.setProperty('--app-font', `'${dashFont}', system-ui, sans-serif`)
-    if (dashFont && dashFont !== 'Inter' && !document.getElementById('ar-font-link')) {
+    if (dashFont && dashFont !== 'Inter' && dashFont !== 'Bricolage Grotesque' && !document.getElementById('ar-font-link')) {
       const link = document.createElement('link')
       link.id = 'ar-font-link'
       link.rel = 'stylesheet'
@@ -290,7 +290,7 @@ export default function App() {
       const bg = localStorage.getItem('ar_bg_color') ?? undefined
       applyTheme(data.accent_color ?? undefined, bg)
       const savedFont = localStorage.getItem('ar_font')
-      if (savedFont && savedFont !== 'Inter') {
+      if (savedFont && savedFont !== 'Inter' && savedFont !== 'Bricolage Grotesque') {
         const link = document.createElement('link')
         link.id = 'ar-font-link'
         link.rel = 'stylesheet'
@@ -631,7 +631,7 @@ export default function App() {
 
   if (authLoading) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', flexDirection: 'column', gap: 12, fontFamily: 'inherit' }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #1d4ed8, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', boxShadow: '0 4px 16px #1d4ed844' }}>W</div>
+      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #226B43, #2E8B57)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', boxShadow: '0 4px 16px #226B4344' }}>W</div>
       <div style={{ fontSize: 12, color: 'var(--text-3)' }}>Cargando...</div>
     </div>
   )
@@ -676,7 +676,7 @@ export default function App() {
             <i className={`ti ${n.icon}`} />
             <span>{n.label}</span>
             {n.id === 'inbox' && unreadCount > 0 && (
-              <span style={{ position: 'absolute', top: 6, width: 6, height: 6, borderRadius: '50%', background: '#3b82f6' }} />
+              <span style={{ position: 'absolute', top: 6, width: 6, height: 6, borderRadius: '50%', background: '#2E8B57' }} />
             )}
           </button>
         ))}
@@ -755,10 +755,10 @@ export default function App() {
           if (daysLeft <= 0) return null
           const urgent = daysLeft <= 2
           return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', fontSize: 12, fontWeight: 500, background: urgent ? 'rgba(251,146,60,0.08)' : 'rgba(167,139,250,0.07)', borderBottom: `1px solid ${urgent ? 'rgba(251,146,60,0.2)' : 'rgba(167,139,250,0.15)'}`, color: urgent ? '#fb923c' : '#a78bfa' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', fontSize: 12, fontWeight: 500, background: urgent ? 'rgba(251,146,60,0.08)' : 'rgba(167,139,250,0.07)', borderBottom: `1px solid ${urgent ? 'rgba(251,146,60,0.2)' : 'rgba(167,139,250,0.15)'}`, color: urgent ? '#fb923c' : '#2E8B57' }}>
               <i className={`ti ${urgent ? 'ti-alarm' : 'ti-clock'}`} style={{ fontSize: 13 }} />
               {daysLeft === 1 ? '⚠️ Tu prueba vence mañana.' : `Período de prueba: te quedan ${daysLeft} días.`}
-              <span style={{ color: urgent ? '#f97316' : '#818cf8', marginLeft: 2 }}>Contactanos para continuar.</span>
+              <span style={{ color: urgent ? '#f97316' : '#3FA86B', marginLeft: 2 }}>Contactanos para continuar.</span>
             </div>
           )
         })()}
@@ -789,7 +789,7 @@ export default function App() {
                   value={metrics.todayMessages.toLocaleString()}
                   sub={`${metrics.totalMessages.toLocaleString()} total`}
                   trend={todayTrend} trendDetail={`período anterior: ${yesterdayMsgCount}`}
-                  icon="ti-message-2" iconColor="#3b82f6" />
+                  icon="ti-message-2" iconColor="#2E8B57" />
                 <MetricCard label="Tokens / costo" value={`${(metrics.totalTokens / 1000).toFixed(1)}k`}
                   sub={`~$${metrics.estimatedCost.toFixed(2)} USD`} color="#f59e0b"
                   icon="ti-coins" iconColor="#f59e0b" />
@@ -869,7 +869,7 @@ export default function App() {
                   {showTagFilterPopover && (
                     <div className="popover-enter" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, background: 'var(--bg-card)', border: '1px solid var(--border-mid)', borderRadius: 10, padding: 6, zIndex: 100, boxShadow: '0 8px 24px rgba(0,0,0,0.6)', minWidth: 160 }}>
                       <button onClick={() => { setTagFilter(null); setShowTagFilterPopover(false) }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: !tagFilter ? 'var(--bg-card)' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: !tagFilter ? '#3b82f6' : 'var(--text-2)', fontSize: 12, fontFamily: 'inherit' }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: !tagFilter ? 'var(--bg-card)' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: !tagFilter ? '#2E8B57' : 'var(--text-2)', fontSize: 12, fontFamily: 'inherit' }}>
                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--text-3)', flexShrink: 0 }} />
                         Todas
                         {!tagFilter && <i className="ti ti-check" style={{ fontSize: 11, marginLeft: 'auto' }} />}
@@ -893,8 +893,8 @@ export default function App() {
                     {f === 'all' ? 'Todas' : f === 'active' ? 'Activas' : f === 'pending' ? 'Pendientes' : 'Resueltas'}
                     <span style={{
                       marginLeft: 4, borderRadius: 10, padding: '0 5px', fontSize: 10,
-                      background: convFilter === f ? '#3b82f622' : 'var(--border-mid)',
-                      color: convFilter === f ? '#3b82f6' : 'var(--text-3)',
+                      background: convFilter === f ? '#2E8B5722' : 'var(--border-mid)',
+                      color: convFilter === f ? '#2E8B57' : 'var(--text-3)',
                     }}>
                       {filterCounts[f]}
                     </span>
@@ -932,7 +932,7 @@ export default function App() {
                       </span>
                       {' · '}{selectedConv.status}
                       {selectedConv.contact?.interaction_count != null && (
-                        <> · <span style={{ color: '#3b82f6' }}>{selectedConv.contact.interaction_count} interacciones</span></>
+                        <> · <span style={{ color: '#2E8B57' }}>{selectedConv.contact.interaction_count} interacciones</span></>
                       )}
                     </div>
                   </div>
@@ -975,7 +975,7 @@ export default function App() {
 
                     {/* Resumen IA */}
                     <button onClick={generateSummary} disabled={summaryLoading}
-                      style={{ ...s.chip, color: summaryLoading ? 'var(--text-3)' : '#3b82f6' }}
+                      style={{ ...s.chip, color: summaryLoading ? 'var(--text-3)' : '#2E8B57' }}
                       title="Generar resumen IA">
                       <i className={`ti ${summaryLoading ? 'ti-loader-2 ti-spin' : 'ti-sparkles'}`} style={{ fontSize: 11 }} />
                       {summaryLoading ? 'Resumiendo...' : 'resumen'}
@@ -1178,7 +1178,7 @@ export default function App() {
 
                     <div style={{ position: 'relative' as const }} ref={quickRepliesRef}>
                       <button onClick={() => { setShowQuickReplies(p => !p); if (noteMode) setNoteMode(false) }}
-                        style={{ ...s.iconBtn, ...(showQuickReplies ? { color: '#3b82f6', background: 'var(--bg-card)' } : {}) }}
+                        style={{ ...s.iconBtn, ...(showQuickReplies ? { color: '#2E8B57', background: 'var(--bg-card)' } : {}) }}
                         title="Respuestas rápidas">
                         <i className="ti ti-bolt" style={{ fontSize: 14 }} aria-hidden="true" />
                       </button>
@@ -1313,7 +1313,7 @@ function DashboardHero({ name, automationRate, pending, totalMessages, onGoPendi
   const status = pending > 0
     ? { label: 'Requiere atención', color: '#fb923c', icon: 'ti-alert-triangle' }
     : totalMessages === 0
-      ? { label: 'Listo para arrancar', color: '#60a5fa', icon: 'ti-rocket' }
+      ? { label: 'Listo para arrancar', color: '#3FA86B', icon: 'ti-rocket' }
       : { label: 'Todo al día', color: '#22c55e', icon: 'ti-circle-check' }
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: 12, marginBottom: 18 }}>
@@ -1328,8 +1328,8 @@ function DashboardHero({ name, automationRate, pending, totalMessages, onGoPendi
         </div>
         {totalMessages > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', fontSize: 12, color: 'var(--text-2)' }}>
-            <i className="ti ti-robot" style={{ fontSize: 14, color: '#a78bfa' }} aria-hidden="true" />
-            <span style={{ color: '#a78bfa', fontWeight: 500 }}>{automationRate}%</span> automatizado
+            <i className="ti ti-robot" style={{ fontSize: 14, color: '#2E8B57' }} aria-hidden="true" />
+            <span style={{ color: '#2E8B57', fontWeight: 500 }}>{automationRate}%</span> automatizado
           </div>
         )}
       </div>
@@ -1366,7 +1366,7 @@ function MetricCard({ label, value, sub, color, trend, trendDetail, onClick, ico
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={s.metricLabel}>{label}</div>
         {icon && (
-          <div style={{ ...s.metricIcon, color: accent || '#3b82f6', background: (accent || '#3b82f6') + '18' }}>
+          <div style={{ ...s.metricIcon, color: accent || '#2E8B57', background: (accent || '#2E8B57') + '18' }}>
             <i className={`ti ${icon}`} style={{ fontSize: 14 }} aria-hidden="true" />
           </div>
         )}
@@ -1481,16 +1481,16 @@ const s: Record<string, React.CSSProperties> = {
 
   // ── Sidebar (oscuro en ambos temas) ──────────────────────────────────────────
   sidebar: { background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0 12px', gap: 3 },
-  logo: { width: 40, height: 40, borderRadius: 12, background: 'var(--accent-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 14, flexShrink: 0, letterSpacing: '0.02em', boxShadow: '0 6px 16px var(--accent-glow)' },
+  logo: { width: 40, height: 40, borderRadius: 12, background: 'var(--accent-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 14, flexShrink: 0, letterSpacing: '0.02em' },
   sIcon: { width: 56, borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '8px 0', cursor: 'pointer', color: 'var(--sidebar-icon)', background: 'transparent', border: 'none', position: 'relative', transition: 'color 0.15s, background 0.15s' },
-  sIconActive: { background: 'var(--accent-grad)', color: 'var(--sidebar-icon-active)', boxShadow: '0 6px 16px var(--accent-glow)' },
+  sIconActive: { background: 'var(--accent-grad)', color: 'var(--sidebar-icon-active)' },
   sLabel: { fontSize: 8, fontWeight: 600, letterSpacing: '0.01em', color: 'var(--sidebar-label)', textTransform: 'uppercase' as const, maxWidth: 54, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
   badge: { position: 'absolute', top: 5, right: 7, background: '#f87171', borderRadius: 10, fontSize: 9, color: '#fff', padding: '1px 4px', fontWeight: 700, lineHeight: 1.4 },
   userAvatar: { width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#fff', fontWeight: 600, marginTop: 4, cursor: 'pointer' },
 
   // ── Main ────────────────────────────────────────────────────────────────────
   main: { display: 'grid', gridTemplateRows: 'auto 1fr', overflow: 'hidden' },
-  topbar: { padding: '12px 22px', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--topbar-grad)', boxShadow: '0 4px 18px rgba(37,99,235,0.25)', position: 'relative', zIndex: 5 },
+  topbar: { padding: '12px 22px', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--topbar-grad)', borderBottom: '0.5px solid var(--sidebar-border)', position: 'relative', zIndex: 5 },
   topbarTitle: { fontSize: 15, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' },
   prodBadge: { background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 8, padding: '4px 10px', fontSize: 11, color: '#fff', display: 'flex', alignItems: 'center', gap: 5, backdropFilter: 'blur(4px)' },
   liveDot: { width: 6, height: 6, borderRadius: '50%', background: '#4ade80', flexShrink: 0, animation: 'pulse 2s infinite' },

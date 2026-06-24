@@ -89,8 +89,8 @@ function ApptCard({ appt, today, categories, confirmingId, setConfirmingId, canc
           {appt.status === 'cancelled' && pill('❌ Cancelado', '#dc2626')}
           {appt.status !== 'cancelled' && isToday && pill(t('appointments_pill_today'), '#10b981')}
           {appt.status !== 'cancelled' && isPast && pill(t('appointments_pill_past'), 'var(--text-2)')}
-          {appt.reminder_24h_sent && pill('✓ 24h', '#7c3aed')}
-          {appt.reminder_1h_sent && pill('✓ 1h', '#7c3aed')}
+          {appt.reminder_24h_sent && pill('✓ 24h', '#226B43')}
+          {appt.reminder_1h_sent && pill('✓ 1h', '#226B43')}
           {appt.status !== 'cancelled' && !isPast && (
             confirmingId === appt.id ? (
               <div style={{ display: 'flex', gap: 4, marginTop: 4, alignItems: 'center' }}>

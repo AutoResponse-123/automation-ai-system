@@ -10,64 +10,64 @@ html, body, #root {
 html, body, #root { transition: background-color 0.25s ease; }
 
 /* ── Sistema de diseño Wasso ─────────────────────────────────────────────────
-   Identidad: gradiente azul → cyan, sidebar oscuro en ambos temas,
-   tarjetas redondeadas con sombra suave (inspirado en el mockup fintech). */
+   Identidad "verde sobrio / mensajería": verde pino sobre papel, sidebar pino
+   en ambos temas, superficies planas con hairlines (sin degradados ni neón). */
 
 :root {
-  /* Acento (igual en ambos temas) */
-  --accent:      #2563eb;
-  --accent-dark: #1d4ed8;
-  --accent-cyan: #38bdf8;
-  --accent-grad:      linear-gradient(135deg, #2563eb 0%, #38bdf8 100%);
-  --accent-grad-soft: linear-gradient(135deg, #3b82f6 0%, #38bdf8 100%);
-  --grad-text:        linear-gradient(135deg, #60a5fa 0%, #38bdf8 100%);
+  /* Acento pino (igual en ambos temas; personalizable por negocio) */
+  --accent:      #2E8B57;
+  --accent-dark: #226B43;
+  --accent-cyan: #3FA86B;
+  --accent-grad:      linear-gradient(135deg, #2E8B57 0%, #2E8B57 100%);
+  --accent-grad-soft: linear-gradient(135deg, #338F5C 0%, #2E8B57 100%);
+  --grad-text:        linear-gradient(135deg, #2E8B57 0%, #2E8B57 100%);
 
-  /* Sidebar: SIEMPRE oscuro (en claro y oscuro) */
-  --sidebar-bg:          #0e1320;
-  --sidebar-border:      #1b2336;
-  --sidebar-icon:        #6b7689;
+  /* Sidebar: SIEMPRE verde pino oscuro (en claro y oscuro) */
+  --sidebar-bg:          #14241D;
+  --sidebar-border:      #21382C;
+  --sidebar-icon:        #6E8579;
   --sidebar-icon-active: #ffffff;
-  --sidebar-label:       #5b6679;
+  --sidebar-label:       #5E7568;
 
-  /* Topbar: banner con gradiente azul → cyan */
-  --topbar-grad: linear-gradient(100deg, #1d4ed8 0%, #2563eb 45%, #38bdf8 110%);
+  /* Topbar: banda sólida al tono del sidebar (sin degradado) */
+  --topbar-grad: linear-gradient(0deg, #14241D 0%, #14241D 100%);
 }
 
 /* ── Tema OSCURO (default) ── */
 :root, :root[data-theme="dark"] {
-  --accent-glow: rgba(37, 99, 235, 0.30);
-  --accent-dim:  rgba(56, 189, 248, 0.14);
-  --bg-base:     #07070d;
-  --bg-panel:    #0a0a12;
-  --bg-card:     #0d0d18;
-  --bg-input:    #0f0f1e;
-  --border:      #16162a;
-  --border-mid:  #1e1e3a;
-  --text-bright: #f0eeff;
-  --text-1:      #e2e8f0;
-  --text-2:      #8b94aa;
-  --text-3:      #5a6178;
-  --text-faint:  #3a3f5a;
-  --card-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  --accent-glow: rgba(46, 139, 87, 0.26);
+  --accent-dim:  rgba(46, 139, 87, 0.14);
+  --bg-base:     #0F120D;
+  --bg-panel:    #131711;
+  --bg-card:     #171C14;
+  --bg-input:    #1A2017;
+  --border:      #232A20;
+  --border-mid:  #2D3528;
+  --text-bright: #F0F4EC;
+  --text-1:      #E3E8DD;
+  --text-2:      #909A87;
+  --text-3:      #5E665A;
+  --text-faint:  #3C423A;
+  --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.40);
   color-scheme: dark;
 }
 
-/* ── Tema CLARO (fiel al mockup) ── */
+/* ── Tema CLARO (papel) ── */
 :root[data-theme="light"] {
-  --accent-glow: rgba(37, 99, 235, 0.22);
-  --accent-dim:  rgba(37, 99, 235, 0.10);
-  --bg-base:     #eef2f8;
+  --accent-glow: rgba(46, 139, 87, 0.16);
+  --accent-dim:  rgba(46, 139, 87, 0.09);
+  --bg-base:     #F4F3EE;
   --bg-panel:    #ffffff;
   --bg-card:     #ffffff;
-  --bg-input:    #f1f4f9;
-  --border:      #e4e9f1;
-  --border-mid:  #d6deea;
-  --text-bright: #0f1b2d;
-  --text-1:      #1c2738;
-  --text-2:      #5b6b80;
-  --text-3:      #8593a6;
-  --text-faint:  #aab4c4;
-  --card-shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 4px 16px rgba(16, 24, 40, 0.07);
+  --bg-input:    #F1F1EA;
+  --border:      #E7E6DD;
+  --border-mid:  #DAD9CE;
+  --text-bright: #16201A;
+  --text-1:      #1B2620;
+  --text-2:      #586259;
+  --text-3:      #8B958D;
+  --text-faint:  #AEB6AC;
+  --card-shadow: 0 1px 2px rgba(20, 36, 29, 0.04), 0 3px 12px rgba(20, 36, 29, 0.06);
   color-scheme: light;
 }
 
@@ -111,8 +111,8 @@ html, body, #root { transition: background-color 0.25s ease; }
 }
 .metric-card:hover {
   border-color: var(--accent) !important;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 30px var(--accent-glow);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
 }
 
 /* Quick reply items */
@@ -126,7 +126,7 @@ html, body, #root { transition: background-color 0.25s ease; }
 
 /* Flash al entrar un mensaje nuevo (realtime) */
 @keyframes convFlash {
-  0%   { background: rgba(59, 130, 246, 0.20); }
+  0%   { background: rgba(46, 139, 87, 0.20); }
   100% { background: transparent; }
 }
 .conv-flash { animation: convFlash 2.4s ease-out; }

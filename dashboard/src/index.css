@@ -1,5 +1,5 @@
 :root {
-  font-family: var(--app-font, 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+  font-family: var(--app-font, 'Bricolage Grotesque', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;

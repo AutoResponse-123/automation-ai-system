@@ -21,14 +21,14 @@ interface StageDef { key: string; color: string }
 
 const STAGES: StageDef[] = [
   { key: 'nuevo',      color: '#38bdf8' },
-  { key: 'contactado', color: '#a78bfa' },
+  { key: 'contactado', color: '#2E8B57' },
   { key: 'agendó',     color: '#f59e0b' },
   { key: 'atendió',    color: '#22c55e' },
   { key: 'recurrente', color: '#e879f9' },
   { key: 'perdido',    color: '#f87171' },
 ]
 
-const AVATAR_COLORS = ['#a78bfa', '#f59e0b', '#22c55e', '#f87171', '#38bdf8', '#fb923c', '#e879f9', '#34d399']
+const AVATAR_COLORS = ['#2E8B57', '#f59e0b', '#22c55e', '#f87171', '#38bdf8', '#fb923c', '#e879f9', '#34d399']
 function avatarColor(id: string): string {
   let hash = 0
   for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash)
@@ -170,6 +170,6 @@ const s: Record<string, React.CSSProperties> = {
   cardSummary: { fontSize: 11, color: 'var(--text-3)', marginTop: 7, lineHeight: 1.4 },
   cardFoot: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
   cardMeta: { fontSize: 10, color: 'var(--text-3)' },
-  chatBtn: { background: 'transparent', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '3px 7px', fontSize: 10, color: '#a78bfa', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 },
+  chatBtn: { background: 'transparent', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '3px 7px', fontSize: 10, color: '#2E8B57', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 },
   emptyCol: { fontSize: 12, color: 'var(--text-3)', textAlign: 'center', padding: 12, opacity: 0.5 },
 }

@@ -23,7 +23,7 @@ function timeAgo(dateStr: string): string {
 }
 
 const EVENT_STYLES: Record<ActivityEvent['type'], { icon: string; color: string; bg: string }> = {
-  new_message:      { icon: 'ti-message-2',   color: '#a78bfa', bg: 'var(--bg-card)' },
+  new_message:      { icon: 'ti-message-2',   color: '#2E8B57', bg: 'var(--bg-card)' },
   new_conversation: { icon: 'ti-message-plus', color: '#38bdf8', bg: '#0e1e2e' },
   ai_response:      { icon: 'ti-sparkles',     color: '#22c55e', bg: '#0a1a0e' },
   resolved:         { icon: 'ti-circle-check', color: '#34d399', bg: '#0a1e18' },
