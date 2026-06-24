@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 const { supabase } = require('../config/supabase');
 const { sendWhatsAppTemplate } = require('../services/twilio');
-const { resolveRecipients, uniqueByPhone } = require('../services/broadcast');
+const { resolveRecipients, uniqueByPhone, parseTemplate, resolveVars } = require('../services/broadcast');
 
 const router = Router();
 
@@ -41,7 +41,7 @@ router.post('/send', async (req: Request, res: Response) => {
 
   const { data: business } = await supabase
     .from('businesses')
-    .select('id, plan, phone_whatsapp, is_active')
+    .select('id, name, plan, phone_whatsapp, is_active')
     .eq('id', businessId)
     .maybeSingle();
 
@@ -63,6 +63,15 @@ router.post('/send', async (req: Request, res: Response) => {
     res.status(400).json({ error: 'No hay contactos en ese segmento' }); return;
   }
 
+  // Mapeo de variables de la plantilla (nombre/negocio/teléfono) para personalizar por contacto.
+  const { data: tpl } = await supabase
+    .from('broadcast_templates')
+    .select('var_keys')
+    .eq('business_id', businessId)
+    .eq('content_sid', contentSid)
+    .maybeSingle();
+  const varKeys: string[] = tpl?.var_keys || [];
+
   // Registrar la difusión y responder YA (el envío sigue en segundo plano).
   const { data: bc } = await supabase
     .from('broadcasts')
@@ -78,10 +87,13 @@ router.post('/send', async (req: Request, res: Response) => {
     let sent = 0, failed = 0;
     for (const r of recipients) {
       try {
+        const vars = varKeys.length
+          ? resolveVars(varKeys, r, business.name)
+          : personalize(variables || {}, r.name);
         await sendWhatsAppTemplate(
           r.phone,
           contentSid,
-          personalize(variables || {}, r.name),
+          vars,
           process.env.TWILIO_ACCOUNT_SID!,
           process.env.TWILIO_AUTH_TOKEN!,
           business.phone_whatsapp
@@ -175,18 +187,23 @@ router.post('/templates', async (req: Request, res: Response) => {
   }
 
   const cat = ['marketing', 'utility'].includes(String(category)) ? String(category) : 'marketing';
-  const hasVar = /\{\{1\}\}/.test(body);
+
+  // Convertir tokens amigables ([nombre]/[negocio]/[telefono]) a {{1}}, {{2}}…
+  const { body: tBody, varKeys } = parseTemplate(body);
+  const SAMPLES: Record<string, string> = { nombre: 'Juan', negocio: 'Tu Negocio', telefono: '+5491100000000' };
+  const sampleVars: Record<string, string> = {};
+  varKeys.forEach((k: string, i: number) => { sampleVars[String(i + 1)] = SAMPLES[k] || 'ejemplo'; });
 
   try {
-    // 1) Crear el contenido (texto, con variable {{1}} opcional para el nombre).
+    // 1) Crear el contenido (texto, con las variables que correspondan).
     const createResp = await fetch('https://content.twilio.com/v1/Content', {
       method: 'POST',
       headers: twilioAuthHeader(),
       body: JSON.stringify({
         friendly_name: `wasso_dif_${businessId.slice(0, 8)}_${Date.now()}`,
         language: 'es',
-        variables: hasVar ? { '1': 'Juan' } : {},
-        types: { 'twilio/text': { body: String(body).slice(0, 1024) } },
+        variables: sampleVars,
+        types: { 'twilio/text': { body: String(tBody).slice(0, 1024) } },
       }),
     });
     const created: any = await createResp.json();
@@ -210,7 +227,7 @@ router.post('/templates', async (req: Request, res: Response) => {
 
     const { data: row } = await supabase
       .from('broadcast_templates')
-      .insert({ business_id: businessId, content_sid: created.sid, name: approvalName, body: String(body), category: cat, status: 'pending' })
+      .insert({ business_id: businessId, content_sid: created.sid, name: approvalName, body: tBody, var_keys: varKeys, category: cat, status: 'pending' })
       .select('id, content_sid, name, body, category, status, created_at')
       .maybeSingle();
 
@@ -232,7 +249,7 @@ router.get('/templates', async (req: Request, res: Response) => {
 
   const { data: templates } = await supabase
     .from('broadcast_templates')
-    .select('id, content_sid, name, body, category, status, created_at')
+    .select('id, content_sid, name, body, var_keys, category, status, created_at')
     .eq('business_id', businessId)
     .order('created_at', { ascending: false });
 

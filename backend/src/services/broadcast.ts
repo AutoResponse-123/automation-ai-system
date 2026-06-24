@@ -3,13 +3,6 @@ export {};
 // ── Difusiones masivas ────────────────────────────────────────────────────────
 // Filtra los contactos destinatarios de una difusión según el segmento elegido.
 // Función pura (sin DB) para poder testearla.
-//
-// Segmentos soportados:
-//   'all'            → todos los contactos
-//   'stage:<etapa>'  → contactos en una etapa del Embudo (nuevo/contactado/…)
-//   'tag:<etiqueta>' → contactos cuya conversación tiene esa etiqueta (si se pasa)
-//
-// Cada contacto debe tener al menos { phone } y opcionalmente { stage, name }.
 
 interface Recipient {
   id?: string;
@@ -29,7 +22,6 @@ function resolveRecipients(contacts: Recipient[], segment: string): Recipient[] 
     return list.filter(c => (c.stage || 'nuevo') === stage);
   }
 
-  // Compatibilidad: si pasan la etapa pelada (sin prefijo).
   return list.filter(c => (c.stage || 'nuevo') === seg);
 }
 
@@ -46,4 +38,31 @@ function uniqueByPhone(recipients: Recipient[]): Recipient[] {
   return out;
 }
 
-module.exports = { resolveRecipients, uniqueByPhone };
+// ── Personalización de plantillas ─────────────────────────────────────────────
+// Tokens amigables que el dueño escribe; se mapean a {{1}}, {{2}}… en orden.
+const TOKEN_KEYS = ['nombre', 'negocio', 'telefono'];
+
+function parseTemplate(rawBody: string): { body: string; varKeys: string[] } {
+  const order: string[] = [];
+  const body = String(rawBody || '').replace(/\[(nombre|negocio|telefono)\]/gi, (_m, tk) => {
+    const key = String(tk).toLowerCase();
+    let idx = order.indexOf(key);
+    if (idx === -1) { order.push(key); idx = order.length - 1; }
+    return `{{${idx + 1}}}`;
+  });
+  return { body, varKeys: order };
+}
+
+function resolveVars(varKeys: string[], contact: any, businessName?: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  (varKeys || []).forEach((key, i) => {
+    let v = '';
+    if (key === 'nombre') v = contact?.name || '';
+    else if (key === 'telefono') v = contact?.phone || '';
+    else if (key === 'negocio') v = businessName || '';
+    out[String(i + 1)] = v;
+  });
+  return out;
+}
+
+module.exports = { resolveRecipients, uniqueByPhone, parseTemplate, resolveVars, TOKEN_KEYS };

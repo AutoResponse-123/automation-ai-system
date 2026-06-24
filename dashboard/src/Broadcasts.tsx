@@ -14,8 +14,16 @@ interface Broadcast {
 }
 interface Template {
   id: string; content_sid: string; name: string; body: string
-  category: string; status: string; created_at: string
+  var_keys?: string[]; category: string; status: string; created_at: string
 }
+
+// Variables de personalización disponibles (token amigable → etiqueta del chip).
+const VARS: { token: string; label: string }[] = [
+  { token: '[nombre]', label: 'Nombre del cliente' },
+  { token: '[negocio]', label: 'Nombre del negocio' },
+  { token: '[telefono]', label: 'Teléfono del cliente' },
+]
+const SAMPLE_PHONE = '+54 9 11 1234-5678'
 
 const STAGES = ['nuevo', 'contactado', 'agendó', 'atendió', 'recurrente', 'perdido']
 
@@ -32,6 +40,7 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [total, setTotal] = useState(0)
   const [sampleName, setSampleName] = useState('Juan')
+  const [businessName, setBusinessName] = useState('tu negocio')
 
   // Compositor de envío
   const [segment, setSegment] = useState('all')
@@ -61,6 +70,10 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
       if (!sample && (row as any).name) sample = (row as any).name
     }
     setCounts(c); setTotal((data || []).length); setSampleName(sample || 'Juan')
+    if (businessId) {
+      const { data: biz } = await supabase.from('businesses').select('name').eq('id', businessId).maybeSingle()
+      if (biz?.name) setBusinessName(biz.name)
+    }
   }
 
   async function loadHistory() {
@@ -84,11 +97,10 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
     if (!newBody.trim()) { setTplMsg({ kind: 'err', text: 'Escribí el mensaje de la plantilla.' }); return }
     setCreating(true)
     try {
-      // El token amigable [nombre] se convierte a la variable {{1}} que entiende WhatsApp.
-      const body = newBody.trim().replace(/\[nombre\]/gi, '{{1}}')
+      // Se manda el texto con los tokens amigables; el backend los convierte a {{1}}, {{2}}…
       const res = await authedFetch('/api/broadcasts/templates', {
         method: 'POST',
-        body: JSON.stringify({ businessId, body, category: newCategory }),
+        body: JSON.stringify({ businessId, body: newBody.trim(), category: newCategory }),
       })
       const j = await res.json()
       if (!res.ok) throw new Error(j.error || 'Error al crear la plantilla')
@@ -106,8 +118,18 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
   const selectedTpl = templates.find(tp => tp.content_sid === selectedSid)
   const recipientCount = segment === 'all' ? total : (counts[segment.replace('stage:', '')] || 0)
 
-  function render(body: string) {
-    return body.replace(/\{\{1\}\}/g, sampleName).replace(/\[nombre\]/gi, sampleName)
+  function sampleFor(key?: string) {
+    if (key === 'negocio') return businessName
+    if (key === 'telefono') return SAMPLE_PHONE
+    return sampleName // nombre / por defecto
+  }
+  // Reemplaza tanto los tokens amigables ([nombre]…) como las variables {{N}} (según var_keys).
+  function render(body: string, varKeys?: string[]) {
+    return body
+      .replace(/\[nombre\]/gi, sampleName)
+      .replace(/\[negocio\]/gi, businessName)
+      .replace(/\[telefono\]/gi, SAMPLE_PHONE)
+      .replace(/\{\{(\d+)\}\}/g, (_m, n: string) => sampleFor(varKeys?.[Number(n) - 1]))
   }
 
   async function send() {
@@ -176,7 +198,7 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
           {selectedTpl && (
             <div style={s.previewBox}>
               <span style={s.previewLabel}>Vista previa para {sampleName}</span>
-              <span style={s.previewText}>{render(selectedTpl.body)}</span>
+              <span style={s.previewText}>{render(selectedTpl.body, selectedTpl.var_keys)}</span>
             </div>
           )}
 
@@ -204,12 +226,14 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
             placeholder="Ej: Hola [nombre], esta semana tenemos 20% off en color 🎨 ¿Querés que te agendemos?"
           />
           <div style={s.chipsRow}>
-            <button type="button" onClick={() => setNewBody(v => (v + ' [nombre]').trim())} style={s.chip}>
-              <i className="ti ti-plus" style={{ fontSize: 12 }} /> Nombre del cliente
-            </button>
-            <span style={s.chipHint}>Se reemplaza por el nombre de cada contacto</span>
+            {VARS.map(v => (
+              <button key={v.token} type="button" onClick={() => setNewBody(b => (b + ' ' + v.token).trim())} style={s.chip}>
+                <i className="ti ti-plus" style={{ fontSize: 12 }} /> {v.label}
+              </button>
+            ))}
           </div>
-          {newBody.includes('[nombre]') && (
+          <span style={s.chipHint}>Tocá un dato para insertarlo; se reemplaza por el de cada contacto.</span>
+          {VARS.some(v => newBody.includes(v.token)) && (
             <div style={s.previewBox}>
               <span style={s.previewLabel}>Así lo verá {sampleName}</span>
               <span style={s.previewText}>{render(newBody)}</span>
@@ -233,7 +257,7 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
                 const b = statusBadge(tp.status)
                 return (
                   <div key={tp.id} style={s.tplRow}>
-                    <span style={s.tplBody}>{tp.body.replace(/\{\{1\}\}/g, '[nombre]')}</span>
+                    <span style={s.tplBody}>{tp.body.replace(/\{\{(\d+)\}\}/g, (_m, n: string) => `[${tp.var_keys?.[Number(n) - 1] || 'dato'}]`)}</span>
                     <span style={{ ...s.badge, color: b.color, background: b.bg }}>{b.label}</span>
                   </div>
                 )
