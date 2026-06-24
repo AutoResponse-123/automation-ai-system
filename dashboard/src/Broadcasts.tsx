@@ -29,6 +29,7 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
   const [name, setName] = useState('')
   const [contentSid, setContentSid] = useState('')
   const [varValue, setVarValue] = useState('')
+  const [sampleName, setSampleName] = useState('Juan')
   const [sending, setSending] = useState(false)
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
   const [history, setHistory] = useState<Broadcast[]>([])
@@ -36,14 +37,17 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
   useEffect(() => { loadCounts(); loadHistory() }, [businessId])
 
   async function loadCounts() {
-    const { data } = await supabase.from('contacts').select('stage')
+    const { data } = await supabase.from('contacts').select('stage, name')
     const c: Record<string, number> = {}
+    let sample = ''
     for (const row of data || []) {
       const st = (row as any).stage || 'nuevo'
       c[st] = (c[st] || 0) + 1
+      if (!sample && (row as any).name) sample = (row as any).name
     }
     setCounts(c)
     setTotal((data || []).length)
+    setSampleName(sample || 'Juan')
   }
 
   async function loadHistory() {
@@ -117,9 +121,20 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
           <label style={s.label}>ID de plantilla (Content SID)</label>
           <input style={s.input} value={contentSid} onChange={e => setContentSid(e.target.value)} placeholder="HXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" />
 
-          <label style={s.label}>Texto de la variable {'{{1}}'} (opcional)</label>
-          <input style={s.input} value={varValue} onChange={e => setVarValue(e.target.value)} placeholder="Usá {name} para el nombre del cliente" />
-          <div style={s.hint}>Tip: escribí <code>{'{name}'}</code> y se reemplaza por el nombre de cada contacto.</div>
+          <label style={s.label}>Texto personalizado (opcional)</label>
+          <input style={s.input} value={varValue} onChange={e => setVarValue(e.target.value)} placeholder="Ej: Hola {name}, te dejamos una promo 👋" />
+          <div style={s.chipsRow}>
+            <button type="button" onClick={() => setVarValue(v => (v + ' {name}').trim())} style={s.chip}>
+              <i className="ti ti-plus" style={{ fontSize: 12 }} /> Nombre del cliente
+            </button>
+            <span style={s.chipHint}>Se reemplaza por el nombre de cada contacto</span>
+          </div>
+          {varValue.includes('{name}') && (
+            <div style={s.previewBox}>
+              <span style={s.previewLabel}>Así lo verá {sampleName}:</span>
+              <span style={s.previewText}>{varValue.replace(/\{name\}/gi, sampleName)}</span>
+            </div>
+          )}
 
           <div style={s.previewRow}>
             <span style={s.preview}>Se enviará a <b style={{ color: 'var(--accent)' }}>{recipientCount}</b> contactos</span>
@@ -168,6 +183,12 @@ const s: Record<string, React.CSSProperties> = {
   label: { fontSize: 11, color: 'var(--text-3)', marginTop: 8, textTransform: 'uppercase' as const, letterSpacing: '0.04em' },
   input: { background: 'var(--bg-input)', border: '0.5px solid var(--border-mid)', borderRadius: 8, padding: '9px 11px', color: 'var(--text-1)', fontSize: 13, outline: 'none', fontFamily: 'inherit' },
   hint: { fontSize: 11, color: 'var(--text-3)', marginTop: 2 },
+  chipsRow: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' },
+  chip: { display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--accent-dim)', color: 'var(--accent)', border: '0.5px solid var(--accent)', borderRadius: 20, padding: '4px 11px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' },
+  chipHint: { fontSize: 11, color: 'var(--text-3)' },
+  previewBox: { display: 'flex', flexDirection: 'column', gap: 2, marginTop: 8, padding: '9px 11px', background: 'var(--bg-input)', borderLeft: '2px solid var(--accent)', borderRadius: '0 8px 8px 0' },
+  previewLabel: { fontSize: 10, color: 'var(--text-3)', textTransform: 'uppercase' as const, letterSpacing: '0.04em' },
+  previewText: { fontSize: 13, color: 'var(--text-1)' },
   previewRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, gap: 10, flexWrap: 'wrap' },
   preview: { fontSize: 13, color: 'var(--text-2)' },
   sendBtn: { display: 'flex', alignItems: 'center', gap: 6, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },

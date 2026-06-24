@@ -103,4 +103,60 @@ router.post('/send', async (req: Request, res: Response) => {
   })().catch((e: any) => console.error('[broadcast bg]', e?.message || e));
 });
 
+// POST /api/broadcasts/menu — crea (o reemplaza) el menú de botones quick-reply
+// del bot en Twilio y guarda su Content SID en el negocio. Así el dueño define los
+// botones desde el panel sin tocar la consola de Twilio.
+router.post('/menu', async (req: Request, res: Response) => {
+  const { businessId, body, buttons } = req.body || {};
+
+  if (!businessId || !body || !Array.isArray(buttons)) {
+    res.status(400).json({ error: 'businessId, body y buttons son requeridos' }); return;
+  }
+  if (!(await verifyBusinessOwner(req.headers.authorization, businessId))) {
+    res.status(403).json({ error: 'No autorizado' }); return;
+  }
+
+  const cleanButtons = buttons
+    .map((b: any) => String(b || '').trim().slice(0, 20))
+    .filter((b: string) => b.length > 0)
+    .slice(0, 3); // WhatsApp permite hasta 3 botones quick-reply
+
+  if (cleanButtons.length === 0) {
+    res.status(400).json({ error: 'Agregá al menos un botón' }); return;
+  }
+
+  const accountSid = process.env.TWILIO_ACCOUNT_SID || '';
+  const authToken = process.env.TWILIO_AUTH_TOKEN || '';
+
+  try {
+    const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+    const resp = await fetch('https://content.twilio.com/v1/Content', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${auth}` },
+      body: JSON.stringify({
+        friendly_name: `wasso_menu_${businessId}_${Date.now()}`,
+        language: 'es',
+        types: {
+          'twilio/quick-reply': {
+            body: String(body).slice(0, 1024),
+            actions: cleanButtons.map((title: string, i: number) => ({ id: `btn_${i + 1}`, title })),
+          },
+        },
+      }),
+    });
+
+    const data: any = await resp.json();
+    if (!resp.ok || !data?.sid) {
+      console.error('[menu] Twilio content create falló', data);
+      res.status(502).json({ error: data?.message || 'Twilio no pudo crear el menú' }); return;
+    }
+
+    await supabase.from('businesses').update({ menu_content_sid: data.sid }).eq('id', businessId);
+    res.json({ ok: true, sid: data.sid });
+  } catch (err: any) {
+    console.error('[menu] error', err?.message || err);
+    res.status(500).json({ error: 'No se pudo crear el menú' });
+  }
+});
+
 module.exports = router;

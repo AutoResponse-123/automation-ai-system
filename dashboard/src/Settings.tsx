@@ -131,12 +131,42 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
   const [newReminderQty, setNewReminderQty] = useState('')
   const [newReminderUnit, setNewReminderUnit] = useState('min')
   const [bgColor, setBgColor] = useState<string>(() => localStorage.getItem('ar_bg_color') ?? 'var(--bg-base)')
-  const [fontFamily, setFontFamily] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Inter')
+  const [fontFamily, setFontFamily] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Bricolage Grotesque')
+
+  // Builder del menú de botones del bot
+  const [menuBody, setMenuBody] = useState('¿En qué te puedo ayudar?')
+  const [menuButtons, setMenuButtons] = useState<string[]>(['Agendar turno', 'Ver servicios', 'Hablar con alguien'])
+  const [menuSaving, setMenuSaving] = useState(false)
+  const [menuMsg, setMenuMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
+
+  async function saveMenu() {
+    setMenuMsg(null)
+    const btns = menuButtons.map(b => b.trim()).filter(Boolean)
+    if (!menuBody.trim()) { setMenuMsg({ kind: 'err', text: 'Escribí el mensaje del menú.' }); return }
+    if (btns.length === 0) { setMenuMsg({ kind: 'err', text: 'Agregá al menos un botón.' }); return }
+    setMenuSaving(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/broadcasts/menu`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify({ businessId, body: menuBody.trim(), buttons: btns }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error || 'Error al crear el menú')
+      update('menu_content_sid', j.sid)
+      setMenuMsg({ kind: 'ok', text: '¡Menú creado! El bot ya puede mostrar estos botones.' })
+    } catch (e: any) {
+      setMenuMsg({ kind: 'err', text: e.message })
+    } finally {
+      setMenuSaving(false)
+    }
+  }
 
   function applyFont(font: string) {
     const existing = document.getElementById('ar-font-link')
     if (existing) existing.remove()
-    if (font !== 'Inter') {
+    if (font !== 'Inter' && font !== 'Bricolage Grotesque') {
       const link = document.createElement('link')
       link.id = 'ar-font-link'
       link.rel = 'stylesheet'
@@ -937,23 +967,56 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
             <div style={s.section}>
               <SectionHeader icon="ti-plug" title={uis('Integraciones', 'Integrations')} subtitle={uis('Conectá servicios externos a tu bot', 'Connect external services to your bot')} />
 
-              {/* Menú de botones (WhatsApp quick reply) */}
+              {/* Menú de botones (WhatsApp quick reply) — builder */}
               <div style={{ background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <i className="ti ti-layout-grid" style={{ fontSize: 18, color: 'var(--accent)' }} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{uis('Menú de botones', 'Quick-reply menu')}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2 }}>{uis('Content SID de una plantilla quick-reply de Twilio. El bot la usa para ofrecer botones tocables.', 'Content SID of a Twilio quick-reply template. The bot uses it to offer tappable buttons.')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2 }}>{uis('Botones tocables que el bot puede ofrecer en el chat. Escribilos acá y los creamos por vos.', 'Tappable buttons the bot can offer in chat. Write them here and we create them for you.')}</div>
                   </div>
+                  {config.menu_content_sid && <span style={{ fontSize: 10, fontWeight: 700, background: '#2E8B5722', color: '#3FA86B', border: '1px solid #2E8B5744', borderRadius: 4, padding: '2px 8px' }}>{uis('ACTIVO', 'ACTIVE')}</span>}
                 </div>
+
+                <label style={{ fontSize: 11, color: 'var(--text-3)' }}>{uis('Mensaje del menú', 'Menu message')}</label>
                 <input
-                  style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-input)', border: '0.5px solid var(--border-mid)', borderRadius: 8, padding: '9px 11px', color: 'var(--text-1)', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
-                  value={config.menu_content_sid ?? ''}
-                  onChange={e => update('menu_content_sid', e.target.value || null)}
-                  placeholder="HXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  style={{ width: '100%', boxSizing: 'border-box', background: 'var(--bg-input)', border: '0.5px solid var(--border-mid)', borderRadius: 8, padding: '9px 11px', color: 'var(--text-1)', fontSize: 13, outline: 'none', fontFamily: 'inherit', marginBottom: 8 }}
+                  value={menuBody}
+                  onChange={e => setMenuBody(e.target.value)}
+                  placeholder="¿En qué te puedo ayudar?"
                 />
+
+                <label style={{ fontSize: 11, color: 'var(--text-3)' }}>{uis('Botones (hasta 3)', 'Buttons (up to 3)')}</label>
+                {menuButtons.map((b, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <input
+                      style={{ flex: 1, boxSizing: 'border-box', background: 'var(--bg-input)', border: '0.5px solid var(--border-mid)', borderRadius: 8, padding: '8px 11px', color: 'var(--text-1)', fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
+                      value={b}
+                      maxLength={20}
+                      onChange={e => setMenuButtons(arr => arr.map((x, j) => j === i ? e.target.value : x))}
+                      placeholder={`Botón ${i + 1}`}
+                    />
+                    {menuButtons.length > 1 && (
+                      <button type="button" onClick={() => setMenuButtons(arr => arr.filter((_, j) => j !== i))} style={{ background: 'transparent', border: 'none', color: 'var(--text-3)', cursor: 'pointer', fontSize: 16 }} aria-label="Quitar">
+                        <i className="ti ti-x" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {menuButtons.length < 3 && (
+                  <button type="button" onClick={() => setMenuButtons(arr => [...arr, ''])} style={{ background: 'transparent', border: '0.5px dashed var(--border-mid)', color: 'var(--text-2)', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8 }}>
+                    <i className="ti ti-plus" style={{ fontSize: 12 }} /> {uis('Agregar botón', 'Add button')}
+                  </button>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+                  <button type="button" onClick={saveMenu} disabled={menuSaving} style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {menuSaving ? uis('Creando…', 'Creating…') : (config.menu_content_sid ? uis('Actualizar menú', 'Update menu') : uis('Crear menú', 'Create menu'))}
+                  </button>
+                  {menuMsg && <span style={{ fontSize: 12, color: menuMsg.kind === 'ok' ? '#2E8B57' : '#dc2626' }}>{menuMsg.text}</span>}
+                </div>
               </div>
 
               {/* Google Calendar */}
