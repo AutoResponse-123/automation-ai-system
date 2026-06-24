@@ -159,4 +159,100 @@ router.post('/menu', async (req: Request, res: Response) => {
   }
 });
 
+// Helpers para la API de Content de Twilio (crear plantilla + mandar a aprobar).
+function twilioAuthHeader() {
+  const auth = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID || ''}:${process.env.TWILIO_AUTH_TOKEN || ''}`).toString('base64');
+  return { 'Content-Type': 'application/json', 'Authorization': `Basic ${auth}` };
+}
+
+// POST /api/broadcasts/templates — crea una plantilla de difusión y la manda a
+// aprobar a WhatsApp/Meta. Queda 'pending' hasta que Meta la apruebe (~1 día hábil).
+router.post('/templates', async (req: Request, res: Response) => {
+  const { businessId, body, category } = req.body || {};
+  if (!businessId || !body) { res.status(400).json({ error: 'businessId y body son requeridos' }); return; }
+  if (!(await verifyBusinessOwner(req.headers.authorization, businessId))) {
+    res.status(403).json({ error: 'No autorizado' }); return;
+  }
+
+  const cat = ['marketing', 'utility'].includes(String(category)) ? String(category) : 'marketing';
+  const hasVar = /\{\{1\}\}/.test(body);
+
+  try {
+    // 1) Crear el contenido (texto, con variable {{1}} opcional para el nombre).
+    const createResp = await fetch('https://content.twilio.com/v1/Content', {
+      method: 'POST',
+      headers: twilioAuthHeader(),
+      body: JSON.stringify({
+        friendly_name: `wasso_dif_${businessId.slice(0, 8)}_${Date.now()}`,
+        language: 'es',
+        variables: hasVar ? { '1': 'Juan' } : {},
+        types: { 'twilio/text': { body: String(body).slice(0, 1024) } },
+      }),
+    });
+    const created: any = await createResp.json();
+    if (!createResp.ok || !created?.sid) {
+      console.error('[templates] create falló', created);
+      res.status(502).json({ error: created?.message || 'Twilio no pudo crear la plantilla' }); return;
+    }
+
+    // 2) Enviarla a aprobación de WhatsApp con su categoría.
+    const approvalName = `wasso_dif_${Date.now()}`;
+    const apprResp = await fetch(`https://content.twilio.com/v1/Content/${created.sid}/ApprovalRequests/whatsapp`, {
+      method: 'POST',
+      headers: twilioAuthHeader(),
+      body: JSON.stringify({ name: approvalName, category: cat.toUpperCase() }),
+    });
+    const appr: any = await apprResp.json().catch(() => ({}));
+    if (!apprResp.ok) {
+      console.error('[templates] approval falló', appr);
+      res.status(502).json({ error: appr?.message || 'No se pudo enviar a aprobación' }); return;
+    }
+
+    const { data: row } = await supabase
+      .from('broadcast_templates')
+      .insert({ business_id: businessId, content_sid: created.sid, name: approvalName, body: String(body), category: cat, status: 'pending' })
+      .select('id, content_sid, name, body, category, status, created_at')
+      .maybeSingle();
+
+    res.json({ ok: true, template: row });
+  } catch (err: any) {
+    console.error('[templates] error', err?.message || err);
+    res.status(500).json({ error: 'No se pudo crear la plantilla' });
+  }
+});
+
+// GET /api/broadcasts/templates?businessId=... — lista las plantillas y refresca
+// el estado de aprobación de las que siguen pendientes consultando a Twilio.
+router.get('/templates', async (req: Request, res: Response) => {
+  const businessId = String(req.query.businessId || '');
+  if (!businessId) { res.status(400).json({ error: 'businessId requerido' }); return; }
+  if (!(await verifyBusinessOwner(req.headers.authorization, businessId))) {
+    res.status(403).json({ error: 'No autorizado' }); return;
+  }
+
+  const { data: templates } = await supabase
+    .from('broadcast_templates')
+    .select('id, content_sid, name, body, category, status, created_at')
+    .eq('business_id', businessId)
+    .order('created_at', { ascending: false });
+
+  // Refrescar estado de las pendientes.
+  for (const tpl of (templates || []).filter((t: any) => t.status === 'pending')) {
+    try {
+      const r = await fetch(`https://content.twilio.com/v1/Content/${tpl.content_sid}/ApprovalRequests`, { headers: twilioAuthHeader() });
+      const j: any = await r.json();
+      const st = j?.whatsapp?.status;
+      if (st && st !== tpl.status) {
+        const mapped = st === 'approved' ? 'approved' : st === 'rejected' ? 'rejected' : 'pending';
+        if (mapped !== 'pending') {
+          await supabase.from('broadcast_templates').update({ status: mapped }).eq('id', tpl.id);
+          tpl.status = mapped;
+        }
+      }
+    } catch { /* si falla la consulta, dejamos el estado como estaba */ }
+  }
+
+  res.json({ templates: templates || [] });
+});
+
 module.exports = router;
