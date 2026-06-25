@@ -280,9 +280,10 @@ router.post('/whatsapp', async (req: any, res: any) => {
     (async () => {
       try {
         const { text: assistantMessage, tokens, escalate } = await callClaude(messages, systemPrompt, business.max_tokens || 600, business, fromPhone);
-        await saveMessage(conversationId, 'assistant', assistantMessage, tokens);
+        // Mandar la respuesta PRIMERO (lo que el cliente percibe), guardar después.
         const { sendWhatsAppMessage } = require('../services/twilio');
         await sendWhatsAppMessage(fromPhone, assistantMessage, process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!, business.phone_whatsapp);
+        await saveMessage(conversationId, 'assistant', assistantMessage, tokens);
 
         // Embudo: el negocio ya le respondió a este cliente → etapa 'contactado'.
         const { advanceStage } = require('../services/pipeline');
