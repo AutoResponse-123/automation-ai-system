@@ -11,6 +11,7 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [showPwd, setShowPwd] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -29,7 +30,7 @@ export default function Login() {
 
   function clearState() {
     setError(''); setSuccess('')
-    setName(''); setPassword(''); setConfirmPassword('')
+    setName(''); setPassword(''); setConfirmPassword(''); setAcceptedTerms(false)
   }
 
   function switchMode(m: Mode) {
@@ -49,12 +50,13 @@ export default function Login() {
     if (!name.trim() || !email || !password || !confirmPassword) { setError('Completá todos los campos.'); return }
     if (password.length < 8) { setError('La contraseña debe tener al menos 8 caracteres.'); return }
     if (password !== confirmPassword) { setError('Las contraseñas no coinciden.'); return }
+    if (!acceptedTerms) { setError('Tenés que aceptar los Términos y Condiciones y la Política de Privacidad.'); return }
     setLoading(true)
     try {
       const res = await fetch(`${BACKEND_URL}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), email: email.toLowerCase().trim(), password }),
+        body: JSON.stringify({ name: name.trim(), email: email.toLowerCase().trim(), password, acceptedTerms: true }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -150,6 +152,20 @@ export default function Login() {
           <div style={s.alertSuccess}>
             <i className="ti ti-circle-check" style={{ fontSize: 13 }} />{success}
           </div>
+        )}
+
+        {mode === 'signup' && (
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, margin: '4px 0 14px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={e => setAcceptedTerms(e.target.checked)}
+              style={{ marginTop: 2, width: 16, height: 16, cursor: 'pointer', accentColor: '#2E8B57', flexShrink: 0 }}
+            />
+            <span style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
+              Acepto los <a href="https://landing-five-tau-86.vercel.app/terms.html" target="_blank" rel="noopener noreferrer" style={{ color: '#3FA86B', textDecoration: 'underline' }}>Términos y Condiciones</a> y la <a href="https://landing-five-tau-86.vercel.app/privacy.html" target="_blank" rel="noopener noreferrer" style={{ color: '#3FA86B', textDecoration: 'underline' }}>Política de Privacidad</a>, incluido que el número de WhatsApp es provisto por Wasso.
+            </span>
+          </label>
         )}
 
         <button onClick={handleSubmit} disabled={loading} style={{ ...s.btn, opacity: loading ? 0.7 : 1 }}>

@@ -11,10 +11,14 @@ const adminSupabase = createClient(
 
 // POST /api/auth/signup
 router.post('/signup', async (req: Request, res: Response) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, acceptedTerms } = req.body;
 
   if (!name || !email || !password) {
     res.status(400).json({ error: 'Nombre, email y contraseña son requeridos.' }); return;
+  }
+  // Aceptación de términos: requisito legal para crear la cuenta.
+  if (acceptedTerms !== true) {
+    res.status(400).json({ error: 'Debés aceptar los Términos y Condiciones y la Política de Privacidad.' }); return;
   }
   if (name.trim().length < 2) {
     res.status(400).json({ error: 'El nombre debe tener al menos 2 caracteres.' }); return;
@@ -59,6 +63,8 @@ router.post('/signup', async (req: Request, res: Response) => {
     bot_emoji: '\u{1F916}',
     language: 'es',
     tone: 'amigable',
+    terms_accepted_at: new Date().toISOString(),
+    terms_version: '2026-06-25',
   });
 
   if (bizError) {
