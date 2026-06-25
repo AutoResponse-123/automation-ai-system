@@ -5,7 +5,8 @@ export {};
 // manda a la API de transcripción. Devuelve el texto, o null si no se pudo (sin API key,
 // audio vacío/muy grande, o error) → el caller hace fallback (pedir que escriban).
 //
-// Costo: Whisper ~US$0.006/min; una nota de voz típica (15-30s) ~US$0.002-0.003.
+// Modelo: gpt-4o-mini-transcribe (más rápido, más barato ~US$0.003/min y más preciso
+// que whisper-1, mismo endpoint). Costo de una nota de voz típica (15-30s) ~US$0.001.
 // Gateado por plan en el webhook (solo Pro/Enterprise/trial).
 
 const MAX_BYTES = 5 * 1024 * 1024; // ~5MB. Nota de voz típica < 1MB; Whisper admite hasta 25MB.
@@ -37,7 +38,7 @@ async function transcribeAudio(mediaUrl: string, contentType?: string): Promise<
       : 'ogg';
     const form = new FormData();
     form.append('file', new Blob([buf], { type }), `audio.${ext}`);
-    form.append('model', 'whisper-1');
+    form.append('model', 'gpt-4o-mini-transcribe');
     form.append('language', 'es');
 
     const tr = await fetch('https://api.openai.com/v1/audio/transcriptions', {
