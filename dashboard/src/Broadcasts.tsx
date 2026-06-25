@@ -99,6 +99,16 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
   async function createTemplate() {
     setTplMsg(null)
     if (!newBody.trim()) { setTplMsg({ kind: 'err', text: 'Escribí el mensaje de la plantilla.' }); return }
+    // WhatsApp rechaza la plantilla si empieza/termina con una variable o si dos
+    // variables van pegadas (solo con espacio en medio). Avisamos antes de mandar.
+    const b = newBody.trim()
+    const tk = '\\[(nombre|fecha|hora|servicio|negocio|telefono)\\]'
+    if (new RegExp(`^${tk}`, 'i').test(b) || new RegExp(`${tk}$`, 'i').test(b)) {
+      setTplMsg({ kind: 'err', text: 'El mensaje no puede empezar ni terminar con una variable. Agregá texto alrededor (ej: "Hola [nombre]!").' }); return
+    }
+    if (new RegExp(`${tk}\\s*${tk}`, 'i').test(b)) {
+      setTplMsg({ kind: 'err', text: 'Entre dos variables tiene que haber texto (no solo un espacio). Ej: "Hola [nombre], tu turno de [servicio]…".' }); return
+    }
     setCreating(true)
     try {
       // Se manda el texto con los tokens amigables; el backend los convierte a {{1}}, {{2}}…
