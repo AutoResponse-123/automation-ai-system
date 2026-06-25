@@ -57,6 +57,7 @@ interface BusinessConfig {
     escalation_bot_decides?: boolean
     escalation_auto_resume_hours?: number
     hours: Record<string, { open: string; close: string; closed: boolean; breaks?: Array<{ start: string; end: string }> }>
+    blocked_dates?: string[]
   }
 }
 
@@ -687,6 +688,38 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                       <option value="America/Bogota">Colombia (GMT-5)</option>
                       <option value="Europe/Madrid">España (GMT+1)</option>
                     </select>
+                  </Field>
+
+                  <Field label={uis('Feriados / días cerrados', 'Holidays / closed days')} hint={uis('Fechas puntuales en las que no se atiende. El bot no ofrece ni agenda turnos esos días.', 'Specific dates with no service. The bot will not offer or book appointments on those days.')}>
+                    <input
+                      type="date"
+                      style={{ ...s.input, maxWidth: 200 }}
+                      onChange={e => {
+                        const d = e.target.value
+                        if (!d) return
+                        const curD: string[] = config.schedule?.blocked_dates || []
+                        if (!curD.includes(d)) update('schedule', { ...config.schedule, blocked_dates: [...curD, d].sort() })
+                        e.target.value = ''
+                      }}
+                    />
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                      {(config.schedule?.blocked_dates || []).length === 0 && (
+                        <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{uis('No hay días cerrados cargados.', 'No closed days yet.')}</span>
+                      )}
+                      {(config.schedule?.blocked_dates || []).map((d: string) => (
+                        <span key={d} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--accent-dim)', color: 'var(--accent)', border: '0.5px solid var(--accent)', borderRadius: 20, padding: '4px 6px 4px 11px', fontSize: 12 }}>
+                          {new Date(d + 'T12:00:00').toLocaleDateString(uis('es-AR', 'en-US'), { weekday: 'short', day: 'numeric', month: 'short' })}
+                          <button
+                            type="button"
+                            onClick={() => update('schedule', { ...config.schedule, blocked_dates: (config.schedule?.blocked_dates || []).filter((x: string) => x !== d) })}
+                            style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 14, display: 'flex', padding: 0 }}
+                            aria-label="Quitar"
+                          >
+                            <i className="ti ti-x" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
                   </Field>
 
                   <Field label={uis('Tiempo entre turnos (buffer)', 'Time between appointments (buffer)')}>

@@ -148,6 +148,9 @@ async function getAvailableSlots(business: any, date: string, durationMinutes: n
   const calendarId = business.google_calendar_id || 'primary';
   const tz = business.schedule?.timezone || 'America/Argentina/Buenos_Aires';
 
+  // Feriados / días cerrados puntuales: ese día no se ofrece ningún horario.
+  if ((business.schedule?.blocked_dates || []).includes(date)) return [];
+
   const weekday = new Date(`${date}T12:00:00Z`)
     .toLocaleDateString('es-AR', { timeZone: tz, weekday: 'long' })
     .toLowerCase();
@@ -223,6 +226,8 @@ async function isSlotFree(business: any, date: string, time: string, durationMin
   const calendar = await getCalendarClient(business);
   const calendarId = business.google_calendar_id || 'primary';
   const tz = business.schedule?.timezone || 'America/Argentina/Buenos_Aires';
+  // Feriados / días cerrados puntuales: no se puede reservar ese día.
+  if ((business.schedule?.blocked_dates || []).includes(date)) return false;
   const start = wallTimeToUtc(date, time, tz);
   const { duration, buffer } = resolveSlot(business, durationMinutes);
   const end = new Date(start.getTime() + duration * 60000);
