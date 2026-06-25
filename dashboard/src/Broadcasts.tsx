@@ -179,6 +179,11 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
         <span style={s.sub}>Mandá un mensaje a un grupo de clientes</span>
       </div>
 
+      <div style={s.tip}>
+        <i className="ti ti-bulb" style={{ fontSize: 14, flexShrink: 0 }} />
+        <span>Para <b>recordar turnos</b> no hace falta esto: el sistema avisa solo a cada cliente (Configuración → Recordatorios). Las difusiones son para <b>avisos o promos</b> que mandás vos a un grupo.</span>
+      </div>
+
       <div style={s.grid}>
         {/* Enviar */}
         <div style={s.card}>
@@ -301,6 +306,7 @@ const s: Record<string, React.CSSProperties> = {
   header: { display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 14 },
   title: { fontSize: 13, fontWeight: 600, color: 'var(--text-1)' },
   sub: { fontSize: 12, color: 'var(--text-3)' },
+  tip: { display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 14, padding: '10px 12px', background: 'var(--accent-dim)', borderRadius: 8, fontSize: 12, color: 'var(--text-2)', lineHeight: 1.5 },
   grid: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 14, alignItems: 'start' },
   card: { background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 6 },
   cardTitle: { fontSize: 13, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 },
