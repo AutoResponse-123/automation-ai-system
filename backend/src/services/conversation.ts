@@ -43,7 +43,7 @@ async function getOrCreateConversation(
     .eq('business_id', businessId)
     .eq('contact_id', contactId)
     .in('status', ['active', 'pending'])
-    .order('created_at', { ascending: false })
+    .order('started_at', { ascending: false })
     .limit(1)).data || [])[0] || null;
 
   let lastMessageAt: string | null = null;

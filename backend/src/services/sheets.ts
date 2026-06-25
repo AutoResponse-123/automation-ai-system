@@ -52,7 +52,7 @@ async function exportToSheets(business: any): Promise<string> {
       .eq('business_id', business.id)
       .order('appointment_date', { ascending: false }),
     supabase.from('conversations')
-      .select('status, created_at, updated_at, tags, contact:contacts(phone, name)')
+      .select('status, started_at, updated_at, tags, contact:contacts(phone, name)')
       .eq('business_id', business.id)
       .order('updated_at', { ascending: false })
       .limit(500),

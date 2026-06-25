@@ -160,7 +160,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
           .from('conversations')
           .select('id', { count: 'exact', head: true })
           .eq('business_id', business.id)
-          .gte('created_at', monthStart.toISOString());
+          .gte('started_at', monthStart.toISOString());
         if ((monthlyConvs ?? 0) >= planLimit) {
           const limitPlanMsg = `Lo sentimos, alcanzamos el límite del plan este mes. Para continuar, contactanos para actualizar tu plan.`;
           const twimlLP = new (require('twilio').twiml.MessagingResponse)();
