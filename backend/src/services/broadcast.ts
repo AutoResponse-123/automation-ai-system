@@ -40,11 +40,13 @@ function uniqueByPhone(recipients: Recipient[]): Recipient[] {
 
 // ── Personalización de plantillas ─────────────────────────────────────────────
 // Tokens amigables que el dueño escribe; se mapean a {{1}}, {{2}}… en orden.
-const TOKEN_KEYS = ['nombre', 'negocio', 'telefono'];
+// Datos del contacto/negocio + datos del próximo turno (fecha/hora/servicio).
+const TOKEN_KEYS = ['nombre', 'fecha', 'hora', 'servicio', 'negocio', 'telefono'];
+const TOKEN_RE = /\[(nombre|fecha|hora|servicio|negocio|telefono)\]/gi;
 
 function parseTemplate(rawBody: string): { body: string; varKeys: string[] } {
   const order: string[] = [];
-  const body = String(rawBody || '').replace(/\[(nombre|negocio|telefono)\]/gi, (_m, tk) => {
+  const body = String(rawBody || '').replace(TOKEN_RE, (_m, tk) => {
     const key = String(tk).toLowerCase();
     let idx = order.indexOf(key);
     if (idx === -1) { order.push(key); idx = order.length - 1; }
@@ -53,14 +55,12 @@ function parseTemplate(rawBody: string): { body: string; varKeys: string[] } {
   return { body, varKeys: order };
 }
 
-function resolveVars(varKeys: string[], contact: any, businessName?: string): Record<string, string> {
+// Arma {"1":..,"2":..} para un contacto según var_keys, leyendo de un contexto
+// plano { nombre, fecha, hora, servicio, negocio, telefono }. Función pura.
+function resolveVars(varKeys: string[], ctx: Record<string, string>): Record<string, string> {
   const out: Record<string, string> = {};
   (varKeys || []).forEach((key, i) => {
-    let v = '';
-    if (key === 'nombre') v = contact?.name || '';
-    else if (key === 'telefono') v = contact?.phone || '';
-    else if (key === 'negocio') v = businessName || '';
-    out[String(i + 1)] = v;
+    out[String(i + 1)] = (ctx && ctx[key]) || '';
   });
   return out;
 }

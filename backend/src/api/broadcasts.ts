@@ -72,6 +72,42 @@ router.post('/send', async (req: Request, res: Response) => {
     .maybeSingle();
   const varKeys: string[] = tpl?.var_keys || [];
 
+  // Si la plantilla usa datos del turno, cargamos el próximo turno de cada contacto.
+  const usesAppt = varKeys.some((k: string) => ['fecha', 'hora', 'servicio'].includes(k));
+  const apptByContact: Record<string, any> = {};
+  if (usesAppt) {
+    const today = new Date().toISOString().split('T')[0];
+    const ids = recipients.map((r: any) => r.id).filter(Boolean);
+    const { data: appts } = await supabase
+      .from('appointments')
+      .select('contact_id, appointment_date, appointment_time, title')
+      .eq('business_id', businessId)
+      .in('contact_id', ids)
+      .eq('status', 'scheduled')
+      .gte('appointment_date', today)
+      .order('appointment_date', { ascending: true })
+      .order('appointment_time', { ascending: true });
+    for (const a of appts || []) {
+      if (a.contact_id && !apptByContact[a.contact_id]) apptByContact[a.contact_id] = a;
+    }
+  }
+
+  const fmtDate = (d: string): string => {
+    try { return new Date(d + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }); }
+    catch { return d; }
+  };
+  const ctxFor = (r: any): Record<string, string> => {
+    const a = apptByContact[r.id];
+    return {
+      nombre: r.name || '',
+      negocio: business.name || '',
+      telefono: r.phone || '',
+      fecha: a ? fmtDate(a.appointment_date) : '',
+      hora: a ? String(a.appointment_time).slice(0, 5) : '',
+      servicio: a ? (a.title || '') : '',
+    };
+  };
+
   // Registrar la difusión y responder YA (el envío sigue en segundo plano).
   const { data: bc } = await supabase
     .from('broadcasts')
@@ -88,7 +124,7 @@ router.post('/send', async (req: Request, res: Response) => {
     for (const r of recipients) {
       try {
         const vars = varKeys.length
-          ? resolveVars(varKeys, r, business.name)
+          ? resolveVars(varKeys, ctxFor(r))
           : personalize(variables || {}, r.name);
         await sendWhatsAppTemplate(
           r.phone,
@@ -190,7 +226,7 @@ router.post('/templates', async (req: Request, res: Response) => {
 
   // Convertir tokens amigables ([nombre]/[negocio]/[telefono]) a {{1}}, {{2}}…
   const { body: tBody, varKeys } = parseTemplate(body);
-  const SAMPLES: Record<string, string> = { nombre: 'Juan', negocio: 'Tu Negocio', telefono: '+5491100000000' };
+  const SAMPLES: Record<string, string> = { nombre: 'Juan', negocio: 'Tu Negocio', telefono: '+5491100000000', fecha: 'lunes 30 de junio', hora: '14:30', servicio: 'Corte de pelo' };
   const sampleVars: Record<string, string> = {};
   varKeys.forEach((k: string, i: number) => { sampleVars[String(i + 1)] = SAMPLES[k] || 'ejemplo'; });
 

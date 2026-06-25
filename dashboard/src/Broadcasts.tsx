@@ -18,10 +18,14 @@ interface Template {
 }
 
 // Variables de personalización disponibles (token amigable → etiqueta del chip).
+// Las de turno (fecha/hora/servicio) se completan con el próximo turno del contacto.
 const VARS: { token: string; label: string }[] = [
-  { token: '[nombre]', label: 'Nombre del cliente' },
-  { token: '[negocio]', label: 'Nombre del negocio' },
-  { token: '[telefono]', label: 'Teléfono del cliente' },
+  { token: '[nombre]', label: 'Nombre' },
+  { token: '[fecha]', label: 'Fecha del turno' },
+  { token: '[hora]', label: 'Hora del turno' },
+  { token: '[servicio]', label: 'Servicio' },
+  { token: '[negocio]', label: 'Negocio' },
+  { token: '[telefono]', label: 'Teléfono' },
 ]
 const SAMPLE_PHONE = '+54 9 11 1234-5678'
 
@@ -119,16 +123,19 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
   const recipientCount = segment === 'all' ? total : (counts[segment.replace('stage:', '')] || 0)
 
   function sampleFor(key?: string) {
-    if (key === 'negocio') return businessName
-    if (key === 'telefono') return SAMPLE_PHONE
-    return sampleName // nombre / por defecto
+    switch ((key || '').toLowerCase()) {
+      case 'negocio': return businessName
+      case 'telefono': return SAMPLE_PHONE
+      case 'fecha': return 'lunes 30 de junio'
+      case 'hora': return '14:30'
+      case 'servicio': return 'Corte de pelo'
+      default: return sampleName // nombre
+    }
   }
   // Reemplaza tanto los tokens amigables ([nombre]…) como las variables {{N}} (según var_keys).
   function render(body: string, varKeys?: string[]) {
     return body
-      .replace(/\[nombre\]/gi, sampleName)
-      .replace(/\[negocio\]/gi, businessName)
-      .replace(/\[telefono\]/gi, SAMPLE_PHONE)
+      .replace(/\[(nombre|fecha|hora|servicio|negocio|telefono)\]/gi, (_m, k: string) => sampleFor(k))
       .replace(/\{\{(\d+)\}\}/g, (_m, n: string) => sampleFor(varKeys?.[Number(n) - 1]))
   }
 
@@ -232,7 +239,7 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
               </button>
             ))}
           </div>
-          <span style={s.chipHint}>Tocá un dato para insertarlo; se reemplaza por el de cada contacto.</span>
+          <span style={s.chipHint}>Tocá un dato para insertarlo. Fecha, hora y servicio salen del próximo turno de cada contacto.</span>
           {VARS.some(v => newBody.includes(v.token)) && (
             <div style={s.previewBox}>
               <span style={s.previewLabel}>Así lo verá {sampleName}</span>
