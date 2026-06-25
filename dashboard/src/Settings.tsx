@@ -140,6 +140,26 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
   const [menuSaving, setMenuSaving] = useState(false)
   const [menuMsg, setMenuMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
 
+  // Feriados / vacaciones: agrega un día suelto o un rango de fechas.
+  const [vacFrom, setVacFrom] = useState('')
+  const [vacTo, setVacTo] = useState('')
+
+  function addBlockedDates() {
+    if (!vacFrom || !config) return
+    const to = vacTo && vacTo >= vacFrom ? vacTo : vacFrom
+    const dates: string[] = []
+    const cur = new Date(vacFrom + 'T00:00:00Z')
+    const end = new Date(to + 'T00:00:00Z')
+    while (cur <= end && dates.length < 366) {
+      dates.push(cur.toISOString().slice(0, 10))
+      cur.setUTCDate(cur.getUTCDate() + 1)
+    }
+    const existing: string[] = config.schedule?.blocked_dates || []
+    const merged = Array.from(new Set([...existing, ...dates])).sort()
+    update('schedule', { ...config.schedule, blocked_dates: merged })
+    setVacFrom(''); setVacTo('')
+  }
+
   async function saveMenu() {
     setMenuMsg(null)
     const btns = menuButtons.map(b => b.trim()).filter(Boolean)
@@ -690,18 +710,21 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                     </select>
                   </Field>
 
-                  <Field label={uis('Feriados / días cerrados', 'Holidays / closed days')} hint={uis('Fechas puntuales en las que no se atiende. El bot no ofrece ni agenda turnos esos días.', 'Specific dates with no service. The bot will not offer or book appointments on those days.')}>
-                    <input
-                      type="date"
-                      style={{ ...s.input, maxWidth: 200 }}
-                      onChange={e => {
-                        const d = e.target.value
-                        if (!d) return
-                        const curD: string[] = config.schedule?.blocked_dates || []
-                        if (!curD.includes(d)) update('schedule', { ...config.schedule, blocked_dates: [...curD, d].sort() })
-                        e.target.value = ''
-                      }}
-                    />
+                  <Field label={uis('Feriados / vacaciones', 'Holidays / time off')} hint={uis('Días sueltos (feriados) o un rango (vacaciones) en los que no se atiende. El bot no ofrece ni agenda turnos esos días.', 'Single days (holidays) or a range (time off) with no service. The bot will not offer or book appointments on those days.')}>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{uis('Desde', 'From')}</span>
+                        <input type="date" style={{ ...s.input, maxWidth: 170 }} value={vacFrom} onChange={e => setVacFrom(e.target.value)} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{uis('Hasta (opcional)', 'To (optional)')}</span>
+                        <input type="date" style={{ ...s.input, maxWidth: 170 }} value={vacTo} min={vacFrom} onChange={e => setVacTo(e.target.value)} />
+                      </div>
+                      <button type="button" onClick={addBlockedDates} disabled={!vacFrom}
+                        style={{ background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 500, cursor: vacFrom ? 'pointer' : 'default', fontFamily: 'inherit', opacity: vacFrom ? 1 : 0.5 }}>
+                        {uis('Agregar', 'Add')}
+                      </button>
+                    </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
                       {(config.schedule?.blocked_dates || []).length === 0 && (
                         <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{uis('No hay días cerrados cargados.', 'No closed days yet.')}</span>
