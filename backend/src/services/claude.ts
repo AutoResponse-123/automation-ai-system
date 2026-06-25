@@ -245,15 +245,22 @@ async function callClaude(
           client_name: toolUseBlock.input.client_name,
           client_phone: clientPhone || '',
           appointment_date: toolUseBlock.input.date,
-          appointment_time: toolUseBlock.input.time + ':00',
+          appointment_time: String(toolUseBlock.input.time).slice(0, 5) + ':00',
           duration_minutes: resolveSlot(business, toolUseBlock.input.duration_minutes).duration,
         });
-        if (insertErr) console.error('[appointments insert]', insertErr.message);
-        // Embudo: el cliente agendó → etapa 'agendó'.
-        const { advanceStage } = require('./pipeline');
-        advanceStage(contactData?.id, 'agendó').catch((e: any) => console.error('[pipeline async]', e.message));
-        toolResult = `Turno creado exitosamente. ID: ${eventId}`;
-        console.log(`[create_appointment] OK — Event ID: ${eventId}`);
+        if (insertErr) {
+          // CRÍTICO: si no se guardó en la base, NO hay recordatorios ni registro.
+          // El bot NO debe confirmar el turno como si estuviera todo bien.
+          console.error('[appointments insert]', insertErr.message);
+          toolResult = `ERROR: no se pudo guardar el turno en el sistema (${insertErr.message}). NO le confirmes el turno al cliente. Pedile disculpas, avisale que hubo un problema técnico al agendar y que alguien del equipo lo va a contactar para confirmar. Si tenés la herramienta, derivá a un humano.`;
+          try { require('./logger').captureError(insertErr, 'appointments_insert'); } catch {}
+        } else {
+          // Embudo: el cliente agendó → etapa 'agendó'.
+          const { advanceStage } = require('./pipeline');
+          advanceStage(contactData?.id, 'agendó').catch((e: any) => console.error('[pipeline async]', e.message));
+          toolResult = `Turno creado exitosamente. ID: ${eventId}`;
+          console.log(`[create_appointment] OK — Event ID: ${eventId}`);
+        }
         }
       } else if (toolUseBlock.name === 'reschedule_appointment') {
         const today = new Date().toISOString().split('T')[0];
