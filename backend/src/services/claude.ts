@@ -42,16 +42,16 @@ const calendarTools = [
   },
   {
     name: 'reschedule_appointment',
-    description: 'Reprograma el turno del cliente: cancela el actual y lo prepara para agendar uno nuevo. Usalo cuando el cliente pida cambiar, mover o reprogramar su turno. Después de llamar este tool, seguí el flujo normal de agendado: preguntá la nueva fecha y llamá get_available_slots.',
+    description: 'Reprograma el turno del cliente a una nueva fecha y hora. Flujo: 1) preguntá la nueva fecha, 2) llamá get_available_slots para esa fecha, 3) cuando el cliente elija una hora disponible, llamá este tool con new_date y new_time. El sistema reserva el nuevo horario PRIMERO y recién ahí libera el anterior, así el cliente nunca se queda sin turno. NO canceles el turno por tu cuenta antes de tener la nueva hora.',
     input_schema: {
       type: 'object',
       properties: {
-        reason: {
-          type: 'string',
-          description: 'Motivo del cambio mencionado por el cliente (opcional)',
-        },
+        new_date: { type: 'string', description: 'Nueva fecha del turno (YYYY-MM-DD)' },
+        new_time: { type: 'string', description: 'Nueva hora del turno (HH:MM)' },
+        duration_minutes: { type: 'number', description: 'Duración en minutos (opcional)' },
+        reason: { type: 'string', description: 'Motivo del cambio mencionado por el cliente (opcional)' },
       },
-      required: [],
+      required: ['new_date', 'new_time'],
     },
   },
   {
@@ -215,73 +215,122 @@ async function callClaude(
           ? `Horarios disponibles: ${slots.join(', ')}`
           : 'No hay horarios disponibles para esa fecha.';
       } else if (toolUseBlock.name === 'create_appointment') {
-        const free = await isSlotFree(business, toolUseBlock.input.date, toolUseBlock.input.time, toolUseBlock.input.duration_minutes || 60);
-        if (!free) {
-          toolResult = 'Ese horario ya no esta disponible (lo tomaron recien). Pedile al cliente que elija otro horario y consulta de nuevo con get_available_slots. NO confirmes este turno.';
-          console.log('[create_appointment] slot ocupado, rechazado:', toolUseBlock.input.date, toolUseBlock.input.time);
+        const reqDate = toolUseBlock.input.date;
+        const reqTime = String(toolUseBlock.input.time).slice(0, 5);
+        const reqDur = toolUseBlock.input.duration_minutes || 60;
+
+        // 1) El horario tiene que ser uno REALMENTE ofrecido: esto valida horario de
+        //    atención, día cerrado, descansos, feriados, horarios pasados y ocupados.
+        const offered = await getAvailableSlots(business, reqDate, reqDur);
+        if (!offered.includes(reqTime)) {
+          toolResult = `El horario ${reqTime} NO está disponible para ${reqDate}. Horarios disponibles: ${offered.join(', ') || 'ninguno ese día'}. Ofrecele uno de esos y NO confirmes hasta que el cliente elija uno válido.`;
+          console.log('[create_appointment] horario no ofrecido, rechazado:', reqDate, reqTime);
         } else {
-        const eventId = await createEvent(business, {
-          title: toolUseBlock.input.title,
-          date: toolUseBlock.input.date,
-          time: toolUseBlock.input.time,
-          clientName: toolUseBlock.input.client_name,
-          clientPhone: clientPhone || '',
-          durationMinutes: toolUseBlock.input.duration_minutes,
-        });
-        // Buscar contact_id por phone
-        const { data: contactData } = await supabase
-          .from('contacts')
-          .select('id')
-          .eq('business_id', business.id)
-          .eq('phone', clientPhone || '')
-          .single();
-        // Guardar en Supabase para recordatorios
-        const { error: insertErr } = await supabase.from('appointments').insert({
-          business_id: business.id,
-          contact_id: contactData?.id || null,
-          google_event_id: eventId,
-          title: toolUseBlock.input.title,
-          category: toolUseBlock.input.category || null,
-          client_name: toolUseBlock.input.client_name,
-          client_phone: clientPhone || '',
-          appointment_date: toolUseBlock.input.date,
-          appointment_time: String(toolUseBlock.input.time).slice(0, 5) + ':00',
-          duration_minutes: resolveSlot(business, toolUseBlock.input.duration_minutes).duration,
-        });
-        if (insertErr) {
-          // CRÍTICO: si no se guardó en la base, NO hay recordatorios ni registro.
-          // El bot NO debe confirmar el turno como si estuviera todo bien.
-          console.error('[appointments insert]', insertErr.message);
-          toolResult = `ERROR: no se pudo guardar el turno en el sistema (${insertErr.message}). NO le confirmes el turno al cliente. Pedile disculpas, avisale que hubo un problema técnico al agendar y que alguien del equipo lo va a contactar para confirmar. Si tenés la herramienta, derivá a un humano.`;
-          try { require('./logger').captureError(insertErr, 'appointments_insert'); } catch {}
-        } else {
-          // Embudo: el cliente agendó → etapa 'agendó'.
-          const { advanceStage } = require('./pipeline');
-          advanceStage(contactData?.id, 'agendó').catch((e: any) => console.error('[pipeline async]', e.message));
-          toolResult = `Turno creado exitosamente. ID: ${eventId}`;
-          console.log(`[create_appointment] OK — Event ID: ${eventId}`);
-        }
+          const { data: contactData } = await supabase
+            .from('contacts').select('id')
+            .eq('business_id', business.id).eq('phone', clientPhone || '').maybeSingle();
+
+          // 2) Guardar en la base PRIMERO. El índice único parcial
+          //    (business_id, appointment_date, appointment_time) WHERE status='scheduled'
+          //    actúa de candado anti doble-reserva: si dos clientes intentan el mismo
+          //    horario casi a la vez, el segundo insert falla (code 23505).
+          const { data: inserted, error: insertErr } = await supabase.from('appointments').insert({
+            business_id: business.id,
+            contact_id: contactData?.id || null,
+            title: toolUseBlock.input.title,
+            category: toolUseBlock.input.category || null,
+            client_name: toolUseBlock.input.client_name,
+            client_phone: clientPhone || '',
+            appointment_date: reqDate,
+            appointment_time: reqTime + ':00',
+            duration_minutes: resolveSlot(business, reqDur).duration,
+          }).select('id').maybeSingle();
+
+          if (insertErr) {
+            const dup = insertErr.code === '23505' || /duplicate|unique/i.test(insertErr.message || '');
+            if (dup) {
+              toolResult = `Ese horario (${reqTime}) lo acaban de tomar. Pedile al cliente que elija otro y consultá de nuevo con get_available_slots. NO confirmes este turno.`;
+              console.log('[create_appointment] doble-reserva evitada:', reqDate, reqTime);
+            } else {
+              console.error('[appointments insert]', insertErr.message);
+              toolResult = `ERROR: no se pudo guardar el turno (${insertErr.message}). NO le confirmes el turno al cliente. Pedile disculpas, avisale que hubo un problema técnico y que alguien del equipo lo va a contactar. Derivá a un humano si podés.`;
+              try { require('./logger').captureError(insertErr, 'appointments_insert'); } catch {}
+            }
+          } else {
+            // 3) Recién ahora el evento en Google (el turno YA quedó reservado en la base).
+            //    Si Google falla, el turno igual está guardado (recordatorios funcionan).
+            let eventId: string | null = null;
+            try {
+              eventId = await createEvent(business, {
+                title: toolUseBlock.input.title, date: reqDate, time: reqTime,
+                clientName: toolUseBlock.input.client_name, clientPhone: clientPhone || '',
+                durationMinutes: reqDur,
+              });
+              if (eventId) await supabase.from('appointments').update({ google_event_id: eventId }).eq('id', inserted.id);
+            } catch (gErr: any) {
+              console.error('[create_appointment] Google event falló (turno igual guardado):', gErr?.message || gErr);
+            }
+            const { advanceStage } = require('./pipeline');
+            advanceStage(contactData?.id, 'agendó').catch((e: any) => console.error('[pipeline async]', e.message));
+            toolResult = `Turno creado exitosamente.`;
+            console.log(`[create_appointment] OK — ${reqDate} ${reqTime} (event: ${eventId || 'sin google'})`);
+          }
         }
       } else if (toolUseBlock.name === 'reschedule_appointment') {
         const today = new Date().toISOString().split('T')[0];
+        const newDate = normalizeFutureDate(toolUseBlock.input.new_date);
+        const newTime = String(toolUseBlock.input.new_time).slice(0, 5);
+        const newDur = toolUseBlock.input.duration_minutes || 60;
+
         const { data: appts } = await supabase
-          .from('appointments')
-          .select('*')
-          .eq('business_id', business.id)
-          .eq('client_phone', clientPhone || '')
-          .eq('status', 'scheduled')
-          .gte('appointment_date', today)
-          .order('appointment_date').order('appointment_time')
-          .limit(1);
+          .from('appointments').select('*')
+          .eq('business_id', business.id).eq('client_phone', clientPhone || '')
+          .eq('status', 'scheduled').gte('appointment_date', today)
+          .order('appointment_date').order('appointment_time').limit(1);
 
         if (!appts || appts.length === 0) {
-          toolResult = 'No se encontró ningún turno activo para reprogramar.';
+          toolResult = 'No se encontró ningún turno activo para reprogramar. Si el cliente quiere uno nuevo, usá create_appointment.';
         } else {
           const appt = appts[0];
-          await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', appt.id);
-          if (appt.google_event_id) await cancelEvent(business, appt.google_event_id);
-          toolResult = `Turno anterior cancelado: ${appt.title} del ${appt.appointment_date} a las ${String(appt.appointment_time).slice(0,5)}. Ahora preguntale al cliente qué nueva fecha prefiere y consultá disponibilidad con get_available_slots.`;
-          console.log(`[reschedule_appointment] Cancelado ${appt.id}, iniciando reagendado para ${clientPhone}`);
+          // 1) El nuevo horario tiene que estar realmente disponible.
+          const offered = await getAvailableSlots(business, newDate, newDur);
+          if (!offered.includes(newTime)) {
+            toolResult = `El horario ${newTime} no está disponible para ${newDate}. El turno actual (${appt.appointment_date} ${String(appt.appointment_time).slice(0, 5)}) SIGUE ACTIVO. Horarios disponibles: ${offered.join(', ') || 'ninguno'}. Ofrecele otro y NO confirmes el cambio.`;
+          } else {
+            // 2) Reservar el NUEVO turno primero (candado anti doble-reserva).
+            const { data: inserted, error: insertErr } = await supabase.from('appointments').insert({
+              business_id: business.id,
+              contact_id: appt.contact_id || null,
+              title: appt.title,
+              category: appt.category || null,
+              client_name: appt.client_name,
+              client_phone: clientPhone || '',
+              appointment_date: newDate,
+              appointment_time: newTime + ':00',
+              duration_minutes: resolveSlot(business, newDur).duration,
+            }).select('id').maybeSingle();
+
+            if (insertErr) {
+              const dup = insertErr.code === '23505' || /duplicate|unique/i.test(insertErr.message || '');
+              toolResult = dup
+                ? `Ese horario (${newTime}) lo acaban de tomar. El turno actual SIGUE ACTIVO. Ofrecele otro horario y NO confirmes el cambio.`
+                : `ERROR al reprogramar (${insertErr.message}). El turno actual SIGUE ACTIVO. Pedile disculpas y derivá a un humano. NO confirmes el cambio.`;
+              if (!dup) { try { require('./logger').captureError(insertErr, 'reschedule_insert'); } catch {} }
+            } else {
+              // 3) Recién ahora liberamos el turno viejo (ya está asegurado el nuevo).
+              await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', appt.id);
+              if (appt.google_event_id) await cancelEvent(business, appt.google_event_id);
+              // 4) Evento de Google para el nuevo turno.
+              try {
+                const eventId = await createEvent(business, { title: appt.title, date: newDate, time: newTime, clientName: appt.client_name, clientPhone: clientPhone || '', durationMinutes: newDur });
+                if (eventId) await supabase.from('appointments').update({ google_event_id: eventId }).eq('id', inserted.id);
+              } catch (gErr: any) { console.error('[reschedule] Google event falló:', gErr?.message || gErr); }
+              const { advanceStage } = require('./pipeline');
+              advanceStage(appt.contact_id, 'agendó').catch((e: any) => console.error('[pipeline async]', e.message));
+              toolResult = `Turno reprogramado: de ${appt.appointment_date} ${String(appt.appointment_time).slice(0, 5)} a ${newDate} ${newTime}.`;
+              console.log(`[reschedule_appointment] ${appt.id} → ${newDate} ${newTime}`);
+            }
+          }
         }
       } else if (toolUseBlock.name === 'cancel_appointment') {
         // Buscar el próximo turno activo del cliente
