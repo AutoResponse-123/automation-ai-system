@@ -1,6 +1,6 @@
 export {};
 const Anthropic = require('@anthropic-ai/sdk').default;
-const { getAvailableSlots, createEvent, isSlotFree, cancelEvent, resolveSlot } = require('./calendar');
+const { getAvailableSlots, createEvent, isSlotFree, cancelEvent, resolveSlot, isInvalidGrant, clearCalendarToken } = require('./calendar');
 const { supabase } = require('../config/supabase');
 const { createPaymentLink } = require('./mercadopago');
 const { sendCancellationEmail } = require('./email');
@@ -397,9 +397,17 @@ async function callClaude(
         toolResult = `Tool desconocido: ${toolUseBlock.name}`;
       }
     } catch (err: any) {
-      toolResult = `Error al acceder al calendario: ${err.message}`;
       console.error(`[tool error] ${toolUseBlock.name}:`, err.message);
       try { require('./logger').captureError(err, `tool:${toolUseBlock.name}`); } catch {}
+      if (isInvalidGrant(err)) {
+        // El token de Google está muerto: lo marcamos desconectado (el panel pedirá
+        // reconectar y el bot deja de ofrecer agenda). El dueño se entera por Sentry
+        // (captureError de arriba).
+        clearCalendarToken(business.id).catch(() => {});
+        toolResult = 'La agenda no está disponible en este momento (se desconectó el calendario). NO inventes disponibilidad ni confirmes turnos. Pedile disculpas al cliente, decile que en breve el equipo lo contacta para coordinar, y derivá a un humano.';
+      } else {
+        toolResult = `Error al acceder al calendario: ${err.message}`;
+      }
     }
       return { type: 'tool_result', tool_use_id: toolUseBlock.id, content: toolResult };
     }));

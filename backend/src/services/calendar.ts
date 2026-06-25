@@ -49,10 +49,28 @@ function getAuthUrl(businessId: string): string {
 }
 
 async function saveTokens(businessId: string, tokens: any) {
-  await supabase.from('businesses').update({
-    google_refresh_token: tokens.refresh_token,
-    google_calendar_id: 'primary',
-  }).eq('id', businessId);
+  const update: any = { google_calendar_id: 'primary' };
+  // NO pisar un refresh_token bueno con vacío: Google no siempre devuelve uno
+  // nuevo en cada consentimiento; si falta, conservamos el que ya teníamos.
+  if (tokens?.refresh_token) update.google_refresh_token = tokens.refresh_token;
+  await supabase.from('businesses').update(update).eq('id', businessId);
+}
+
+// Un error es 'invalid_grant' cuando el refresh token está revocado/vencido.
+function isInvalidGrant(err: any): boolean {
+  const msg = String(err?.response?.data?.error || err?.message || err || '');
+  return /invalid_grant/i.test(msg);
+}
+
+// Marca el calendario como desconectado (token muerto) para que el panel pida
+// reconectar y el bot deje de ofrecer agenda hasta entonces.
+async function clearCalendarToken(businessId: string): Promise<void> {
+  try {
+    await supabase.from('businesses').update({ google_refresh_token: null }).eq('id', businessId);
+    console.warn('[calendar] token invalid_grant → marcado como desconectado:', businessId);
+  } catch (e: any) {
+    console.error('[calendar] no se pudo limpiar el token:', e?.message || e);
+  }
 }
 
 async function getCalendarClient(business: any) {
@@ -63,6 +81,17 @@ async function getCalendarClient(business: any) {
     process.env.GOOGLE_REDIRECT_URI
   );
   client.setCredentials({ refresh_token: business.google_refresh_token });
+  // Si Google ROTA el refresh token durante un refresco, lo persistimos para no
+  // quedarnos con uno viejo (causa típica de invalid_grant más adelante).
+  client.on('tokens', (tokens: any) => {
+    if (tokens?.refresh_token && tokens.refresh_token !== business.google_refresh_token) {
+      supabase.from('businesses')
+        .update({ google_refresh_token: tokens.refresh_token })
+        .eq('id', business.id)
+        .then(() => console.log('[calendar] refresh token rotado y guardado:', business.id))
+        .catch((e: any) => console.error('[calendar] no se pudo guardar token rotado:', e?.message || e));
+    }
+  });
   return google.calendar({ version: 'v3', auth: client });
 }
 
@@ -291,4 +320,4 @@ async function cancelEvent(business: any, googleEventId: string): Promise<boolea
   }
 }
 
-module.exports = { getAuthUrl, saveTokens, getAvailableSlots, createEvent, isSlotFree, cancelEvent, wallTimeToUtc, resolveSlot, packFreeStarts };
+module.exports = { getAuthUrl, saveTokens, getAvailableSlots, createEvent, isSlotFree, cancelEvent, wallTimeToUtc, resolveSlot, packFreeStarts, isInvalidGrant, clearCalendarToken };
