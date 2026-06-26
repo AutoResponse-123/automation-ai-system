@@ -88,8 +88,13 @@ async function sendPendingReminders() {
         const windowStart = new Date(targetTime.getTime() - 10 * 60 * 1000);
         const windowEnd = new Date(targetTime.getTime() + 10 * 60 * 1000);
 
-        const windowStartDate = windowStart.toISOString().split('T')[0];
-        const windowEndDate = windowEnd.toISOString().split('T')[0];
+        // El pre-filtro por fecha debe ser un SUPERSET: appointment_date se guarda en hora
+        // LOCAL del negocio, pero windowStart/End están en UTC. Cuando la hora local del turno
+        // cruza la medianoche UTC (turnos de tarde/noche en zonas horarias negativas como AR),
+        // la fecha UTC de la ventana adelantaba un día y excluía el turno -> recordatorio perdido.
+        // Ampliamos ±1 día; el filtro fino de abajo (wallTimeToUtc) hace la verificacion exacta.
+        const windowStartDate = new Date(windowStart.getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const windowEndDate = new Date(windowEnd.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
         const { data: appointments } = await supabase
           .from('appointments')
