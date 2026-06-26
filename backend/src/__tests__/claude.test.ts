@@ -21,14 +21,20 @@ jest.mock('../config/supabase', () => ({
           select: () => ({
             eq: () => ({
               eq: () => ({
-                single: () => Promise.resolve({ data: { id: 'contact_1' }, error: null }),
+                maybeSingle: () => Promise.resolve({ data: { id: 'contact_1' }, error: null }),
               }),
             }),
           }),
         }
       }
       if (table === 'appointments') {
-        return { insert: mockApptInsert }
+        return {
+          insert: (...args: any[]) => {
+            mockApptInsert(...args)
+            return { select: () => ({ maybeSingle: () => Promise.resolve({ data: { id: 'appt_new' }, error: null }) }) }
+          },
+          update: () => ({ eq: () => Promise.resolve({ error: null }) }),
+        }
       }
       return {}
     }),
@@ -39,7 +45,10 @@ jest.mock('../services/calendar', () => ({
   getAvailableSlots: jest.fn().mockResolvedValue(['14:00', '15:00']),
   createEvent: jest.fn().mockResolvedValue('event_123'),
   isSlotFree: jest.fn().mockResolvedValue(true),
+  cancelEvent: jest.fn().mockResolvedValue(undefined),
   resolveSlot: jest.fn((_b: any, m?: number) => ({ mode: 'fixed', duration: m || 60, step: 60, buffer: 0 })),
+  isInvalidGrant: jest.fn(() => false),
+  clearCalendarToken: jest.fn().mockResolvedValue(undefined),
 }))
 
 jest.mock('../services/mercadopago', () => ({ createPaymentLink: jest.fn() }))
@@ -113,8 +122,9 @@ describe('callClaude — create_appointment en conversación nueva', () => {
   })
 
   it('NO agenda si el slot ya está ocupado', async () => {
-    const { isSlotFree } = require('../services/calendar')
-    isSlotFree.mockResolvedValueOnce(false)
+    // Ocupación: el handler la detecta porque getAvailableSlots NO ofrece esa hora.
+    const { getAvailableSlots } = require('../services/calendar')
+    getAvailableSlots.mockResolvedValueOnce(['15:00'])
 
     mockCreate
       .mockResolvedValueOnce({

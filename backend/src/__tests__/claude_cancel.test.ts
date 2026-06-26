@@ -27,6 +27,9 @@ jest.mock('../services/calendar', () => ({
   createEvent: jest.fn(),
   isSlotFree: jest.fn(),
   cancelEvent: mockCancelEvent,
+  resolveSlot: jest.fn((_b: any, m?: number) => ({ mode: 'fixed', duration: m || 60, step: 60, buffer: 0 })),
+  isInvalidGrant: jest.fn(() => false),
+  clearCalendarToken: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('../services/mercadopago', () => ({ createPaymentLink: jest.fn() }));
 jest.mock('../services/email', () => ({ sendCancellationEmail: jest.fn() }));

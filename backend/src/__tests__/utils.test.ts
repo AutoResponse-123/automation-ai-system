@@ -131,6 +131,13 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('create_appointment');
   });
 
+  it('incluye reglas anti-alucinación para reprogramar y cancelar (no confirmar sin ejecutar el tool)', () => {
+    const prompt = buildSystemPrompt({ ...baseBusiness, plan: 'pro', google_refresh_token: 'token123' });
+    expect(prompt).toContain('reschedule_appointment');
+    expect(prompt).toContain('cancel_appointment');
+    expect(prompt).toContain('REGLA CRÍTICA');
+  });
+
   it('NO incluye instrucciones de Calendar si no hay token', () => {
     const prompt = buildSystemPrompt(baseBusiness);
     expect(prompt).not.toContain('get_available_slots');

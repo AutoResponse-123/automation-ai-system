@@ -76,6 +76,14 @@ export function buildSystemPrompt(business: any, contactSummary?: string): strin
 4) Si el cliente pide una hora que NO está en la lista, decile "ese horario no está disponible" y mostrá las opciones disponibles
 5) Cuando el cliente elija una hora disponible, pedí su nombre y llamá create_appointment
 6) NUNCA confirmes sin haber llamado create_appointment primero. Si no llamaste al tool, NO digas que quedó agendado.`);
+    parts.push(`\nPara REPROGRAMAR ${apptLabel} (cambiar fecha u hora de un turno existente) seguí este flujo:
+1) Preguntá la nueva fecha si el cliente no la dijo.
+2) OBLIGATORIO: llamá get_available_slots para la NUEVA fecha ANTES de confirmar nada.
+3) Mostrá SOLO los horarios que devuelve la herramienta. Si el cliente pide una hora que no está, decile que no está disponible y ofrecé las opciones.
+4) Cuando el cliente elija una hora disponible, llamá reschedule_appointment con new_date y new_time.
+5) NUNCA digas que el turno "quedó cambiado", "actualizado" o "reprogramado" si no llamaste reschedule_appointment y la herramienta te devolvió éxito. Si no ejecutaste el tool, NO confirmes el cambio.`);
+    parts.push(`\nPara CANCELAR un turno, llamá cancel_appointment. NUNCA confirmes una cancelación sin haber llamado al tool y recibido éxito.`);
+    parts.push(`\nREGLA CRÍTICA: nunca le confirmes a un cliente que un turno fue agendado, reprogramado o cancelado a menos que hayas llamado a la herramienta correspondiente (create_appointment / reschedule_appointment / cancel_appointment) y te haya devuelto éxito. Si no ejecutaste el tool, el cambio NO existe — no lo anuncies.`);
   }
 
   if (hasProFeatures(business.plan) && business.mp_payment_link) {
