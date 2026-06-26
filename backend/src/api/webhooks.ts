@@ -6,7 +6,7 @@ const { getAuthUrl, saveTokens } = require('../services/calendar');
 const { getSheetsAuthUrl, saveSheetsTokens, exportToSheets } = require('../services/sheets');
 const { sendEscalationEmail } = require('../services/email');
 const { supabase } = require('../config/supabase');
-const { buildSystemPrompt, checkEscalation, isOutsideHours, hasProFeatures } = require('../utils');
+const { buildSystemPrompt, checkEscalation, isOutsideHours, hasProFeatures, hasAudioFeature } = require('../utils');
 const { transcribeAudio } = require('../services/transcribe');
 
 const router = express.Router();
@@ -173,7 +173,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
 
     // Notas de voz: si es audio y el plan lo permite, transcribimos con Whisper y usamos
     // el texto como si el cliente lo hubiera escrito. Si falla, pedimos que lo escriban.
-    if (isAudio && hasProFeatures(business.plan)) {
+    if (isAudio && hasAudioFeature(business.plan)) {
       const transcript = await transcribeAudio(mediaUrl, mediaType);
       if (transcript) {
         messageBody = transcript;

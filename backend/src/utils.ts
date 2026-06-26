@@ -6,6 +6,12 @@ export function hasProFeatures(plan?: string): boolean {
   return plan === 'pro' || plan === 'enterprise' || plan === 'trial';
 }
 
+// Las notas de voz (transcripción con IA) son EXCLUSIVAS del plan Premium (enterprise).
+// Pro NO las tiene. (Si querés que el trial también las pruebe, agregá `|| plan === 'trial'`.)
+export function hasAudioFeature(plan?: string): boolean {
+  return plan === 'enterprise';
+}
+
 export function buildSystemPrompt(business: any, contactSummary?: string): string {
   const parts: string[] = [];
 
