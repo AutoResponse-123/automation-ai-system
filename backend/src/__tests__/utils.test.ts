@@ -1,4 +1,4 @@
-import { buildSystemPrompt, checkEscalation, isOutsideHours } from '../utils';
+import { buildSystemPrompt, checkEscalation, isOutsideHours, resolveAutoResumeHours } from '../utils';
 
 // ─── checkEscalation ──────────────────────────────────────────────────────────
 
@@ -150,5 +150,21 @@ describe('buildSystemPrompt', () => {
     });
     expect(prompt).toContain('Corte');
     expect(prompt).toContain('30 min');
+  });
+});
+
+describe('resolveAutoResumeHours', () => {
+  it('sin configurar usa 24h por defecto', () => {
+    expect(resolveAutoResumeHours(undefined)).toBe(24);
+    expect(resolveAutoResumeHours(null)).toBe(24);
+    expect(resolveAutoResumeHours('')).toBe(24);
+  });
+  it('0 explícito significa nunca (manual)', () => {
+    expect(resolveAutoResumeHours(0)).toBe(0);
+    expect(resolveAutoResumeHours('0')).toBe(0);
+  });
+  it('respeta un valor configurado', () => {
+    expect(resolveAutoResumeHours(12)).toBe(12);
+    expect(resolveAutoResumeHours('48')).toBe(48);
   });
 });

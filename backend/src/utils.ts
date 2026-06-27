@@ -104,6 +104,15 @@ export function buildSystemPrompt(business: any, contactSummary?: string): strin
   return parts.join('\n');
 }
 
+export function resolveAutoResumeHours(raw: any): number {
+  // Horas de silencio del cliente tras las que el bot retoma una conversación derivada a un humano.
+  // Sin configurar (null/undefined/'') => 24 h por defecto, para que NO quede muda para siempre.
+  // 0 explícito => nunca (solo reactivación manual desde el panel).
+  if (raw === undefined || raw === null || raw === '') return 24;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 export function checkEscalation(message: string, keywords: string[]): boolean {
   if (!keywords?.length) return false;
   const lower = message.toLowerCase();

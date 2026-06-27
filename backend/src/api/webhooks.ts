@@ -6,7 +6,7 @@ const { getAuthUrl, saveTokens } = require('../services/calendar');
 const { getSheetsAuthUrl, saveSheetsTokens, exportToSheets } = require('../services/sheets');
 const { sendEscalationEmail } = require('../services/email');
 const { supabase } = require('../config/supabase');
-const { buildSystemPrompt, checkEscalation, isOutsideHours, hasProFeatures, hasAudioFeature } = require('../utils');
+const { buildSystemPrompt, checkEscalation, isOutsideHours, hasProFeatures, hasAudioFeature, resolveAutoResumeHours } = require('../utils');
 const { transcribeAudio } = require('../services/transcribe');
 
 const router = express.Router();
@@ -194,7 +194,8 @@ router.post('/whatsapp', async (req: any, res: any) => {
     // Conversación derivada a un humano => la IA está en pausa y el bot NO responde
     // (el humano la atiende desde el panel). Excepción: reactivación automática configurable.
     if (!aiEnabled) {
-      const autoResumeH = Math.max(0, Number(business.schedule?.escalation_auto_resume_hours) || 0);
+      // Sin configurar => 24 h por defecto (una conversación derivada no queda muda para siempre).
+      const autoResumeH = resolveAutoResumeHours(business.schedule?.escalation_auto_resume_hours);
       const lastTs = lastMessageAt ? new Date(lastMessageAt).getTime() : null;
       const resume = autoResumeH > 0 && lastTs !== null && (Date.now() - lastTs) >= autoResumeH * 60 * 60 * 1000;
       if (resume) {
