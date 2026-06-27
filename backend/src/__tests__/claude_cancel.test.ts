@@ -63,7 +63,7 @@ it('GUARD: si el bot confirma "cancelado" sin ejecutar el tool, lo fuerza a ejec
     // 1) El modelo ALUCINA: confirma la cancelación sin llamar al tool.
     .mockResolvedValueOnce({
       stop_reason: 'end_turn', usage: { output_tokens: 8 },
-      content: [{ type: 'text', text: 'Listo, tu turno ha sido cancelado.' }],
+      content: [{ type: 'text', text: 'Según nuestros registros, ya cancelamos tu turno del martes 30 a las 18:00.' }],
     })
     // 2) Tras la corrección del guard, ahora sí llama a cancel_appointment.
     .mockResolvedValueOnce({

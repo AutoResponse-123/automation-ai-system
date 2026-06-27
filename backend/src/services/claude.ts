@@ -197,8 +197,8 @@ async function callClaude(
       // una vez. La corrección es segura: solo le pide ejecutar la herramienta si el
       // cliente realmente lo pidió, o aclarar que el turno NO fue modificado.
       if (hasCalendar && guardRetries < 1) {
-        const claimsCancel = /\b(cancelad[oa]s?|anulad[oa]s?|cancel[e\u00e9]|anul[e\u00e9])\b/i.test(finalText);
-        const claimsReschedule = /\b(reprogramad[oa]s?|reagendad[oa]s?|reprogram[e\u00e9]|reagend[e\u00e9])\b/i.test(finalText)
+        const claimsCancel = /\b(cancel|anul)(é|ó|amos|aron|aste|ad[oa]s?)/i.test(finalText);
+        const claimsReschedule = /\b(reprogram|reagend)(é|ó|amos|aron|aste|ad[oa]s?)/i.test(finalText)
           || /\b(turno|cita|hora)\b[^.]{0,40}\b(actualizad[oa]|cambiad[oa]|movid[oa])\b/i.test(finalText);
         const hallucinatedCancel = claimsCancel && !calledActionTools.has('cancel_appointment');
         const hallucinatedReschedule = claimsReschedule && !calledActionTools.has('reschedule_appointment');
