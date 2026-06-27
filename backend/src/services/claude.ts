@@ -197,7 +197,7 @@ async function callClaude(
       // una vez. La corrección es segura: solo le pide ejecutar la herramienta si el
       // cliente realmente lo pidió, o aclarar que el turno NO fue modificado.
       if (hasCalendar && guardRetries < 1) {
-        const claimsCancel = /\b(cancel|anul)(é|ó|amos|aron|aste|ad[oa]s?)/i.test(finalText);
+        const claimsCancel = /\b(cancel|anul)(é|ó|amos|aron|aste|ad[oa]s?)/i.test(finalText) || /\b(ya )?no ten[ée]s\b[^.]{0,30}\bturnos?\b/i.test(finalText);
         const claimsReschedule = /\b(reprogram|reagend)(é|ó|amos|aron|aste|ad[oa]s?)/i.test(finalText)
           || /\b(turno|cita|hora)\b[^.]{0,40}\b(actualizad[oa]|cambiad[oa]|movid[oa])\b/i.test(finalText);
         const hallucinatedCancel = claimsCancel && !calledActionTools.has('cancel_appointment');
@@ -208,7 +208,7 @@ async function callClaude(
           currentMessages = [
             ...currentMessages,
             { role: 'assistant', content: finalText },
-            { role: 'user', content: 'Aviso del sistema: dijiste que un turno fue cancelado o reprogramado, pero NO ejecutaste la herramienta (cancel_appointment / reschedule_appointment), así que el cambio NO se realizó. Si el cliente efectivamente lo pidió, llamá AHORA a la herramienta correspondiente y confirmá únicamente con su resultado. Si no corresponde, aclarale al cliente que el turno NO fue modificado.' },
+            { role: 'user', content: 'Aviso del sistema: afirmaste algo sobre el estado del/los turno(s) del cliente (que se cancelo, se reprogramo, o que no tiene turnos) SIN ejecutar la herramienta, asi que NO verificaste el estado real. Si el cliente pidio cancelar o reprogramar, llama AHORA a la herramienta correspondiente (cancel_appointment / reschedule_appointment) y responde unicamente segun su resultado. No afirmes que un turno fue cancelado/reprogramado ni que no hay turnos sin confirmarlo con la herramienta.' },
           ];
           continue;
         }
