@@ -57,3 +57,29 @@ it('cancel_appointment borra el evento de Google Calendar', async () => {
   expect(mockCancelEvent).toHaveBeenCalledWith(business, 'evt_1');
   expect(res.text).toContain('cancelé');
 });
+
+it('GUARD: si el bot confirma "cancelado" sin ejecutar el tool, lo fuerza a ejecutarlo', async () => {
+  mockCreate
+    // 1) El modelo ALUCINA: confirma la cancelación sin llamar al tool.
+    .mockResolvedValueOnce({
+      stop_reason: 'end_turn', usage: { output_tokens: 8 },
+      content: [{ type: 'text', text: 'Listo, tu turno ha sido cancelado.' }],
+    })
+    // 2) Tras la corrección del guard, ahora sí llama a cancel_appointment.
+    .mockResolvedValueOnce({
+      stop_reason: 'tool_use', usage: { output_tokens: 8 },
+      content: [{ type: 'tool_use', id: 'tu_g', name: 'cancel_appointment', input: { reason: 'no puede' } }],
+    })
+    // 3) Confirmación final real.
+    .mockResolvedValueOnce({
+      stop_reason: 'end_turn', usage: { output_tokens: 8 },
+      content: [{ type: 'text', text: 'Listo, cancelé tu turno.' }],
+    });
+
+  const res = await callClaude([{ role: 'user', content: 'cancelá mi turno' }], 'sys', 300, business, '+5491100000000');
+
+  // El guard forzó la ejecución real: cancelEvent se llamó y mockCreate corrió 3 veces.
+  expect(mockCancelEvent).toHaveBeenCalledTimes(1);
+  expect(mockCreate).toHaveBeenCalledTimes(3);
+  expect(res.text).toContain('cancelé');
+});

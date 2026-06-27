@@ -168,6 +168,8 @@ async function callClaude(
   let escalateRequested = false;
   let escalateReason = '';
   const MAX_TOOL_ROUNDS = 5; // seguridad para evitar loops infinitos
+  const calledActionTools = new Set<string>(); // tools de acción ya ejecutados (guard anti-alucinación)
+  let guardRetries = 0;
 
   // Velocidad: usamos Haiku en TODOS los planes para que el bot responda lo más rápido
   // posible (es muy capaz para atención + turnos). Antes Pro/trial usaba Sonnet (más lento).
@@ -187,7 +189,32 @@ async function callClaude(
     // Si no hay tool call, devolver respuesta final
     if (response.stop_reason !== 'tool_use') {
       const content = response.content.find((c: any) => c.type === 'text');
-      return { text: content?.text || '', tokens: totalTokens, escalate: escalateRequested, escalateReason };
+      const finalText = content?.text || '';
+
+      // Guard anti-alucinación (estructural): el modelo a veces AFIRMA que canceló o
+      // reprogramó un turno sin haber llamado a la herramienta -> el cambio nunca ocurre.
+      // Si detectamos esa afirmación sin la ejecución del tool, lo forzamos a corregirse
+      // una vez. La corrección es segura: solo le pide ejecutar la herramienta si el
+      // cliente realmente lo pidió, o aclarar que el turno NO fue modificado.
+      if (hasCalendar && guardRetries < 1) {
+        const claimsCancel = /\b(cancelad[oa]s?|anulad[oa]s?|cancel[e\u00e9]|anul[e\u00e9])\b/i.test(finalText);
+        const claimsReschedule = /\b(reprogramad[oa]s?|reagendad[oa]s?|reprogram[e\u00e9]|reagend[e\u00e9])\b/i.test(finalText)
+          || /\b(turno|cita|hora)\b[^.]{0,40}\b(actualizad[oa]|cambiad[oa]|movid[oa])\b/i.test(finalText);
+        const hallucinatedCancel = claimsCancel && !calledActionTools.has('cancel_appointment');
+        const hallucinatedReschedule = claimsReschedule && !calledActionTools.has('reschedule_appointment');
+        if (hallucinatedCancel || hallucinatedReschedule) {
+          guardRetries++;
+          console.warn('[guard] confirmación sin ejecución de tool detectada — forzando corrección');
+          currentMessages = [
+            ...currentMessages,
+            { role: 'assistant', content: finalText },
+            { role: 'user', content: 'Aviso del sistema: dijiste que un turno fue cancelado o reprogramado, pero NO ejecutaste la herramienta (cancel_appointment / reschedule_appointment), así que el cambio NO se realizó. Si el cliente efectivamente lo pidió, llamá AHORA a la herramienta correspondiente y confirmá únicamente con su resultado. Si no corresponde, aclarale al cliente que el turno NO fue modificado.' },
+          ];
+          continue;
+        }
+      }
+
+      return { text: finalText, tokens: totalTokens, escalate: escalateRequested, escalateReason };
     }
 
     // Procesar TODAS las tool calls de la respuesta. Claude puede pedir varias en
@@ -205,6 +232,7 @@ async function callClaude(
     const toolResults = await Promise.all(toolUseBlocks.map(async (toolUseBlock: any) => {
     if (toolUseBlock.input?.date) toolUseBlock.input.date = normalizeFutureDate(toolUseBlock.input.date);
     console.log(`[Claude tool call] ${toolUseBlock.name}`, toolUseBlock.input);
+    calledActionTools.add(toolUseBlock.name);
 
     // Ejecutar el tool
     let toolResult: string;
@@ -349,22 +377,28 @@ async function callClaude(
           toolResult = 'No se encontró ningún turno activo para cancelar.';
         } else {
           const appt = appts[0];
-          await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', appt.id);
-          if (appt.google_event_id) await cancelEvent(business, appt.google_event_id);
+          const { error: cancelErr } = await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', appt.id);
+          if (cancelErr) {
+            console.error('[cancel_appointment] update falló:', cancelErr.message);
+            try { require('./logger').captureError(cancelErr, 'cancel_update'); } catch {}
+            toolResult = `ERROR: no se pudo cancelar el turno (${cancelErr.message}). NO le confirmes la cancelación al cliente. Pedile disculpas, avisale que el equipo lo va a contactar y derivá a un humano.`;
+          } else {
+            if (appt.google_event_id) await cancelEvent(business, appt.google_event_id);
 
-          // Email al dueño
-          sendCancellationEmail({
-            to: business.escalation_email,
-            businessName: business.name,
-            botName: business.bot_name || 'Bot',
-            clientPhone: clientPhone || '',
-            clientName: appt.client_name,
-            appointmentDate: appt.appointment_date,
-            appointmentTime: String(appt.appointment_time).slice(0, 5),
-            title: appt.title,
-          }).catch((e: any) => console.error('[cancel email]', e.message));
+            // Email al dueño
+            sendCancellationEmail({
+              to: business.escalation_email,
+              businessName: business.name,
+              botName: business.bot_name || 'Bot',
+              clientPhone: clientPhone || '',
+              clientName: appt.client_name,
+              appointmentDate: appt.appointment_date,
+              appointmentTime: String(appt.appointment_time).slice(0, 5),
+              title: appt.title,
+            }).catch((e: any) => console.error('[cancel email]', e.message));
 
-          toolResult = `Turno cancelado: ${appt.title} del ${appt.appointment_date} a las ${String(appt.appointment_time).slice(0, 5)}.`;
+            toolResult = `Turno cancelado: ${appt.title} del ${appt.appointment_date} a las ${String(appt.appointment_time).slice(0, 5)}.`;
+          }
           console.log(`[cancel_appointment] Cancelado turno ${appt.id} de ${clientPhone}`);
         }
       } else if (toolUseBlock.name === 'escalate_to_human') {
