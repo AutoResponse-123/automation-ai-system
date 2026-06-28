@@ -187,9 +187,8 @@ router.post('/whatsapp', async (req: any, res: any) => {
       }
     }
 
-    const { conversationId, contactId, contactSummary, aiEnabled, lastMessageAt } = await getOrCreateConversation(business.id, fromPhone, business.schedule?.session_timeout_hours ?? 6);
-
-    await saveMessage(conversationId, 'user', messageBody);
+    const { conversationId: initialConversationId, contactId, contactSummary, aiEnabled, lastMessageAt } = await getOrCreateConversation(business.id, fromPhone, business.schedule?.session_timeout_hours ?? 6);
+    let conversationId = initialConversationId;
 
     // Conversación derivada a un humano => la IA está en pausa y el bot NO responde
     // (el humano la atiende desde el panel). Excepción: reactivación automática configurable.
@@ -198,15 +197,31 @@ router.post('/whatsapp', async (req: any, res: any) => {
       const autoResumeH = resolveAutoResumeHours(business.schedule?.escalation_auto_resume_hours);
       const lastTs = lastMessageAt ? new Date(lastMessageAt).getTime() : null;
       const resume = autoResumeH > 0 && lastTs !== null && (Date.now() - lastTs) >= autoResumeH * 60 * 60 * 1000;
-      if (resume) {
-        await supabase.from('conversations').update({ status: 'active', ai_enabled: true, updated_at: new Date().toISOString() }).eq('id', conversationId);
-        console.log('[handoff] IA reactivada automáticamente tras inactividad:', conversationId);
-      } else {
+      if (!resume) {
+        // No corresponde retomar: guardamos el mensaje en la conversación derivada (para que el
+        // humano lo vea en el panel) y el bot NO responde.
+        await saveMessage(conversationId, 'user', messageBody);
         res.type('text/xml');
         res.send('<Response/>');
         return;
       }
+      // Auto-resume: cerramos la conversación derivada vieja y arrancamos una FRESCA, para no
+      // arrastrar el historial largo/derivado a la nueva interacción. El resumen del contacto
+      // (contactSummary) se conserva, así no se pierde el contexto útil del cliente.
+      await supabase.from('conversations').update({ status: 'resolved', updated_at: new Date().toISOString() }).eq('id', conversationId);
+      const fresh = await supabase.from('conversations').insert({ business_id: business.id, contact_id: contactId, status: 'active' }).select('id').maybeSingle();
+      if (fresh.data?.id) {
+        conversationId = fresh.data.id;
+        console.log('[handoff] IA reactivada en conversación NUEVA tras inactividad:', conversationId);
+      } else {
+        // Fallback defensivo: si no se pudo crear la nueva, reactivamos la vieja (mejor que quedar muda).
+        await supabase.from('conversations').update({ status: 'active', ai_enabled: true, updated_at: new Date().toISOString() }).eq('id', conversationId);
+        console.warn('[handoff] no se pudo crear conversación nueva; reactivada la vieja:', conversationId, fresh.error?.message);
+      }
     }
+
+    // Guardar el mensaje entrante en la conversación que corresponde (la nueva si hubo resume).
+    await saveMessage(conversationId, 'user', messageBody);
 
     if (isOutsideHours(business.schedule)) {
       const offMsg = `Hola! En este momento estamos fuera de nuestro horario de atención. Te respondemos a la brevedad. ${business.closing_phrases?.[0] || ''}`.trim();
