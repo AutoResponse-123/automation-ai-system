@@ -5,6 +5,7 @@ export {};
 const mockSendText = jest.fn().mockResolvedValue({ sid: 'SM_test' });
 const mockSendTemplate = jest.fn().mockResolvedValue({ sid: 'SM_tmpl' });
 const mockApptUpdate = jest.fn().mockResolvedValue({ error: null });
+const mockCaptureError = jest.fn();
 
 const APPT = {
   id: 'appt_noche', client_name: 'Martín', client_phone: '+5491156095323',
@@ -61,10 +62,12 @@ jest.mock('../services/calendar', () => ({
   wallTimeToUtc: (date: string, time: string) => new Date(`${date}T${time.slice(0, 5)}:00-03:00`),
 }));
 
+jest.mock('../services/logger', () => ({ captureError: mockCaptureError }));
+
 const { sendPendingReminders } = require('../services/reminders');
 
 describe('sendPendingReminders — turnos de la noche (timezone)', () => {
-  beforeEach(() => { mockSendText.mockClear(); mockSendTemplate.mockClear(); mockApptUpdate.mockClear(); });
+  beforeEach(() => { mockSendText.mockClear(); mockSendTemplate.mockClear(); mockApptUpdate.mockClear(); mockCaptureError.mockClear(); });
 
   it('envía el recordatorio de 1h aunque la ventana UTC caiga en otro día que la fecha local del turno', async () => {
     // 20:33 en Buenos Aires = 23:33 UTC. "ahora + 1h" = 00:33 UTC del día SIGUIENTE.
@@ -77,5 +80,20 @@ describe('sendPendingReminders — turnos de la noche (timezone)', () => {
     expect(mockSendText).toHaveBeenCalledTimes(1);
     expect(mockSendText.mock.calls[0][0]).toBe('+5491156095323');
     expect(mockApptUpdate).toHaveBeenCalledTimes(1);
+  });
+
+  it('si el envío falla: reporta a Sentry (captureError) y NO marca el turno como enviado', async () => {
+    mockSendText.mockRejectedValueOnce(new Error('Twilio 63016: fuera de ventana'));
+    jest.useFakeTimers().setSystemTime(new Date('2026-06-26T23:33:00Z'));
+    try {
+      await sendPendingReminders();
+    } finally {
+      jest.useRealTimers();
+    }
+    expect(mockSendText).toHaveBeenCalledTimes(1);
+    expect(mockCaptureError).toHaveBeenCalledTimes(1);
+    expect(mockCaptureError.mock.calls[0][1]).toBe('reminder_send');
+    // No se marca como enviado => el próximo ciclo reintenta.
+    expect(mockApptUpdate).not.toHaveBeenCalled();
   });
 });

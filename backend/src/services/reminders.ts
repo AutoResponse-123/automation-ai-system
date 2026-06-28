@@ -161,7 +161,17 @@ async function sendPendingReminders() {
               .eq('id', appt.id);
             console.log(`[reminders] OK ${appt.client_name} ${appt.appointment_date} ${timeStr} (${hoursBefore}h)`);
           } catch (err: any) {
-            console.error(`[reminders] Error ${appt.client_phone}:`, err.message);
+            // Falla de envío individual: reportar a Sentry con contexto (antes solo se logueaba
+            // por consola y quedaba invisible). El turno NO se marca como enviado => se reintenta.
+            const { captureError } = require('./logger');
+            captureError(err, 'reminder_send', {
+              appointmentId: appt.id,
+              businessId: business.id,
+              businessName: business.name,
+              clientPhone: appt.client_phone,
+              hoursBefore,
+              via: templateSid ? 'template' : 'text',
+            });
           }
         }
       }
