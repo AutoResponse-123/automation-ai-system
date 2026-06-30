@@ -131,6 +131,16 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('create_appointment');
   });
 
+  it('instruye a resolver fechas relativas (próximo día) sin pedir la fecha completa', () => {
+    const prompt = buildSystemPrompt({ ...baseBusiness, plan: 'pro', google_refresh_token: 'tok' });
+    expect(prompt).toMatch(/[Ff]echas relativas/);
+    expect(prompt).toContain('PRÓXIMA fecha');
+    expect(prompt).toMatch(/calendario de referencia/i);
+    // El calendario lista los próximos 14 días: debe incluir HOY (en formato dd/mm es-AR).
+    const hoyDM = new Date().toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: '2-digit', month: '2-digit' });
+    expect(prompt).toContain(hoyDM);
+  });
+
   it('incluye reglas anti-alucinación para reprogramar y cancelar (no confirmar sin ejecutar el tool)', () => {
     const prompt = buildSystemPrompt({ ...baseBusiness, plan: 'pro', google_refresh_token: 'token123' });
     expect(prompt).toContain('reschedule_appointment');
@@ -150,6 +160,12 @@ describe('buildSystemPrompt', () => {
     });
     expect(prompt).toContain('Corte');
     expect(prompt).toContain('30 min');
+  });
+
+  it('en modo alias de Mercado Pago, le pide al bot aclarar el monto a transferir', () => {
+    const prompt = buildSystemPrompt({ ...baseBusiness, plan: 'pro', mp_payment_link: 'aliasejemplo' });
+    expect(prompt).toContain('aliasejemplo');
+    expect(prompt).toMatch(/monto|transferir/i);
   });
 });
 

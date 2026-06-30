@@ -76,6 +76,17 @@ export function buildSystemPrompt(business: any, contactSummary?: string): strin
 4) Si el cliente pide una hora que NO está en la lista, decile "ese horario no está disponible" y mostrá las opciones disponibles
 5) Cuando el cliente elija una hora disponible, pedí su nombre y llamá create_appointment
 6) NUNCA confirmes sin haber llamado create_appointment primero. Si no llamaste al tool, NO digas que quedó agendado.`);
+    // Calendario de referencia (14 días) generado en código: el modelo NO calcula fechas a mano
+    // (es poco confiable) — lee de esta lista para resolver "el martes", "el miércoles", etc.
+    const tzCal = business.schedule?.timezone || 'America/Argentina/Buenos_Aires';
+    const diasRef: string[] = [];
+    for (let d = 0; d < 14; d++) {
+      const dtRef = new Date(Date.now() + d * 86400000);
+      const wd = dtRef.toLocaleDateString('es-AR', { timeZone: tzCal, weekday: 'long' });
+      const dm = dtRef.toLocaleDateString('es-AR', { timeZone: tzCal, day: '2-digit', month: '2-digit' });
+      diasRef.push(`${wd} ${dm}${d === 0 ? ' (hoy)' : d === 1 ? ' (mañana)' : ''}`);
+    }
+    parts.push(`\nFechas relativas: si el cliente menciona un día de la semana sin fecha (ej: "el martes") o algo relativo ("mañana", "la semana que viene"), NO le pidas la "fecha completa", NO le ofrezcas una lista para elegir y NO calcules la fecha a mano. Usá EXCLUSIVAMENTE este calendario de referencia: ${diasRef.join(', ')}. Tomá la PRÓXIMA fecha que corresponda, confirmala en UNA frase natural mencionándola (día de la semana + número y mes), y recién cuando el cliente confirme seguí con get_available_slots.`);
     parts.push(`\nPara REPROGRAMAR ${apptLabel} (cambiar fecha u hora de un turno existente) seguí este flujo:
 1) Preguntá la nueva fecha si el cliente no la dijo.
 2) OBLIGATORIO: llamá get_available_slots para la NUEVA fecha ANTES de confirmar nada.
@@ -87,7 +98,7 @@ export function buildSystemPrompt(business: any, contactSummary?: string): strin
   }
 
   if (hasProFeatures(business.plan) && business.mp_payment_link) {
-    parts.push(`\nMedio de pago: si el cliente quiere pagar, señar o reservar con anticipo, compartile EXACTAMENTE este dato de Mercado Pago: ${business.mp_payment_link}. No inventes alias, links ni CBU distintos a ese.`);
+    parts.push(`\nMedio de pago: si el cliente quiere pagar, señar o reservar con anticipo, compartile EXACTAMENTE este dato de Mercado Pago: ${business.mp_payment_link} (no inventes alias, links ni CBU distintos a ese). El alias/link NO lleva el monto, así que SIEMPRE aclarale al cliente cuánto tiene que transferir según el precio del servicio (ej: "transferí $X a ese alias"). Si no tenés el precio exacto, pedíselo o decile que el equipo se lo confirma — no inventes montos.`);
   }
 
   if (contactSummary) {
