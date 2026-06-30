@@ -130,6 +130,55 @@ export function checkEscalation(message: string, keywords: string[]): boolean {
   return keywords.some((kw: string) => lower.includes(kw.toLowerCase()));
 }
 
+// Devuelve cuando vuelve a abrir el negocio: "hoy a las 9:00" o "el lunes 30/6 a las 9:00".
+// Devuelve null si no hay horario o no abre en 7 dias.
+export function getNextOpeningTime(schedule: any): string | null {
+  if (!schedule?.hours) return null;
+  const tz = schedule.timezone || 'America/Argentina/Buenos_Aires';
+  const now = new Date();
+
+  // Abre mas tarde hoy?
+  const todayName = now.toLocaleDateString('es-AR', { timeZone: tz, weekday: 'long' }).toLowerCase();
+  const timeStr = now.toLocaleTimeString('es-AR', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
+  const parts = timeStr.split(':').map(Number);
+  const curMins = parts[0] * 60 + parts[1];
+  const todayConfig = schedule.hours[todayName];
+  if (todayConfig && !todayConfig.closed) {
+    const op = (todayConfig.open as string).split(':').map(Number);
+    if (curMins < op[0] * 60 + op[1]) return 'hoy a las ' + todayConfig.open;
+  }
+
+  // Proximo dia que abre (hasta 7 dias)
+  for (let d = 1; d <= 7; d++) {
+    const dt = new Date(now.getTime() + d * 86400000);
+    const dayStr = dt.toLocaleDateString('es-AR', { timeZone: tz, weekday: 'long' }).toLowerCase();
+    const dayConfig = schedule.hours[dayStr];
+    if (dayConfig && !dayConfig.closed) {
+      const dateStr = dt.toLocaleDateString('es-AR', { timeZone: tz, weekday: 'long', day: 'numeric', month: 'long' });
+      return 'el ' + dateStr + ' a las ' + dayConfig.open;
+    }
+  }
+  return null;
+}
+
+// Mensaje de fuera de horario con proximo horario de apertura.
+// Usa schedule.outside_hours_message si el negocio lo configuro.
+export function buildOutsideHoursMessage(business: any): string {
+  if (business.schedule && business.schedule.outside_hours_message) {
+    return business.schedule.outside_hours_message;
+  }
+  const nextOpening = getNextOpeningTime(business.schedule);
+  const hours = (business.schedule && business.schedule.hours) ? business.schedule.hours : {};
+  const hoursEntries = Object.entries(hours)
+    .filter(function(e: any) { return !e[1].closed; })
+    .map(function(e: any) { return e[0] + ': ' + e[1].open + ' a ' + e[1].close; })
+    .join(', ');
+  let msg = 'Hola! En este momento estamos fuera de nuestro horario de atencion.';
+  if (nextOpening) msg += ' Volvemos ' + nextOpening + '.';
+  if (hoursEntries) msg += '\n\nHorario: ' + hoursEntries + '.';
+  msg += '\n\nDejanos tu consulta aca y te respondemos en cuanto abramos!';
+  return msg;
+}
 export function isOutsideHours(schedule: any): boolean {
   if (!schedule?.enabled) return false;
   try {
@@ -162,3 +211,4 @@ export function isOutsideHours(schedule: any): boolean {
     return false;
   } catch { return false; }
 }
+

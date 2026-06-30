@@ -6,7 +6,7 @@ const { getAuthUrl, saveTokens } = require('../services/calendar');
 const { getSheetsAuthUrl, saveSheetsTokens, exportToSheets } = require('../services/sheets');
 const { sendEscalationEmail } = require('../services/email');
 const { supabase } = require('../config/supabase');
-const { buildSystemPrompt, checkEscalation, isOutsideHours, hasProFeatures, hasAudioFeature, resolveAutoResumeHours } = require('../utils');
+const { buildSystemPrompt, buildOutsideHoursMessage, getNextOpeningTime, checkEscalation, isOutsideHours, hasProFeatures, hasAudioFeature, resolveAutoResumeHours } = require('../utils');
 const { transcribeAudio } = require('../services/transcribe');
 
 const router = express.Router();
@@ -223,13 +223,19 @@ router.post('/whatsapp', async (req: any, res: any) => {
     // Guardar el mensaje entrante en la conversación que corresponde (la nueva si hubo resume).
     await saveMessage(conversationId, 'user', messageBody);
 
+    let outsideHoursAiMode = false;
     if (isOutsideHours(business.schedule)) {
-      const offMsg = `Hola! En este momento estamos fuera de nuestro horario de atención. Te respondemos a la brevedad. ${business.closing_phrases?.[0] || ''}`.trim();
-      await saveMessage(conversationId, 'assistant', offMsg);
-      const twiml = new (require('twilio').twiml.MessagingResponse)();
-      twiml.message(offMsg);
-      res.type('text/xml');
-      return res.send(twiml.toString());
+      if (business.schedule && business.schedule.outside_hours_ai) {
+        // Bot sigue respondiendo pero avisa que esta cerrado (util para agendar de noche).
+        outsideHoursAiMode = true;
+      } else {
+        const offMsg = buildOutsideHoursMessage(business);
+        await saveMessage(conversationId, 'assistant', offMsg);
+        const twiml = new (require('twilio').twiml.MessagingResponse)();
+        twiml.message(offMsg);
+        res.type('text/xml');
+        return res.send(twiml.toString());
+      }
     }
 
     if (business.schedule?.escalation_keyword_enabled !== false && checkEscalation(messageBody, business.escalation_keywords)) {
@@ -276,6 +282,11 @@ router.post('/whatsapp', async (req: any, res: any) => {
     }
 
     let systemPrompt = buildSystemPrompt(business, contactSummary || undefined);
+    if (outsideHoursAiMode) {
+      const nextOpen = getNextOpeningTime(business.schedule);
+      const openNote = nextOpen ? ' (volvemos ' + nextOpen + ')' : '';
+      systemPrompt += '\n\nIMPORTANTE - FUERA DE HORARIO: El negocio esta cerrado ahora' + openNote + '. Al inicio de tu respuesta avisale al cliente que esta fuera del horario pero que igual podes ayudarlo. Luego continua normalmente.';
+    }
     if (upcomingAppts && upcomingAppts.length > 0) {
       const apptLines = upcomingAppts.map((a: any) =>
         `- ${a.title || 'Turno'} el ${a.appointment_date} a las ${String(a.appointment_time).slice(0,5)}`
