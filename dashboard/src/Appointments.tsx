@@ -368,6 +368,9 @@ export default function Appointments({ businessId, label }: { businessId: string
     a.client_phone?.includes(search) ||
     a.title?.toLowerCase().includes(search.toLowerCase())
 
+  // Un turno "pendiente / por delante": fecha de hoy en adelante y no cancelado ni completado.
+  const isUpcoming = (a: Appointment) => a.appointment_date >= today && a.status !== 'cancelled' && a.status !== 'completed'
+
   const catFiltered = appts.filter(matchCat)
   const listFiltered = catFiltered.filter(matchSearch)
 
@@ -378,7 +381,7 @@ export default function Appointments({ businessId, label }: { businessId: string
     .sort((a, b) => a.appointment_time.localeCompare(b.appointment_time))
 
   // Lista: agrupado por estado
-  const activeList = listFiltered.filter(a => a.status !== 'cancelled' && a.status !== 'completed')
+  const activeList = listFiltered.filter(isUpcoming)
     .sort((a, b) => (a.appointment_date + a.appointment_time).localeCompare(b.appointment_date + b.appointment_time))
   const completedList = listFiltered.filter(a => a.status === 'completed')
     .sort((a, b) => (b.appointment_date + b.appointment_time).localeCompare(a.appointment_date + a.appointment_time))
@@ -477,7 +480,7 @@ export default function Appointments({ businessId, label }: { businessId: string
               }}>
               {cat.name}
               <span style={{ marginLeft: 5, opacity: 0.7, fontSize: 10 }}>
-                {appts.filter(a => a.category === cat.name || (!a.category && a.title?.toLowerCase() === cat.name.toLowerCase())).length}
+                {appts.filter(a => isUpcoming(a) && (a.category === cat.name || (!a.category && a.title?.toLowerCase() === cat.name.toLowerCase()))).length}
               </span>
             </button>
           ))}
