@@ -200,15 +200,29 @@ async function callClaude(
         const claimsCancel = /\b(cancel|anul)(é|ó|amos|aron|aste|ad[oa]s?)/i.test(finalText) || /\b(ya )?no ten[ée]s\b[^.]{0,30}\bturnos?\b/i.test(finalText);
         const claimsReschedule = /\b(reprogram|reagend)(é|ó|amos|aron|aste|ad[oa]s?)/i.test(finalText)
           || /\b(turno|cita|hora)\b[^.]{0,40}\b(actualizad[oa]|cambiad[oa]|movid[oa])\b/i.test(finalText);
+        // Confirmación de un turno NUEVO (agendado/reservado/confirmado) sin haber
+        // ejecutado create_appointment → el turno nunca se guardó. Mismo problema que
+        // con cancelar/reprogramar. Un reschedule también "agenda", por eso solo cuenta
+        // como alucinación si NO se llamó ni create_appointment ni reschedule_appointment.
+        const claimsCreate = /\b(agend|reserv)(é|ó|amos|aron|aste|ad[oa]s?)\b/i.test(finalText)
+          || /\btu turno\b[^.]{0,40}\b(qued[óo]|est[áa]|list[oa]|confirmad[oa])\b/i.test(finalText)
+          || /\bqued[óo]\b[^.]{0,20}\bagendad[oa]\b/i.test(finalText)
+          || /\bturno\b[^.]{0,20}\bconfirmad[oa]\b/i.test(finalText);
         const hallucinatedCancel = claimsCancel && !calledActionTools.has('cancel_appointment');
         const hallucinatedReschedule = claimsReschedule && !calledActionTools.has('reschedule_appointment');
-        if (hallucinatedCancel || hallucinatedReschedule) {
+        const hallucinatedCreate = claimsCreate
+          && !calledActionTools.has('create_appointment')
+          && !calledActionTools.has('reschedule_appointment');
+        if (hallucinatedCancel || hallucinatedReschedule || hallucinatedCreate) {
           guardRetries++;
           console.warn('[guard] confirmación sin ejecución de tool detectada — forzando corrección');
+          const correction = hallucinatedCreate
+            ? 'Aviso del sistema: afirmaste que el turno quedó agendado/reservado/confirmado SIN ejecutar la herramienta create_appointment, así que el turno NO se creó. Si el cliente ya definió servicio, fecha y una hora, verificá disponibilidad con get_available_slots y llamá AHORA a create_appointment; confirmá únicamente según su resultado. Si falta algún dato o la hora no está disponible, NO confirmes: pedí lo que falte u ofrecé los horarios disponibles.'
+            : 'Aviso del sistema: afirmaste algo sobre el estado del/los turno(s) del cliente (que se cancelo, se reprogramo, o que no tiene turnos) SIN ejecutar la herramienta, asi que NO verificaste el estado real. Si el cliente pidio cancelar o reprogramar, llama AHORA a la herramienta correspondiente (cancel_appointment / reschedule_appointment) y responde unicamente segun su resultado. No afirmes que un turno fue cancelado/reprogramado ni que no hay turnos sin confirmarlo con la herramienta.';
           currentMessages = [
             ...currentMessages,
             { role: 'assistant', content: finalText },
-            { role: 'user', content: 'Aviso del sistema: afirmaste algo sobre el estado del/los turno(s) del cliente (que se cancelo, se reprogramo, o que no tiene turnos) SIN ejecutar la herramienta, asi que NO verificaste el estado real. Si el cliente pidio cancelar o reprogramar, llama AHORA a la herramienta correspondiente (cancel_appointment / reschedule_appointment) y responde unicamente segun su resultado. No afirmes que un turno fue cancelado/reprogramado ni que no hay turnos sin confirmarlo con la herramienta.' },
+            { role: 'user', content: correction },
           ];
           continue;
         }
