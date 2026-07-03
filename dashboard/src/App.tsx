@@ -1319,24 +1319,49 @@ function DashboardHero({ name, automationRate, pending, totalMessages, onGoPendi
       ? { label: 'Listo para arrancar', color: '#3FA86B', icon: 'ti-rocket' }
       : { label: 'Todo al día', color: '#22c55e', icon: 'ti-circle-check' }
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: 12, marginBottom: 18 }}>
-      <div>
-        <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-bright)' }}>{name ? `${greet}, ${name} 👋` : `${greet} 👋`}</div>
-        <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>{dateStr}</div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const }}>
-        <div onClick={pending > 0 ? onGoPending : undefined}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, background: status.color + '18', color: status.color, fontSize: 12, fontWeight: 500, cursor: pending > 0 ? 'pointer' : 'default', border: '0.5px solid ' + status.color + '33' }}>
-          <i className={`ti ${status.icon}`} style={{ fontSize: 14 }} aria-hidden="true" />{status.label}
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: 12, marginBottom: 18 }}>
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-bright)' }}>{name ? `${greet}, ${name} 👋` : `${greet} 👋`}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>{dateStr}</div>
         </div>
-        {totalMessages > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', fontSize: 12, color: 'var(--text-2)' }}>
-            <i className="ti ti-robot" style={{ fontSize: 14, color: '#2E8B57' }} aria-hidden="true" />
-            <span style={{ color: '#2E8B57', fontWeight: 500 }}>{automationRate}%</span> automatizado
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const }}>
+          {/* Cuando hay pendientes, el aviso se muestra abajo como banner destacado. */}
+          {pending === 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, background: status.color + '18', color: status.color, fontSize: 12, fontWeight: 500, border: '0.5px solid ' + status.color + '33' }}>
+              <i className={`ti ${status.icon}`} style={{ fontSize: 14 }} aria-hidden="true" />{status.label}
+            </div>
+          )}
+          {totalMessages > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', fontSize: 12, color: 'var(--text-2)' }}>
+              <i className="ti ti-robot" style={{ fontSize: 14, color: '#2E8B57' }} aria-hidden="true" />
+              <span style={{ color: '#2E8B57', fontWeight: 500 }}>{automationRate}%</span> automatizado
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      {pending > 0 && (
+        <div className="attention-banner" role="button" tabIndex={0} onClick={onGoPending}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') onGoPending() }}
+          style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18, padding: '14px 18px', borderRadius: 14, cursor: 'pointer', background: 'linear-gradient(90deg, rgba(251,146,60,0.16), rgba(245,158,11,0.05))', border: '1px solid #fb923c66' }}>
+          <div style={{ width: 42, height: 42, borderRadius: 11, background: 'rgba(251,146,60,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <i className="ti ti-alert-triangle" style={{ fontSize: 21, color: '#fb923c' }} aria-hidden="true" />
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-bright)' }}>
+              {pending === 1 ? 'Una conversación requiere tu atención' : `${pending} conversaciones requieren tu atención`}
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--text-3)', marginTop: 3 }}>
+              {pending === 1 ? 'Un cliente está esperando que le responda una persona.' : 'Hay clientes esperando que les responda una persona.'}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 10, background: '#fb923c', color: '#1b1206', fontSize: 13, fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' as const }}>
+            Ver ahora <i className="ti ti-arrow-right" style={{ fontSize: 15 }} aria-hidden="true" />
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
