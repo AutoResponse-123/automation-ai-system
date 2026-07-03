@@ -19,11 +19,25 @@ async function verifyBusinessOwner(authHeader: string | undefined, businessId: s
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
+// WhatsApp/Twilio RECHAZA una plantilla si alguna variable va vacía (ej. un contacto
+// sin nombre → {{1}} vacío → falla el envío). Cuando falta el dato usamos este fallback
+// en vez de mandar "" y que falle. Cambiá esta palabra si querés otro saludo genérico.
+const NAME_FALLBACK = 'crack';
+
+// Última red de seguridad: garantiza que ningún valor de variable quede vacío.
+function ensureNonEmpty(vars: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const k of Object.keys(vars || {})) {
+    out[k] = String(vars[k] ?? '').trim() || NAME_FALLBACK;
+  }
+  return out;
+}
+
 // Reemplaza el token {name} en los valores de las variables por el nombre del contacto.
 function personalize(variables: Record<string, string>, name?: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const k of Object.keys(variables || {})) {
-    out[k] = String(variables[k] ?? '').replace(/\{name\}/gi, name || '');
+    out[k] = String(variables[k] ?? '').replace(/\{name\}/gi, (name || '').trim() || NAME_FALLBACK);
   }
   return out;
 }
@@ -99,12 +113,12 @@ router.post('/send', async (req: Request, res: Response) => {
   const ctxFor = (r: any): Record<string, string> => {
     const a = apptByContact[r.id];
     return {
-      nombre: r.name || '',
-      negocio: business.name || '',
+      nombre: (r.name || '').trim() || NAME_FALLBACK,
+      negocio: business.name || 'nuestro negocio',
       telefono: r.phone || '',
-      fecha: a ? fmtDate(a.appointment_date) : '',
-      hora: a ? String(a.appointment_time).slice(0, 5) : '',
-      servicio: a ? (a.title || '') : '',
+      fecha: a ? fmtDate(a.appointment_date) : 'a coordinar',
+      hora: a ? String(a.appointment_time).slice(0, 5) : 'a coordinar',
+      servicio: a ? (a.title || 'tu servicio') : 'tu servicio',
     };
   };
 
@@ -121,11 +135,13 @@ router.post('/send', async (req: Request, res: Response) => {
   // Envío en segundo plano: secuencial con una pausa corta para respetar rate limits.
   (async () => {
     let sent = 0, failed = 0;
+    let lastError = '';
     for (const r of recipients) {
       try {
-        const vars = varKeys.length
+        const rawVars = varKeys.length
           ? resolveVars(varKeys, ctxFor(r))
           : personalize(variables || {}, r.name);
+        const vars = ensureNonEmpty(rawVars);
         await sendWhatsAppTemplate(
           r.phone,
           contentSid,
@@ -137,6 +153,8 @@ router.post('/send', async (req: Request, res: Response) => {
         sent++;
       } catch (err: any) {
         failed++;
+        // Guardamos el motivo real (código + mensaje de Twilio) para mostrarlo en el panel.
+        lastError = err?.code ? `${err.code}: ${err?.message || ''}`.trim() : (err?.message || String(err));
         console.error('[broadcast] envío falló', r.phone, err?.message || err);
       }
       if (broadcastId && (sent + failed) % 10 === 0) {
@@ -145,7 +163,7 @@ router.post('/send', async (req: Request, res: Response) => {
       await sleep(250);
     }
     if (broadcastId) {
-      await supabase.from('broadcasts').update({ sent, failed, status: 'done' }).eq('id', broadcastId);
+      await supabase.from('broadcasts').update({ sent, failed, status: 'done', last_error: failed > 0 ? lastError.slice(0, 300) : null }).eq('id', broadcastId);
     }
     console.log(`[broadcast] ${broadcastId} terminado: ${sent} enviados, ${failed} fallidos`);
   })().catch((e: any) => console.error('[broadcast bg]', e?.message || e));

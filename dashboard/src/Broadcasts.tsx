@@ -11,6 +11,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL
 interface Broadcast {
   id: string; name: string | null; segment: string; status: string
   total: number; sent: number; failed: number; created_at: string
+  last_error?: string | null
 }
 interface Template {
   id: string; content_sid: string; name: string; body: string
@@ -82,7 +83,7 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
 
   async function loadHistory() {
     const { data } = await supabase.from('broadcasts')
-      .select('id, name, segment, status, total, sent, failed, created_at')
+      .select('id, name, segment, status, total, sent, failed, created_at, last_error')
       .order('created_at', { ascending: false }).limit(20)
     setHistory((data as Broadcast[]) || [])
   }
@@ -298,6 +299,9 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
               <div style={{ minWidth: 0 }}>
                 <div style={s.histName}>{b.name || segLabel(b.segment)}</div>
                 <div style={s.histMeta}>{segLabel(b.segment)} · {new Date(b.created_at).toLocaleDateString('es-AR')}</div>
+                {b.failed > 0 && b.last_error && (
+                  <div style={s.histError}><i className="ti ti-alert-triangle" style={{ fontSize: 11, marginRight: 4 }} />{b.last_error}</div>
+                )}
               </div>
               <div style={s.histStat}>
                 <span style={{ color: b.status === 'done' ? '#2E8B57' : 'var(--text-2)' }}>{b.sent}/{b.total}</span>
@@ -340,5 +344,6 @@ const s: Record<string, React.CSSProperties> = {
   histRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid var(--border)', gap: 10 },
   histName: { fontSize: 12, fontWeight: 500, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   histMeta: { fontSize: 11, color: 'var(--text-3)' },
+  histError: { fontSize: 11, color: '#dc2626', marginTop: 3, lineHeight: 1.4, whiteSpace: 'normal' as const },
   histStat: { fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap' as const },
 }
