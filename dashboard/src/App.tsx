@@ -357,7 +357,11 @@ export default function App() {
         loadConversations()
         loadMetrics()
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations' }, () => loadConversations())
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'conversations' }, () => { loadConversations(); loadMetrics() })
+      // Escalada a humano: la conversación pasa a "Pendientes". Nos suscribimos al INSERT
+      // en escalations (siempre ocurre al escalar, incluso sin respuesta del bot) para
+      // refrescar la lista y las métricas al instante, sin tener que recargar la página.
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'escalations' }, () => { loadConversations(); loadMetrics() })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversation_notes' }, (payload) => {
         const note = payload.new as Note
         if (selectedConvId && note.conversation_id === selectedConvId) {
