@@ -283,6 +283,13 @@ export default function App() {
 
   useEffect(() => { if (session) loadBusiness() }, [session])
 
+  // Realtime necesita el JWT del usuario para pasar las políticas RLS. Sin esto, el canal
+  // se conecta como 'anon' y el servidor filtra TODOS los eventos (mensajes nuevos, cambios
+  // de estado…) → la vista solo se actualiza al refrescar. Propagamos el token a realtime.
+  useEffect(() => {
+    supabase.realtime.setAuth(session?.access_token ?? null)
+  }, [session?.access_token])
+
   async function loadBusiness() {
     const { data } = await supabase.from('businesses').select('id, accent_color, name, business_description, phone_whatsapp, services, prices, schedule, escalation_email, plan, trial_ends_at, conversation_tags').eq('user_id', session!.user.id).single()
     if (data) {
@@ -371,7 +378,8 @@ export default function App() {
       .subscribe()
     channelRef.current = channel
     return () => { channel.unsubscribe() }
-  }, [selectedConv])
+    // Re-suscribimos cuando cambia el token para que el canal quede autenticado (RLS).
+  }, [selectedConv, session?.access_token])
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages, notes])
 
