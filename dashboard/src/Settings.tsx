@@ -40,6 +40,7 @@ interface BusinessConfig {
   sheets_spreadsheet_id: string | null
   menu_content_sid: string | null
   appointment_categories: AppointmentCategory[]
+  conversation_tags: ConversationTag[]
   schedule: {
     enabled: boolean
     timezone: string
@@ -94,7 +95,7 @@ const LANGUAGES = [
   { code: 'pt', label: 'Português' },
 ]
 
-type Section = 'personalidad' | 'negocio' | 'escalacion' | 'horarios' | 'notificaciones' | 'apariencia' | 'integraciones' | 'turnos'
+type Section = 'personalidad' | 'negocio' | 'escalacion' | 'horarios' | 'notificaciones' | 'apariencia' | 'integraciones' | 'etiquetas' | 'turnos'
 
 interface AppointmentCategory {
   id: string
@@ -102,6 +103,24 @@ interface AppointmentCategory {
   duration_minutes: number
   color: string
 }
+
+interface ConversationTag {
+  id: string
+  label: string
+  color: string
+}
+
+// Etiquetas por defecto (las mismas que trae el Inbox). El dueño puede editarlas.
+const DEFAULT_TAGS: ConversationTag[] = [
+  { id: 'venta',       label: 'Venta',       color: '#22c55e' },
+  { id: 'soporte',     label: 'Soporte',     color: '#38bdf8' },
+  { id: 'urgente',     label: 'Urgente',     color: '#f87171' },
+  { id: 'turno',       label: 'Turno',       color: '#2E8B57' },
+  { id: 'consulta',    label: 'Consulta',    color: '#f59e0b' },
+  { id: 'seguimiento', label: 'Seguimiento', color: '#fb923c' },
+  { id: 'reclamo',     label: 'Reclamo',     color: '#e879f9' },
+  { id: 'resuelto',    label: 'Resuelto',    color: '#34d399' },
+]
 
 export default function Settings({ onSave, businessId, onThemeChange, onFontChange, plan = 'trial' }: {
   onSave?: () => void
@@ -216,6 +235,9 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
   const [newCatDuration, setNewCatDuration] = useState(30)
   const [newCatColor, setNewCatColor] = useState('#2E8B57')
   const [editingCatId, setEditingCatId] = useState<string | null>(null)
+  const [newTagLabel, setNewTagLabel] = useState('')
+  const [newTagColor, setNewTagColor] = useState('#22c55e')
+  const [editingTagId, setEditingTagId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string>('')
   const [useAlternateEmail, setUseAlternateEmail] = useState(false)
 
@@ -264,6 +286,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
         sheets_refresh_token: data.sheets_refresh_token ?? null,
         sheets_spreadsheet_id: data.sheets_spreadsheet_id ?? null,
         appointment_categories: data.appointment_categories ?? [],
+        conversation_tags: (data.conversation_tags?.length ? data.conversation_tags : DEFAULT_TAGS),
         schedule: data.schedule ?? DEFAULT_SCHEDULE,
         menu_content_sid: data.menu_content_sid ?? null,
       })
@@ -304,6 +327,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
       accent_color: config.accent_color,
       schedule: config.schedule,
       appointment_categories: config.appointment_categories,
+      conversation_tags: config.conversation_tags,
       menu_content_sid: config.menu_content_sid,
       updated_at: new Date().toISOString(),
     }).eq('id', businessId!)
@@ -350,6 +374,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
     notificaciones: ['Notificaciones',   'Notifications'],
     apariencia:     ['Apariencia',       'Appearance'],
     integraciones:  ['Integraciones',    'Integrations'],
+    etiquetas:      ['Etiquetas',        'Labels'],
     turnos:         [config.schedule?.label?.trim() || 'Turnos', config.schedule?.label?.trim() || 'Appointments'],
   }
   const sl = (id: Section) => lang === 'en' ? sectionLabels[id][1] : sectionLabels[id][0]
@@ -362,6 +387,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
     { id: 'notificaciones', icon: 'ti-bell',           label: sl('notificaciones') },
     { id: 'apariencia',     icon: 'ti-palette',        label: sl('apariencia') },
     { id: 'integraciones',  icon: 'ti-plug',           label: sl('integraciones') },
+    { id: 'etiquetas',      icon: 'ti-tag',            label: sl('etiquetas') },
     { id: 'turnos',         icon: 'ti-calendar-event', label: sl('turnos') },
   ]
 
@@ -1544,6 +1570,83 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                 </div>
               </div>
             </>)}
+            </div>
+          )}
+
+          {activeSection === 'etiquetas' && (
+            <div style={s.section}>
+              <SectionHeader icon="ti-tag" title={uis('Etiquetas', 'Labels')} subtitle={uis('Personalizá las etiquetas para clasificar y filtrar tus conversaciones en el Inbox', 'Customize the labels used to tag and filter conversations in the Inbox')} />
+
+              {/* Lista de etiquetas */}
+              <div style={{ marginBottom: 20 }}>
+                {(config.conversation_tags ?? []).length === 0 && (
+                  <div style={{ fontSize: 13, color: 'var(--text-3)', padding: '16px 0' }}>{uis('No hay etiquetas todavía. Agregá una abajo.', 'No labels yet. Add one below.')}</div>
+                )}
+                {(config.conversation_tags ?? []).map((tag) => (
+                  <div key={tag.id} style={{ background: 'var(--bg-card)', border: `0.5px solid ${editingTagId === tag.id ? tag.color + '88' : 'var(--border-mid)'}`, borderRadius: 10, padding: '12px 16px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 14, height: 14, borderRadius: '50%', background: tag.color, flexShrink: 0 }} />
+                    {editingTagId === tag.id ? (
+                      <div style={{ flex: 1, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' as const }}>
+                        <input
+                          style={{ ...s.input, flex: 1, minWidth: 120 }}
+                          value={tag.label}
+                          onChange={e => update('conversation_tags', config.conversation_tags.map(t => t.id === tag.id ? { ...t, label: e.target.value } : t))}
+                        />
+                        <input type="color" value={tag.color}
+                          onChange={e => update('conversation_tags', config.conversation_tags.map(t => t.id === tag.id ? { ...t, color: e.target.value } : t))}
+                          style={{ width: 32, height: 32, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 6, padding: 2 }} />
+                        <button onClick={() => setEditingTagId(null)} style={{ ...s.addBtn, fontSize: 12 }}>✓ {uis('Listo', 'Done')}</button>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-1)' }}>{tag.label}</span>
+                        </div>
+                        <button onClick={() => setEditingTagId(tag.id)} style={{ background: 'none', border: 'none', color: 'var(--text-2)', cursor: 'pointer', fontSize: 13, padding: '4px 6px' }}>
+                          <i className="ti ti-pencil" />
+                        </button>
+                        <button onClick={() => update('conversation_tags', config.conversation_tags.filter(t => t.id !== tag.id))}
+                          style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: 13, padding: '4px 6px' }}>
+                          <i className="ti ti-trash" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Agregar etiqueta */}
+              <div style={{ background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 10, padding: '14px 16px' }}>
+                <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 10, fontWeight: 500 }}>{uis('Nueva etiqueta', 'New label')}</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'center' }}>
+                  <input
+                    style={{ ...s.input, flex: 1, minWidth: 140 }}
+                    placeholder={uis('Nombre (ej: Venta, Reclamo)', 'Name (e.g. Sale, Complaint)')}
+                    value={newTagLabel}
+                    onChange={e => setNewTagLabel(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && newTagLabel.trim()) {
+                        update('conversation_tags', [...(config.conversation_tags ?? []), { id: crypto.randomUUID(), label: newTagLabel.trim(), color: newTagColor }])
+                        setNewTagLabel('')
+                      }
+                    }}
+                  />
+                  <input type="color" value={newTagColor} onChange={e => setNewTagColor(e.target.value)}
+                    style={{ width: 36, height: 36, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 6, padding: 2 }} />
+                  <button
+                    onClick={() => {
+                      if (!newTagLabel.trim()) return
+                      update('conversation_tags', [...(config.conversation_tags ?? []), { id: crypto.randomUUID(), label: newTagLabel.trim(), color: newTagColor }])
+                      setNewTagLabel('')
+                    }}
+                    style={s.addBtn}>
+                    + {uis('Agregar', 'Add')}
+                  </button>
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 8 }}>
+                  {uis('Las etiquetas aparecen en el Inbox para clasificar y filtrar conversaciones. Si renombrás una, las conversaciones ya etiquetadas conservan el nombre anterior.', 'Labels appear in the Inbox to tag and filter conversations. If you rename one, already-tagged conversations keep the old name.')}
+                </div>
+              </div>
             </div>
           )}
 

@@ -284,7 +284,7 @@ export default function App() {
   useEffect(() => { if (session) loadBusiness() }, [session])
 
   async function loadBusiness() {
-    const { data } = await supabase.from('businesses').select('id, accent_color, name, business_description, phone_whatsapp, services, prices, schedule, escalation_email, plan, trial_ends_at').eq('user_id', session!.user.id).single()
+    const { data } = await supabase.from('businesses').select('id, accent_color, name, business_description, phone_whatsapp, services, prices, schedule, escalation_email, plan, trial_ends_at, conversation_tags').eq('user_id', session!.user.id).single()
     if (data) {
       setBusinessId(data.id)
       setBusinessData(data)
@@ -611,6 +611,9 @@ export default function App() {
 
   const apptEnabled = businessData?.schedule?.appointments_enabled !== false
   const apptLabel = (businessData?.schedule?.label || '').trim() || tr('nav_appointments', lang)
+  // Etiquetas del negocio (configurables en Configuración → Etiquetas). Si están vacías, usa los presets.
+  const activeTags: { label: string; color: string }[] =
+    (businessData?.conversation_tags?.length ? businessData.conversation_tags : TAG_PRESETS)
 
   const navItems: { id: Tab; icon: string; label: string }[] = [
     { id: 'dashboard',    icon: 'ti-layout-dashboard', label: tr('nav_dashboard', lang) },
@@ -880,7 +883,7 @@ export default function App() {
                         Todas
                         {!tagFilter && <i className="ti ti-check" style={{ fontSize: 11, marginLeft: 'auto' }} />}
                       </button>
-                      {TAG_PRESETS.map(p => (
+                      {activeTags.map(p => (
                         <button key={p.label} onClick={() => { setTagFilter(p.label); setShowTagFilterPopover(false) }}
                           style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: tagFilter === p.label ? p.color + '18' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: tagFilter === p.label ? p.color : 'var(--text-2)', fontSize: 12, fontFamily: 'inherit', transition: 'all 0.1s' }}>
                           <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
@@ -945,7 +948,7 @@ export default function App() {
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap' as const }}>
                     {/* Tags actuales */}
                     {(selectedConv.tags ?? []).map(tag => {
-                      const preset = TAG_PRESETS.find(p => p.label === tag)
+                      const preset = activeTags.find(p => p.label === tag)
                       const color = preset?.color ?? 'var(--text-2)'
                       return (
                         <span key={tag} style={{ fontSize: 10, fontWeight: 600, borderRadius: 5, padding: '2px 7px', background: color + '20', border: `1px solid ${color}44`, color, display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}
@@ -964,7 +967,7 @@ export default function App() {
                       {showTagPopover && (
                         <div style={s.tagPopover} className="popover-enter">
                           <div style={{ fontSize: 10, color: 'var(--text-3)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Agregar etiqueta</div>
-                          {TAG_PRESETS.map(p => {
+                          {activeTags.map(p => {
                             const active = (selectedConv.tags ?? []).includes(p.label)
                             return (
                               <button key={p.label} onClick={() => active ? removeTag(p.label) : addTag(p.label)}
@@ -1064,7 +1067,7 @@ export default function App() {
                     {(selectedConv.tags ?? []).length > 0 && (
                       <div style={{ padding: '10px 16px', borderBottom: '0.5px solid var(--border)', display: 'flex', flexWrap: 'wrap' as const, gap: 5 }}>
                         {(selectedConv.tags ?? []).map(tag => {
-                          const preset = TAG_PRESETS.find(p => p.label === tag)
+                          const preset = activeTags.find(p => p.label === tag)
                           const color = preset?.color ?? 'var(--text-2)'
                           return (
                             <span key={tag} style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: color + '20', border: `0.5px solid ${color}55`, color }}>
