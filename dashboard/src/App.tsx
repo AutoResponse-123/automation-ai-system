@@ -806,22 +806,23 @@ export default function App() {
                   value={metrics.todayMessages.toLocaleString()}
                   sub={`${metrics.totalMessages.toLocaleString()} total`}
                   trend={todayTrend} trendDetail={`período anterior: ${yesterdayMsgCount}`}
-                  icon="ti-message-2" iconColor="#2E8B57" />
+                  icon="ti-message-2" iconColor="#2E8B57" onClick={() => setTab('inbox')} />
                 <MetricCard label="Tokens / costo" value={`${(metrics.totalTokens / 1000).toFixed(1)}k`}
                   sub={`~$${metrics.estimatedCost.toFixed(2)} USD`} color="#f59e0b"
-                  icon="ti-coins" iconColor="#f59e0b" />
+                  icon="ti-coins" iconColor="#f59e0b" onClick={() => setTab('analytics')} />
                 <MetricCard label="Reservas realizadas" value={reservations.toString()}
                   sub={dashScale === 'day' ? 'hoy' : dashScale === 'week' ? 'esta semana' : dashScale === 'month' ? 'este mes' : dashScale === '6months' ? 'últimos 6 meses' : 'este año'}
-                  color="#22c55e" icon="ti-calendar-check" iconColor="#22c55e" />
+                  color="#22c55e" icon="ti-calendar-check" iconColor="#22c55e" onClick={apptEnabled ? () => setTab('appointments') : undefined} />
                 <MetricCard label="Contactos únicos" value={metrics.uniqueContacts.toLocaleString()} sub="registrados"
-                  icon="ti-users" iconColor="#e879f9" />
+                  icon="ti-users" iconColor="#e879f9" onClick={() => setTab('contacts')} />
                 <MetricCard label="Pendientes" value={metrics.pendingConversations.toString()}
                   sub="sin responder" color={metrics.pendingConversations > 0 ? '#f59e0b' : undefined}
                   icon="ti-clock-pause" iconColor={metrics.pendingConversations > 0 ? '#f59e0b' : 'var(--text-3)'}
                   onClick={metrics.pendingConversations > 0 ? () => { setConvFilter('pending'); setTab('inbox') } : undefined} />
                 <MetricCard label="Escalaciones" value={metrics.escalations.toString()}
                   sub="a humano" color={metrics.escalations > 0 ? '#f87171' : undefined}
-                  icon="ti-alert-triangle" iconColor={metrics.escalations > 0 ? '#f87171' : 'var(--text-3)'} />
+                  icon="ti-alert-triangle" iconColor={metrics.escalations > 0 ? '#f87171' : 'var(--text-3)'}
+                  onClick={() => { setConvFilter('pending'); setTab('inbox') }} />
               </div>
             )}
             {/* Turnos de hoy */}
