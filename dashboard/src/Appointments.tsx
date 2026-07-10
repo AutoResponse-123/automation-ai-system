@@ -52,6 +52,15 @@ function muteHex(hex: string, amount = 0.45): string {
   return `#${h(r)}${h(g)}${h(b)}`
 }
 
+// Texto legible (claro u oscuro) según el brillo del color de fondo.
+function readableOn(hex: string): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '')
+  if (!m) return '#fff'
+  const n = parseInt(m[1], 16)
+  const lum = 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)
+  return lum > 150 ? '#141414' : '#fff'
+}
+
 function formatDayHeader(dateStr: string, lang: 'es' | 'en') {
   const d = new Date(dateStr + 'T00:00:00')
   const locale = lang === 'en' ? 'en-US' : 'es-AR'
@@ -491,13 +500,15 @@ export default function Appointments({ businessId, label }: { businessId: string
               key={cat.id}
               onClick={() => setActiveCat(active ? null : cat.name)}
               style={{
-                padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                border: active ? 'none' : `1px solid ${mc}44`,
-                background: active ? mc : mc + '18',
-                color: active ? '#fff' : mc,
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '5px 11px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                border: `1px solid ${active ? mc : 'var(--border-mid)'}`,
+                background: active ? mc : 'var(--surface-2)',
+                color: active ? readableOn(mc) : 'var(--text-2)',
               }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: active ? readableOn(mc) : mc, flexShrink: 0 }} />
               {cat.name}
-              <span style={{ marginLeft: 5, opacity: 0.7, fontSize: 10 }}>
+              <span style={{ marginLeft: 2, opacity: 0.65, fontSize: 10 }}>
                 {appts.filter(a => isUpcoming(a) && (a.category === cat.name || (!a.category && a.title?.toLowerCase() === cat.name.toLowerCase()))).length}
               </span>
             </button>
