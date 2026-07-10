@@ -519,8 +519,11 @@ router.post('/send-manual', async (req: any, res: any) => {
 
     res.json({ ok: true });
   } catch (err: any) {
-    console.error('[send-manual]', err.message);
-    res.status(500).json({ error: err.message });
+    // Incluimos el código de Twilio (ej. 63016 = fuera de la ventana de 24hs) para
+    // que el panel muestre el motivo real y el dueño sepa qué pasó.
+    console.error('[send-manual]', err?.code, err.message);
+    const detail = err?.code ? `${err.code}: ${err.message}` : (err.message || 'Error al enviar');
+    res.status(500).json({ error: detail });
   }
 });
 

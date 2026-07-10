@@ -519,6 +519,7 @@ export default function App() {
     const text = replyText.trim()
     if (!text || !selectedConv || sending) return
     setSending(true)
+    let ok = false
     try {
       const { data: { session: _sess } } = await supabase.auth.getSession()
       const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/webhooks/send-manual`, {
@@ -526,19 +527,25 @@ export default function App() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_sess?.access_token ?? ''}` },
         body: JSON.stringify({ conversationId: selectedConv.id, text }),
       })
-      if (!res.ok) {
-        const err = await res.json()
+      if (res.ok) {
+        ok = true
+      } else {
+        // IMPORTANTE: si el envío falló NO insertamos el mensaje (antes se insertaba y
+        // parecía enviado sin haber llegado). Mostramos el motivo real al dueño.
+        const err = await res.json().catch(() => ({} as any))
         console.error('[send-manual]', err.error)
-        await supabase.from('messages').insert([{ conversation_id: selectedConv.id, sender: 'assistant', content: text }])
+        showToast(`No se pudo enviar: ${err.error || 'error del servidor'}`, 'warning')
       }
     } catch (e) {
       console.error('[send-manual]', e)
-      await supabase.from('messages').insert([{ conversation_id: selectedConv.id, sender: 'assistant', content: text }])
+      showToast('No se pudo enviar el mensaje. Revisá tu conexión e intentá de nuevo.', 'warning')
     }
-    setReplyText('')
     setSending(false)
     textareaRef.current?.focus()
-    loadMessages(selectedConv.id)
+    if (ok) {
+      setReplyText('')
+      loadMessages(selectedConv.id)
+    }
   }
 
   async function addTag(tag: string) {
