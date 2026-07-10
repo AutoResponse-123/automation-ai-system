@@ -37,6 +37,21 @@ function capWords(str: string) {
   return str.replace(/(^|\s)\S/g, c => c.toUpperCase())
 }
 
+// Baja la saturación de un color (lo "apaga") mezclándolo hacia su propia luminancia,
+// para que los colores fuertes de las categorías no se vean flúo sobre el fondo oscuro.
+function muteHex(hex: string, amount = 0.45): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '')
+  if (!m) return hex
+  const n = parseInt(m[1], 16)
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255
+  const lum = 0.3 * r + 0.59 * g + 0.11 * b
+  r = Math.round(r + (lum - r) * amount)
+  g = Math.round(g + (lum - g) * amount)
+  b = Math.round(b + (lum - b) * amount)
+  const h = (v: number) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')
+  return `#${h(r)}${h(g)}${h(b)}`
+}
+
 function formatDayHeader(dateStr: string, lang: 'es' | 'en') {
   const d = new Date(dateStr + 'T00:00:00')
   const locale = lang === 'en' ? 'en-US' : 'es-AR'
@@ -122,7 +137,7 @@ function TurnoCard({ appt, categories, variant, today, lang, confirmingId, setCo
             {appt.duration_minutes ? <span style={{ color: 'var(--text-3)', fontWeight: 400, fontSize: 11 }}>· {appt.duration_minutes}min</span> : null}
           </div>
           {appt.title && (
-            <div style={{ ...s.tcardCategory, color: cat?.color ?? 'var(--accent)' }}>{appt.title}</div>
+            <div style={{ ...s.tcardCategory, color: cat ? muteHex(cat.color) : 'var(--accent)' }}>{appt.title}</div>
           )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end', flexShrink: 0 }}>
@@ -468,22 +483,26 @@ export default function Appointments({ businessId, label }: { businessId: string
           <button style={{ ...s.filterBtn(activeCat === null), fontSize: 11 }} onClick={() => setActiveCat(null)}>
             {t('appointments_all_categories')}
           </button>
-          {categories.map(cat => (
+          {categories.map(cat => {
+            const mc = muteHex(cat.color)
+            const active = activeCat === cat.name
+            return (
             <button
               key={cat.id}
-              onClick={() => setActiveCat(activeCat === cat.name ? null : cat.name)}
+              onClick={() => setActiveCat(active ? null : cat.name)}
               style={{
                 padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                border: activeCat === cat.name ? 'none' : `1px solid ${cat.color}44`,
-                background: activeCat === cat.name ? cat.color : cat.color + '18',
-                color: activeCat === cat.name ? '#fff' : cat.color,
+                border: active ? 'none' : `1px solid ${mc}44`,
+                background: active ? mc : mc + '18',
+                color: active ? '#fff' : mc,
               }}>
               {cat.name}
               <span style={{ marginLeft: 5, opacity: 0.7, fontSize: 10 }}>
                 {appts.filter(a => isUpcoming(a) && (a.category === cat.name || (!a.category && a.title?.toLowerCase() === cat.name.toLowerCase()))).length}
               </span>
             </button>
-          ))}
+            )
+          })}
         </div>
       )}
 
