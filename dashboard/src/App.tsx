@@ -1154,7 +1154,7 @@ export default function App() {
                   {messages.length === 0 && notes.length === 0 && (
                     <EmptyState icon="ti-message-2" title="Sin mensajes" sub="Esta conversación todavía no tiene mensajes" />
                   )}
-                  {[
+                  {(() => { let lastSessionConv: string | null = null; return [
                     ...messages.map(m => ({ kind: 'message' as const, data: m, ts: m.created_at })),
                     ...notes.map(n => ({ kind: 'note' as const, data: n, ts: n.created_at })),
                   ]
@@ -1181,7 +1181,9 @@ export default function App() {
                         )
                       }
                       const msg = item.data as Message
-                      return (
+                      const showSep = lastSessionConv !== null && msg.conversation_id !== lastSessionConv
+                      lastSessionConv = msg.conversation_id
+                      const bubble = (
                         <div key={msg.id} style={{ alignSelf: msg.sender === 'user' ? 'flex-start' : 'flex-end', maxWidth: '80%' }}>
                           {msg.sender === 'assistant' && (
                             <div style={s.aiBadge}>
@@ -1199,8 +1201,17 @@ export default function App() {
                           </div>
                         </div>
                       )
+                      if (!showSep) return bubble
+                      return [
+                        <div key={`sep-${msg.id}`} style={s.sessionSep}>
+                          <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                          <span style={{ whiteSpace: 'nowrap' as const }}>Nueva conversación · {new Date(msg.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}</span>
+                          <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                        </div>,
+                        bubble,
+                      ]
                     })
-                  }
+                  })()}
                   <div ref={messagesEndRef} />
                 </div>
 
@@ -1635,6 +1646,8 @@ const s: Record<string, React.CSSProperties> = {
   toastWarning: { background: '#1a1408', border: '1px solid #4a3010', color: '#f59e0b' },
   // ── Tags ────────────────────────────────────────────────────────────────────
   tagPopover: { position: 'absolute', top: '100%', right: 0, marginTop: 6, background: 'var(--bg-card)', border: '1px solid var(--border-mid)', borderRadius: 12, padding: 8, width: 180, zIndex: 200, boxShadow: 'var(--card-shadow)' },
+  // Separador entre sesiones en el chat unificado
+  sessionSep: { alignSelf: 'center', display: 'flex', alignItems: 'center', gap: 10, width: '100%', maxWidth: 360, margin: '14px auto 6px', color: 'var(--text-faint)', fontSize: 10.5, letterSpacing: '0.04em' },
 
   // ── Summary ─────────────────────────────────────────────────────────────────
   summaryPanel: { padding: '12px 18px', borderBottom: '1px solid var(--border)', background: 'var(--bg-card)' },
