@@ -214,6 +214,8 @@ export default function App() {
   const channelRef = useRef<RealtimeChannel | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const quickRepliesRef = useRef<HTMLDivElement>(null)
+  // IDs de todas las conversaciones (sesiones) del contacto abierto → chat unificado por número.
+  const threadConvIdsRef = useRef<string[]>([])
 
   // Tema claro/oscuro: aplicar al <html> y persistir
   useEffect(() => {
@@ -347,7 +349,7 @@ export default function App() {
         const msg = payload.new as Message
         setRecentConvId(msg.conversation_id)
         setTimeout(() => setRecentConvId(prev => (prev === msg.conversation_id ? null : prev)), 2500)
-        if (selectedConvId && msg.conversation_id === selectedConvId) {
+        if (selectedConvId && (msg.conversation_id === selectedConvId || threadConvIdsRef.current.includes(msg.conversation_id))) {
           loadMessages(selectedConvId)
         } else {
           setUnreadCount(p => p + 1)
@@ -420,8 +422,19 @@ export default function App() {
   }
 
   async function loadMessages(convId: string) {
+    // Chat unificado por número: en vez de traer solo esta conversación, traemos TODO el
+    // historial del contacto (todas sus sesiones) para verlo como un único hilo continuo.
+    const sel = conversations.find(c => c.id === convId) || (selectedConv?.id === convId ? selectedConv : null)
+    const contactId = sel?.contact_id ?? sel?.contact?.id ?? null
+    let ids = [convId]
+    if (contactId && businessId) {
+      const { data: convs } = await supabase.from('conversations')
+        .select('id').eq('business_id', businessId).eq('contact_id', contactId)
+      if (convs && convs.length) ids = convs.map((c: any) => c.id)
+    }
+    threadConvIdsRef.current = ids
     const { data } = await supabase.from('messages').select('*')
-      .eq('conversation_id', convId).order('created_at', { ascending: true }).limit(100)
+      .in('conversation_id', ids).order('created_at', { ascending: true }).limit(500)
     setMessages(data || [])
   }
 
@@ -613,11 +626,25 @@ export default function App() {
 
   // ── Derived ──────────────────────────────────────────────────────────────────
 
+  // Vista unificada estilo WhatsApp: una sola entrada por contacto. La lista viene ordenada
+  // por updated_at desc, así que la primera aparición de cada contacto es su sesión más reciente.
+  const latestByContact = (() => {
+    const seen = new Set<string>()
+    const out: Conversation[] = []
+    for (const c of conversations) {
+      const key = c.contact_id || c.contact?.phone || c.id
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push(c)
+    }
+    return out
+  })()
+
   const filterCounts = {
-    all: conversations.length,
-    active: conversations.filter(c => c.status === 'active').length,
-    pending: conversations.filter(c => c.status === 'pending').length,
-    resolved: conversations.filter(c => c.status === 'resolved').length,
+    all: latestByContact.length,
+    active: latestByContact.filter(c => c.status === 'active').length,
+    pending: latestByContact.filter(c => c.status === 'pending').length,
+    resolved: latestByContact.filter(c => c.status === 'resolved').length,
   }
 
   const todayTrend: 'up' | 'down' | 'neutral' =
@@ -642,7 +669,7 @@ export default function App() {
     { id: 'settings',     icon: 'ti-settings',         label: tr('nav_settings', lang) },
   ]
 
-  const filteredConvs = conversations
+  const filteredConvs = latestByContact
     .filter(c => convFilter === 'all' || c.status === convFilter)
     .filter(c => !tagFilter || (c.tags ?? []).includes(tagFilter))
     .filter(c => {
