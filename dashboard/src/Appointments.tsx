@@ -578,27 +578,29 @@ export default function Appointments({ businessId, label }: { businessId: string
                   <div style={{ fontSize: 12 }}>{t('appointments_no_day_sub')}</div>
                 </div>
               ) : (
-                dayAppts.map(appt => (
-                  <TurnoCard
-                    key={appt.id}
-                    appt={appt}
-                    categories={categories}
-                    variant="day"
-                    today={today}
-                    lang={lang}
-                    confirmingId={confirmingId}
-                    setConfirmingId={setConfirmingId}
-                    cancellingId={cancellingId}
-                    cancelAppt={cancelAppt}
-                    editingNoteId={editingNoteId}
-                    setEditingNoteId={setEditingNoteId}
-                    noteText={noteText}
-                    setNoteText={setNoteText}
-                    saveNote={saveNote}
-                    t={t}
-                    s={s}
-                  />
-                ))
+                <div style={{ maxHeight: isMobile ? 'none' : 460, overflowY: isMobile ? 'visible' : 'auto', paddingRight: isMobile ? 0 : 6, marginRight: isMobile ? 0 : -6 }}>
+                  {dayAppts.map(appt => (
+                    <TurnoCard
+                      key={appt.id}
+                      appt={appt}
+                      categories={categories}
+                      variant="day"
+                      today={today}
+                      lang={lang}
+                      confirmingId={confirmingId}
+                      setConfirmingId={setConfirmingId}
+                      cancellingId={cancellingId}
+                      cancelAppt={cancelAppt}
+                      editingNoteId={editingNoteId}
+                      setEditingNoteId={setEditingNoteId}
+                      noteText={noteText}
+                      setNoteText={setNoteText}
+                      saveNote={saveNote}
+                      t={t}
+                      s={s}
+                    />
+                  ))}
+                </div>
               )}
             </div>
           </div>
