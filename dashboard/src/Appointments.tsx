@@ -613,6 +613,7 @@ export default function Appointments({ businessId, label }: { businessId: string
               {listFiltered.length} {listFiltered.length === 1 ? t('appointments_total_singular') : t('appointments_total_plural')}
             </div>
 
+            <div style={{ maxHeight: isMobile ? 'none' : 560, overflowY: isMobile ? 'visible' : 'auto', paddingRight: isMobile ? 0 : 6, marginRight: isMobile ? 0 : -6 }}>
             {activeList.length > 0 && (
               <>
                 <div style={s.sectionLabel(true)}>{t('appointments_section_active')} ({activeList.length})</div>
@@ -654,6 +655,7 @@ export default function Appointments({ businessId, label }: { businessId: string
                 ))}
               </>
             )}
+            </div>
           </div>
         )}
       </div>
