@@ -140,9 +140,9 @@ function ThemeToggle({ theme, setTheme }: { theme: 'light' | 'dark'; setTheme: (
       aria-label="Cambiar tema"
       style={{
         width: 32, height: 32, borderRadius: 9, cursor: 'pointer',
-        background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.28)',
-        color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        backdropFilter: 'blur(4px)', transition: 'background 0.15s',
+        background: 'var(--topbar-pill-bg)', border: '1px solid var(--topbar-pill-border)',
+        color: 'var(--topbar-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'background 0.15s',
       }}>
       <i className={`ti ${isLight ? 'ti-moon' : 'ti-sun'}`} style={{ fontSize: 16 }} aria-hidden="true" />
     </button>
@@ -151,7 +151,7 @@ function ThemeToggle({ theme, setTheme }: { theme: 'light' | 'dark'; setTheme: (
 
 export default function App() {
   const [lang, setLang] = useState<Lang>(() => (localStorage.getItem('ui_lang') as Lang) || 'es')
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('ui_theme') as 'light' | 'dark') || 'dark')
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('ui_theme') as 'light' | 'dark') || 'light')
   const [dashFont, setDashFont] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Bricolage Grotesque')
   const [tab, setTab] = useState<Tab>('dashboard')
   const [session, setSession] = useState<Session | null>(null)
@@ -682,7 +682,7 @@ export default function App() {
 
   if (authLoading) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', flexDirection: 'column', gap: 12, fontFamily: 'inherit' }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #226B43, #2E8B57)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', boxShadow: '0 4px 16px #226B4344' }}>W</div>
+      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #25D366, #128C4A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', boxShadow: '0 4px 16px rgba(37,211,102,0.30)' }}>W</div>
       <div style={{ fontSize: 12, color: 'var(--text-3)' }}>Cargando...</div>
     </div>
   )
@@ -768,7 +768,7 @@ export default function App() {
           {isMobile && tab === 'inbox' && mobileShowChat && (
             <button className="mobile-back-btn"
               onClick={() => setMobileShowChat(false)}
-              style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, padding: '0 4px 0 0', fontFamily: 'inherit' }}>
+              style={{ background: 'none', border: 'none', color: 'var(--topbar-fg)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, padding: '0 4px 0 0', fontFamily: 'inherit' }}>
               <i className="ti ti-chevron-left" style={{ fontSize: 18 }} />
             </button>
           )}
@@ -783,18 +783,18 @@ export default function App() {
             {metrics.pendingConversations > 0 && (
               <button
                 onClick={() => { setConvFilter('pending'); setTab('inbox') }}
-                style={{ ...s.prodBadge, background: 'rgba(255,255,255,0.26)', cursor: 'pointer' }}>
+                style={{ ...s.prodBadge, background: '#FFF4E6', border: '1px solid #FFD9B0', color: '#A35800', cursor: 'pointer' }}>
                 ⚠️ {metrics.pendingConversations} pendiente{metrics.pendingConversations !== 1 ? 's' : ''}
               </button>
             )}
             <button onClick={() => setSearchOpen(true)}
-              style={{ ...s.prodBadge, cursor: 'pointer', gap: 6 }}
+              style={{ ...s.prodBadge, background: 'var(--topbar-pill-bg)', border: '1px solid var(--topbar-pill-border)', color: 'var(--topbar-fg-dim)', cursor: 'pointer', gap: 6 }}
               title="Buscar mensajes (Ctrl+K)">
               <i className="ti ti-search" style={{ fontSize: 12 }} />
               <span style={{ fontSize: 11 }}>Buscar</span>
-              <kbd style={{ fontSize: 9, background: 'rgba(255,255,255,0.22)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 3, padding: '1px 4px', color: '#fff' }}>⌘K</kbd>
+              <kbd style={{ fontSize: 9, background: 'var(--bg-input)', border: '1px solid var(--topbar-pill-border)', borderRadius: 3, padding: '1px 4px', color: 'var(--topbar-fg-dim)' }}>⌘K</kbd>
             </button>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.85)' }}>
+            <span style={{ fontSize: 11, color: 'var(--topbar-fg-dim)' }}>
               {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
@@ -823,9 +823,9 @@ export default function App() {
               {(['day', 'week', 'month', '6months', 'year'] as const).map(sc => (
                 <button key={sc} onClick={() => { setDashScale(sc); loadMetrics(sc) }}
                   style={{ padding: '5px 14px', borderRadius: 8, border: '0.5px solid', fontSize: 12, fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s',
-                    background: dashScale === sc ? 'var(--accent-dim)' : 'transparent',
-                    borderColor: dashScale === sc ? 'var(--accent)' : 'var(--border-mid)',
-                    color: dashScale === sc ? 'var(--accent)' : 'var(--text-3)' }}>
+                    background: dashScale === sc ? 'var(--accent-cyan)' : 'transparent',
+                    borderColor: dashScale === sc ? 'var(--accent-cyan)' : 'var(--border-mid)',
+                    color: dashScale === sc ? '#ffffff' : 'var(--text-3)' }}>
                   {sc === 'day' ? 'Hoy' : sc === 'week' ? 'Semana' : sc === 'month' ? 'Mes' : sc === '6months' ? '6M' : 'Año'}
                 </button>
               ))}
@@ -842,13 +842,13 @@ export default function App() {
                   trend={todayTrend} trendDetail={`período anterior: ${yesterdayMsgCount}`}
                   icon="ti-message-2" iconColor="#2E8B57" onClick={() => setTab('inbox')} />
                 <MetricCard label="Tokens / costo" value={`${(metrics.totalTokens / 1000).toFixed(1)}k`}
-                  sub={`~$${metrics.estimatedCost.toFixed(2)} USD`} color="#f59e0b"
-                  icon="ti-coins" iconColor="#f59e0b" onClick={() => setTab('analytics')} />
+                  sub={`~$${metrics.estimatedCost.toFixed(2)} USD`} color="#5b6cff"
+                  icon="ti-coins" iconColor="#5b6cff" onClick={() => setTab('analytics')} />
                 <MetricCard label="Reservas realizadas" value={reservations.toString()}
                   sub={dashScale === 'day' ? 'hoy' : dashScale === 'week' ? 'esta semana' : dashScale === 'month' ? 'este mes' : dashScale === '6months' ? 'últimos 6 meses' : 'este año'}
                   color="#22c55e" icon="ti-calendar-check" iconColor="#22c55e" onClick={apptEnabled ? () => setTab('appointments') : undefined} />
                 <MetricCard label="Contactos únicos" value={metrics.uniqueContacts.toLocaleString()} sub="registrados"
-                  icon="ti-users" iconColor="#e879f9" onClick={() => setTab('contacts')} />
+                  icon="ti-users" iconColor="#8b5cf6" onClick={() => setTab('contacts')} />
                 <MetricCard label="Pendientes" value={metrics.pendingConversations.toString()}
                   sub="sin responder" color={metrics.pendingConversations > 0 ? '#f59e0b' : undefined}
                   icon="ti-clock-pause" iconColor={metrics.pendingConversations > 0 ? '#f59e0b' : 'var(--text-3)'}
@@ -1395,8 +1395,8 @@ function DashboardHero({ name, automationRate, pending, totalMessages, onGoPendi
           )}
           {totalMessages > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', fontSize: 12, color: 'var(--text-2)' }}>
-              <i className="ti ti-robot" style={{ fontSize: 14, color: '#2E8B57' }} aria-hidden="true" />
-              <span style={{ color: '#2E8B57', fontWeight: 500 }}>{automationRate}%</span> automatizado
+              <i className="ti ti-robot" style={{ fontSize: 14, color: 'var(--accent)' }} aria-hidden="true" />
+              <span style={{ color: 'var(--accent)', fontWeight: 500 }}>{automationRate}%</span> automatizado
             </div>
           )}
         </div>
@@ -1575,14 +1575,14 @@ const s: Record<string, React.CSSProperties> = {
   sIconActive: { background: 'var(--accent-grad)', color: 'var(--sidebar-icon-active)' },
   sLabel: { fontSize: 8, fontWeight: 600, letterSpacing: '0.01em', color: 'var(--sidebar-label)', textTransform: 'uppercase' as const, maxWidth: 54, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
   badge: { position: 'absolute', top: 5, right: 7, background: '#f87171', borderRadius: 10, fontSize: 9, color: '#fff', padding: '1px 4px', fontWeight: 700, lineHeight: 1.4 },
-  userAvatar: { width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#fff', fontWeight: 600, marginTop: 4, cursor: 'pointer' },
+  userAvatar: { width: 32, height: 32, borderRadius: '50%', background: 'var(--bg-input)', border: '1px solid var(--border-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'var(--text-2)', fontWeight: 600, marginTop: 4, cursor: 'pointer' },
 
   // ── Main ────────────────────────────────────────────────────────────────────
   main: { display: 'grid', gridTemplateRows: 'auto 1fr', overflow: 'hidden' },
   topbar: { padding: '12px 22px', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--topbar-grad)', borderBottom: '0.5px solid var(--sidebar-border)', position: 'relative', zIndex: 5 },
-  topbarTitle: { fontSize: 15, fontWeight: 700, color: '#fff', letterSpacing: '-0.01em' },
-  prodBadge: { background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.28)', borderRadius: 8, padding: '4px 10px', fontSize: 11, color: '#fff', display: 'flex', alignItems: 'center', gap: 5, backdropFilter: 'blur(4px)' },
-  liveDot: { width: 6, height: 6, borderRadius: '50%', background: '#4ade80', flexShrink: 0, animation: 'pulse 2s infinite' },
+  topbarTitle: { fontSize: 15, fontWeight: 700, color: 'var(--topbar-fg)', letterSpacing: '-0.01em' },
+  prodBadge: { background: 'var(--topbar-pill-bg)', border: '1px solid var(--topbar-pill-border)', borderRadius: 8, padding: '4px 10px', fontSize: 11, color: 'var(--topbar-pill-fg)', display: 'flex', alignItems: 'center', gap: 5 },
+  liveDot: { width: 6, height: 6, borderRadius: '50%', background: '#25D366', flexShrink: 0, animation: 'pulse 2s infinite' },
 
   // ── Dashboard ───────────────────────────────────────────────────────────────
   scrollArea: { overflowY: 'auto', padding: 22 },
@@ -1657,6 +1657,4 @@ const s: Record<string, React.CSSProperties> = {
   noteBadge: { fontSize: 10, color: '#d97706', display: 'flex', alignItems: 'center', gap: 3, marginBottom: 3, fontWeight: 500 },
   noteBubble: { background: '#160f00', border: '1px solid #3a2500', borderRadius: 10, borderBottomLeftRadius: 3, padding: '9px 13px', fontSize: 13, lineHeight: 1.6, color: '#fde68a', wordBreak: 'break-word' },
   inputAreaNote: { borderTopColor: '#3a2500', background: '#0e0900' },
-  noteModeBar: { fontSize: 11, color: '#d97706', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, padding: '0 2px', fontWeight: 500 },
-  textareaNote: { borderColor: '#3a2500', background: '#100b00' },
-}
+  noteModeBar: { fontSize: 11, color: '#

@@ -4,8 +4,8 @@ html, body, #root {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: var(--bg-base, #07070d);
-  color: var(--text-1, #e2e8f0);
+  background: var(--bg-base, #f4f6f8);
+  color: var(--text-1, #1f2937);
 }
 html, body, #root { transition: background-color 0.25s ease; }
 
@@ -14,23 +14,13 @@ html, body, #root { transition: background-color 0.25s ease; }
    en ambos temas, superficies planas con hairlines (sin degradados ni neón). */
 
 :root {
-  /* Acento pino (igual en ambos temas; personalizable por negocio) */
-  --accent:      #2E8B57;
-  --accent-dark: #226B43;
-  --accent-cyan: #3FA86B;
-  --accent-grad:      linear-gradient(135deg, #2E8B57 0%, #2E8B57 100%);
-  --accent-grad-soft: linear-gradient(135deg, #338F5C 0%, #2E8B57 100%);
-  --grad-text:        linear-gradient(135deg, #2E8B57 0%, #2E8B57 100%);
-
-  /* Sidebar: SIEMPRE verde pino oscuro (en claro y oscuro) */
-  --sidebar-bg:          #14241D;
-  --sidebar-border:      #21382C;
-  --sidebar-icon:        #6E8579;
-  --sidebar-icon-active: #ffffff;
-  --sidebar-label:       #5E7568;
-
-  /* Topbar: banda sólida al tono del sidebar (sin degradado) */
-  --topbar-grad: linear-gradient(0deg, #14241D 0%, #14241D 100%);
+  /* Acento verde WhatsApp (igual en ambos temas; personalizable por negocio) */
+  --accent:      #128C4A;
+  --accent-dark: #0E6F3A;
+  --accent-cyan: #25D366;
+  --accent-grad:      linear-gradient(135deg, #25D366 0%, #128C4A 100%);
+  --accent-grad-soft: linear-gradient(135deg, #34D97A 0%, #1DA45A 100%);
+  --grad-text:        linear-gradient(135deg, #25D366 0%, #128C4A 100%);
 
   /* Alias de superficies (resuelven al tono de tarjeta/input de cada tema) */
   --surface:   var(--bg-card);
@@ -39,8 +29,8 @@ html, body, #root { transition: background-color 0.25s ease; }
 
 /* ── Tema OSCURO (default) ── */
 :root, :root[data-theme="dark"] {
-  --accent-glow: rgba(46, 139, 87, 0.26);
-  --accent-dim:  rgba(46, 139, 87, 0.14);
+  --accent-glow: rgba(37, 211, 102, 0.26);
+  --accent-dim:  rgba(37, 211, 102, 0.14);
   --bg-base:     #0F120D;
   --bg-panel:    #131711;
   --bg-card:     #171C14;
@@ -54,25 +44,51 @@ html, body, #root { transition: background-color 0.25s ease; }
   --text-faint:  #3C423A;
   --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.40);
   color-scheme: dark;
+
+  /* Chrome oscuro (verde pino) */
+  --sidebar-bg:          #14241D;
+  --sidebar-border:      #21382C;
+  --sidebar-icon:        #6E8579;
+  --sidebar-icon-active: #ffffff;
+  --sidebar-label:       #5E7568;
+  --topbar-grad:         linear-gradient(0deg, #14241D 0%, #14241D 100%);
+  --topbar-fg:           #F0F4EC;
+  --topbar-fg-dim:       rgba(240, 244, 236, 0.65);
+  --topbar-pill-bg:      rgba(255, 255, 255, 0.14);
+  --topbar-pill-border:  rgba(255, 255, 255, 0.24);
+  --topbar-pill-fg:      #F0F4EC;
 }
 
 /* ── Tema CLARO (papel) ── */
 :root[data-theme="light"] {
-  --accent-glow: rgba(46, 139, 87, 0.16);
-  --accent-dim:  rgba(46, 139, 87, 0.09);
-  --bg-base:     #F4F3EE;
+  --accent-glow: rgba(37, 211, 102, 0.16);
+  --accent-dim:  rgba(37, 211, 102, 0.10);
+  --bg-base:     #F4F6F8;
   --bg-panel:    #ffffff;
   --bg-card:     #ffffff;
-  --bg-input:    #F1F1EA;
-  --border:      #E7E6DD;
-  --border-mid:  #DAD9CE;
-  --text-bright: #16201A;
-  --text-1:      #1B2620;
-  --text-2:      #586259;
-  --text-3:      #8B958D;
-  --text-faint:  #AEB6AC;
-  --card-shadow: 0 1px 2px rgba(20, 36, 29, 0.04), 0 3px 12px rgba(20, 36, 29, 0.06);
+  --bg-input:    #EEF2F5;
+  --border:      #ECEFF2;
+  --border-mid:  #E2E7EC;
+  --text-bright: #1F2937;
+  --text-1:      #1F2937;
+  --text-2:      #5A6B78;
+  --text-3:      #8A97A3;
+  --text-faint:  #B0BAC3;
+  --card-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
   color-scheme: light;
+
+  /* Chrome blanco (estilo WhatsApp Business) */
+  --sidebar-bg:          #ffffff;
+  --sidebar-border:      #ECEFF2;
+  --sidebar-icon:        #5A6B78;
+  --sidebar-icon-active: #ffffff;
+  --sidebar-label:       #8A97A3;
+  --topbar-grad:         linear-gradient(0deg, #ffffff 0%, #ffffff 100%);
+  --topbar-fg:           #1F2937;
+  --topbar-fg-dim:       #8A97A3;
+  --topbar-pill-bg:      #E7F8EE;
+  --topbar-pill-border:  #C7ECD6;
+  --topbar-pill-fg:      #128C4A;
 }
 
 /* Scrollbar global */
@@ -282,16 +298,4 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
   .settings-content { padding: 16px !important; }
 }
 
-/* Banner "Requiere atención" del dashboard: pulso suave para llamar la atención del dueño. */
-@keyframes attentionPulse {
-  0%, 100% { box-shadow: 0 0 0 1px rgba(251,146,60,0.15), 0 6px 20px -10px rgba(251,146,60,0.5); }
-  50%      { box-shadow: 0 0 0 1px rgba(251,146,60,0.35), 0 10px 28px -8px rgba(251,146,60,0.85); }
-}
-.attention-banner {
-  animation: attentionPulse 2.4s ease-in-out infinite;
-  transition: transform 0.15s ease, filter 0.15s ease;
-}
-.attention-banner:hover { transform: translateY(-1px); filter: brightness(1.05); }
-@media (prefers-reduced-motion: reduce) {
-  .attention-banner { animation: none; }
-}
+/* Banner "Requiere atención" del dashboard: p
