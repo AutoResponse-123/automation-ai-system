@@ -61,7 +61,7 @@ router.post('/send', async (req: Request, res: Response) => {
 
   if (!business) { res.status(404).json({ error: 'Negocio no encontrado' }); return; }
   // Difusiones = feature Pro (igual que recordatorios).
-  if (!['pro', 'enterprise', 'trial'].includes(business.plan)) {
+  if (!['pro', 'premium', 'enterprise', 'trial'].includes(business.plan)) {
     res.status(403).json({ error: 'Las difusiones están disponibles en el plan Pro.' }); return;
   }
 

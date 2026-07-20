@@ -146,7 +146,7 @@ async function callClaude(
 ) {
   // Features Pro (turnos/Calendar y Mercado Pago) solo para Pro/Enterprise/trial,
   // sin importar si quedó un token conectado de antes (un Basic no las usa).
-  const entitledPro = ['pro', 'enterprise', 'trial'].includes(business?.plan);
+  const entitledPro = ['pro', 'premium', 'enterprise', 'trial'].includes(business?.plan);
   // Si el negocio desactivó la agenda (schedule.appointments_enabled === false), el bot NO ofrece agendar.
   const apptEnabled = business?.schedule?.appointments_enabled !== false;
   const hasCalendar = entitledPro && !!business?.google_refresh_token && apptEnabled;

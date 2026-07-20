@@ -16,9 +16,10 @@ function timeAgo(d: string) {
 }
 
 const PLAN_COLORS: Record<string, string> = {
-  trial: 'var(--warn)', starter: 'var(--accent-2)', pro: 'var(--accent)'
+  trial: 'var(--warn)', basic: 'var(--accent-2)', pro: 'var(--accent)', premium: 'var(--purple)',
+  starter: 'var(--accent-2)', enterprise: 'var(--purple)'
 }
-const PLANS = ['trial', 'starter', 'pro']
+const PLANS = ['trial', 'basic', 'pro', 'premium']
 
 const SEED_COLORS = ['#10b981','#f59e0b','#3b82f6','#8b5cf6','#ef4444','#ec4899']
 function seedColor(id: string) {

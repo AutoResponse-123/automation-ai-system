@@ -71,6 +71,7 @@ export default function Overview({ onNavigate, onAlertCount }: OverviewProps) {
   const [m, setM] = useState<Metrics | null>(null)
   const [activity, setActivity] = useState<Activity[]>([])
   const [weekData, setWeekData] = useState<number[]>([])
+  const [planCounts, setPlanCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -121,9 +122,12 @@ export default function Overview({ onNavigate, onAlertCount }: OverviewProps) {
     const userN = allM?.filter(x => x.sender === 'user').length ?? 0
     const automationRate = userN > 0 ? Math.min(100, Math.round((assistN / userN) * 100)) : 0
 
-    const PLAN_PRICE: Record<string, number> = { trial: 0, starter: 15, pro: 39, enterprise: 150 }
+    const PLAN_PRICE: Record<string, number> = { trial: 0, basic: 19.99, pro: 39.99, premium: 89.99, starter: 19.99, enterprise: 89.99 }
     const { data: activeBizPlans } = await supabase.from('businesses').select('plan').eq('is_active', true)
     const estimatedMRR = (activeBizPlans ?? []).reduce((s: number, b: any) => s + (PLAN_PRICE[b.plan] || 0), 0)
+    const counts: Record<string, number> = {}
+    for (const b of (activeBizPlans ?? [])) counts[b.plan] = (counts[b.plan] || 0) + 1
+    setPlanCounts(counts)
 
     setM({
       totalBusinesses: totalB ?? 0, activeBusinesses: activeB ?? 0,
@@ -156,9 +160,9 @@ export default function Overview({ onNavigate, onAlertCount }: OverviewProps) {
   if (!m) return null
 
   const planRevenue = [
-    { plan: 'Enterprise', clients: Math.max(0, Math.floor((m.activeBusinesses || 0) * 0.1)), price: 150 },
-    { plan: 'Pro', clients: Math.max(0, Math.floor((m.activeBusinesses || 0) * 0.4)), price: 39 },
-    { plan: 'Starter', clients: Math.max(0, m.activeBusinesses - Math.floor((m.activeBusinesses || 0) * 0.5)), price: 15 },
+    { plan: 'Premium', clients: planCounts['premium'] || 0, price: 89.99 },
+    { plan: 'Pro', clients: planCounts['pro'] || 0, price: 39.99 },
+    { plan: 'Basic', clients: planCounts['basic'] || 0, price: 19.99 },
   ]
 
   return (

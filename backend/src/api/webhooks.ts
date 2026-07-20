@@ -141,7 +141,7 @@ router.post('/whatsapp', async (req: any, res: any) => {
     // Tope de conversaciones nuevas por mes según plan (coincide con la guía de venta).
     // Las conversaciones ya iniciadas siguen respondiendo; solo se frena un contacto
     // NUEVO una vez superado el tope. Pro/Premium dejan de ser ilimitados → protege margen.
-    const PLAN_LIMITS: Record<string, number> = { trial: 200, starter: 500, basic: 500, pro: 1500, enterprise: 4000 };
+    const PLAN_LIMITS: Record<string, number> = { trial: 200, starter: 500, basic: 500, pro: 1500, premium: 4000, enterprise: 4000 };
     const planLimit = PLAN_LIMITS[business.plan] ?? 500;
     if (planLimit > 0) {
       const monthStart = new Date();

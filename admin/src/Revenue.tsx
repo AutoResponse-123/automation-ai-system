@@ -4,7 +4,7 @@ import { supabase } from './supabase'
 interface DayStat { date: string; messages: number; tokens: number; cost: number }
 interface ClientStat { id: string; name: string; tokens: number; cost: number; msgs: number; plan: string }
 
-const PLAN_PRICE: Record<string, number> = { trial: 0, starter: 15, pro: 39, enterprise: 150 }
+const PLAN_PRICE: Record<string, number> = { trial: 0, basic: 19.99, pro: 39.99, premium: 89.99, starter: 19.99, enterprise: 89.99 }
 
 export default function Revenue() {
   const [stats, setStats] = useState<DayStat[]>([])
@@ -211,4 +211,4 @@ export default function Revenue() {
   )
 }
 
-const PLAN_COLORS: Record<string, string> = { trial: '#f59e0b', starter: '#3b82f6', pro: '#10b981', enterprise: '#8b5cf6' }
+const PLAN_COLORS: Record<string, string> = { trial: '#f59e0b', basic: '#3b82f6', pro: '#10b981', premium: '#8b5cf6', starter: '#3b82f6', enterprise: '#8b5cf6' }

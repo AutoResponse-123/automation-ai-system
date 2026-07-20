@@ -1,15 +1,17 @@
 export {};
 
 // Único lugar que define el acceso a las features Pro (turnos/Calendar, recordatorios,
-// Mercado Pago): Pro, Enterprise y el trial (para que prueben). Basic/starter NO.
+// Mercado Pago): Pro, Premium y el trial (para que prueben). Basic/starter NO.
+// ('enterprise' se mantiene como alias legacy del viejo nombre de Premium.)
 export function hasProFeatures(plan?: string): boolean {
-  return plan === 'pro' || plan === 'enterprise' || plan === 'trial';
+  return plan === 'pro' || plan === 'premium' || plan === 'enterprise' || plan === 'trial';
 }
 
-// Las notas de voz (transcripción con IA) son EXCLUSIVAS del plan Premium (enterprise).
+// Las notas de voz (transcripción con IA) son EXCLUSIVAS del plan Premium.
 // Pro NO las tiene. (Si querés que el trial también las pruebe, agregá `|| plan === 'trial'`.)
+// ('enterprise' = alias legacy de Premium.)
 export function hasAudioFeature(plan?: string): boolean {
-  return plan === 'enterprise';
+  return plan === 'premium' || plan === 'enterprise';
 }
 
 export function buildSystemPrompt(business: any, contactSummary?: string): string {

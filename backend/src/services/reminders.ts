@@ -76,7 +76,7 @@ async function sendPendingReminders() {
 
     for (const business of businesses) {
       // Recordatorios = feature Pro (Pro/Enterprise/trial). Basic no.
-      if (!['pro', 'enterprise', 'trial'].includes(business.plan)) continue;
+      if (!['pro', 'premium', 'enterprise', 'trial'].includes(business.plan)) continue;
       if (!business.reminders_enabled) continue; // respeta el toggle del dashboard
       const hoursConfig: number[] = business.reminder_hours_before || [24];
       const tz = business.schedule?.timezone || 'America/Argentina/Buenos_Aires';
