@@ -697,12 +697,15 @@ export default function App() {
 
       {/* Sidebar */}
       <nav style={{ ...s.sidebar, ...(isMobile ? { display: 'none' } : {}) }} className="desktop-sidebar">
-        <div style={s.logo}>{businessData?.name?.[0]?.toUpperCase() ?? '?'}</div>
+        <div style={s.brand}>
+          <div style={s.logo}>W</div>
+          <span style={s.brandName}>Wasso</span>
+        </div>
         {navItems.map(n => (
           <button key={n.id} onClick={() => setTab(n.id)} title={n.label}
             style={{ ...s.sIcon, ...(tab === n.id ? s.sIconActive : {}) }}>
-            <i className={`ti ${n.icon}`} style={{ fontSize: 18 }} aria-hidden="true" />
-            <span style={{ ...s.sLabel, ...(tab === n.id ? { color: 'var(--sidebar-icon-active)' } : {}) }}>{n.label}</span>
+            <i className={`ti ${n.icon}`} style={{ fontSize: 19, width: 22, textAlign: 'center', flexShrink: 0 }} aria-hidden="true" />
+            <span style={{ ...s.sLabel, ...(tab === n.id ? { color: 'var(--accent)', fontWeight: 600 } : {}) }}>{n.label}</span>
             {n.id === 'inbox' && unreadCount > 0 && (
               <span style={s.badge}>{unreadCount > 9 ? '9+' : unreadCount}</span>
             )}
@@ -712,10 +715,14 @@ export default function App() {
           </button>
         ))}
         <div style={{ flex: 1 }} />
-        <div style={{ ...s.userAvatar, cursor: 'pointer' }}
+        <div style={{ ...s.profileCard, cursor: 'pointer' }}
           title={session?.user?.email}
           onClick={() => setShowLogoutModal(true)}>
-          {session?.user?.email?.slice(0, 1).toUpperCase() ?? 'U'}
+          <div style={s.profileAvatar}>{businessData?.name?.[0]?.toUpperCase() ?? '?'}</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={s.profileName}>{businessData?.name ?? 'Mi negocio'}</div>
+            <div style={s.profilePlan}>{businessData?.plan ? 'Plan ' + businessData.plan.charAt(0).toUpperCase() + businessData.plan.slice(1) : '—'}</div>
+          </div>
         </div>
       </nav>
 
@@ -1566,15 +1573,21 @@ function EmptyState({ icon, title, sub }: { icon: string; title: string; sub: st
 
 const s: Record<string, React.CSSProperties> = {
   // ── Shell ───────────────────────────────────────────────────────────────────
-  shell: { display: 'grid', gridTemplateColumns: '72px 1fr', height: '100vh', background: 'var(--bg-base)', color: 'var(--text-1)', fontSize: 14, overflow: 'hidden', position: 'relative' },
+  shell: { display: 'grid', gridTemplateColumns: '232px 1fr', height: '100vh', background: 'var(--bg-base)', color: 'var(--text-1)', fontSize: 14, overflow: 'hidden', position: 'relative' },
 
   // ── Sidebar (oscuro en ambos temas) ──────────────────────────────────────────
-  sidebar: { background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0 12px', gap: 3 },
-  logo: { width: 40, height: 40, borderRadius: 12, background: 'var(--accent-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 14, flexShrink: 0, letterSpacing: '0.02em' },
-  sIcon: { width: 56, borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '8px 0', cursor: 'pointer', color: 'var(--sidebar-icon)', background: 'transparent', border: 'none', position: 'relative', transition: 'color 0.15s, background 0.15s' },
-  sIconActive: { background: 'var(--accent-grad)', color: 'var(--sidebar-icon-active)' },
-  sLabel: { fontSize: 8, fontWeight: 600, letterSpacing: '0.01em', color: 'var(--sidebar-label)', textTransform: 'uppercase' as const, maxWidth: 54, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
-  badge: { position: 'absolute', top: 5, right: 7, background: '#f87171', borderRadius: 10, fontSize: 9, color: '#fff', padding: '1px 4px', fontWeight: 700, lineHeight: 1.4 },
+  sidebar: { background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)', display: 'flex', flexDirection: 'column', alignItems: 'stretch', padding: '14px 12px 12px', gap: 2 },
+  brand: { display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px', marginBottom: 12 },
+  brandName: { fontSize: 18, fontWeight: 800, color: 'var(--text-1)', letterSpacing: '-0.01em' },
+  logo: { width: 34, height: 34, borderRadius: 10, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, fontWeight: 800, color: '#29B6F6', flexShrink: 0, letterSpacing: '0.02em' },
+  sIcon: { display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%', padding: '9px 12px', borderRadius: 10, cursor: 'pointer', color: 'var(--sidebar-icon)', background: 'transparent', border: 'none', textAlign: 'left' as const, transition: 'color 0.15s, background 0.15s' },
+  sIconActive: { background: 'var(--accent-dim)', color: 'var(--accent)' },
+  sLabel: { fontSize: 13.5, fontWeight: 500, color: 'var(--text-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
+  badge: { marginLeft: 'auto', background: '#ef4444', borderRadius: 10, fontSize: 10, color: '#fff', padding: '1px 6px', fontWeight: 700, lineHeight: 1.5, flexShrink: 0 },
+  profileCard: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 12, background: 'var(--bg-input)', border: '0.5px solid var(--border)', marginTop: 6 },
+  profileAvatar: { width: 30, height: 30, borderRadius: '50%', background: 'var(--accent-dim)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 },
+  profileName: { fontSize: 13, fontWeight: 600, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
+  profilePlan: { fontSize: 11, color: 'var(--text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const },
   userAvatar: { width: 32, height: 32, borderRadius: '50%', background: 'var(--bg-input)', border: '1px solid var(--border-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: 'var(--text-2)', fontWeight: 600, marginTop: 4, cursor: 'pointer' },
 
   // ── Main ────────────────────────────────────────────────────────────────────
