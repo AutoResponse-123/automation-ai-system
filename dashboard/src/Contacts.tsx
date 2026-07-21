@@ -31,8 +31,8 @@ function timeAgo(dateStr?: string): string {
 }
 
 const AVATAR_COLORS = [
-  '#2E8B57', '#f59e0b', '#22c55e', '#f87171',
-  '#38bdf8', '#fb923c', '#e879f9', '#34d399'
+  '#1585c7', '#f59e0b', '#22a7f0', '#f87171',
+  '#38bdf8', '#fb923c', '#e879f9', '#4fc3f7'
 ]
 
 function avatarColor(id: string): string {
@@ -280,9 +280,9 @@ const s: Record<string, React.CSSProperties> = {
   searchInput: { background: 'transparent', border: 'none', color: 'var(--text-1)', fontSize: 12, outline: 'none', width: 220 },
   sortGroup: { display: 'flex', gap: 4 },
   sortBtn: { background: 'transparent', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '4px 10px', fontSize: 11, color: 'var(--text-3)', cursor: 'pointer' },
-  sortBtnActive: { background: 'var(--bg-card)', borderColor: 'var(--border-mid)', color: '#2E8B57' },
+  sortBtnActive: { background: 'var(--bg-card)', borderColor: 'var(--border-mid)', color: '#1585c7' },
   loading: { color: 'var(--text-3)', fontSize: 13, padding: 32, textAlign: 'center' },
-  loadMore: { background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 8, padding: '8px 18px', fontSize: 12, color: '#2E8B57', cursor: 'pointer', fontFamily: 'inherit' },
+  loadMore: { background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 8, padding: '8px 18px', fontSize: 12, color: '#1585c7', cursor: 'pointer', fontFamily: 'inherit' },
   tableHeader: { display: 'grid', gridTemplateColumns: '28px 1fr 100px 1fr 80px 80px 80px', gap: 12, padding: '6px 12px', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '0.5px solid var(--border-mid)', marginBottom: 4 },
   tableBody: { display: 'flex', flexDirection: 'column', gap: 2 },
   row: { display: 'grid', gridTemplateColumns: '28px 1fr 100px 1fr 80px 80px 80px', gap: 12, padding: '8px 12px', alignItems: 'center', borderRadius: 8, cursor: 'default', background: 'var(--bg-card)', border: '0.5px solid transparent' },
@@ -293,7 +293,7 @@ const s: Record<string, React.CSSProperties> = {
   cell: { fontSize: 12, color: 'var(--text-2)' },
   cellPreview: { color: 'var(--text-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   statusBadge: { fontSize: 11, borderRadius: 4, padding: '2px 7px', border: '0.5px solid' },
-  statusActive: { color: '#22c55e', borderColor: '#1a2e1e', background: '#0a1a0e' },
+  statusActive: { color: '#22a7f0', borderColor: '#1a2e1e', background: '#0a1a0e' },
   statusInactive: { color: 'var(--text-3)', borderColor: 'var(--border-mid)', background: 'transparent' },
-  chatBtn: { background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '3px 8px', fontSize: 11, color: '#2E8B57', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 },
+  chatBtn: { background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '3px 8px', fontSize: 11, color: '#1585c7', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 },
 }

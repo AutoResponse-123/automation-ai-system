@@ -10,17 +10,17 @@ html, body, #root {
 html, body, #root { transition: background-color 0.25s ease; }
 
 /* ── Sistema de diseño Wasso ─────────────────────────────────────────────────
-   Identidad "verde sobrio / mensajería": verde pino sobre papel, sidebar pino
+   Identidad "azul sobrio / mensajería": azul noche sobre papel, sidebar azul
    en ambos temas, superficies planas con hairlines (sin degradados ni neón). */
 
 :root {
-  /* Acento verde WhatsApp (igual en ambos temas; personalizable por negocio) */
-  --accent:      #128C4A;
-  --accent-dark: #0E6F3A;
-  --accent-cyan: #25D366;
-  --accent-grad:      linear-gradient(135deg, #25D366 0%, #128C4A 100%);
-  --accent-grad-soft: linear-gradient(135deg, #34D97A 0%, #1DA45A 100%);
-  --grad-text:        linear-gradient(135deg, #25D366 0%, #128C4A 100%);
+  /* Acento azul Wasso (igual en ambos temas; personalizable por negocio) */
+  --accent:      #1585C7;
+  --accent-dark: #10689E;
+  --accent-cyan: #29B6F6;
+  --accent-grad:      linear-gradient(135deg, #29B6F6 0%, #1585C7 100%);
+  --accent-grad-soft: linear-gradient(135deg, #4FC3F7 0%, #2196D8 100%);
+  --grad-text:        linear-gradient(135deg, #29B6F6 0%, #1585C7 100%);
 
   /* Alias de superficies (resuelven al tono de tarjeta/input de cada tema) */
   --surface:   var(--bg-card);
@@ -29,40 +29,40 @@ html, body, #root { transition: background-color 0.25s ease; }
 
 /* ── Tema OSCURO (default) ── */
 :root, :root[data-theme="dark"] {
-  --accent-glow: rgba(37, 211, 102, 0.26);
-  --accent-dim:  rgba(37, 211, 102, 0.14);
-  --bg-base:     #0F120D;
-  --bg-panel:    #131711;
-  --bg-card:     #171C14;
-  --bg-input:    #1A2017;
-  --border:      #232A20;
-  --border-mid:  #2D3528;
-  --text-bright: #F0F4EC;
-  --text-1:      #E3E8DD;
-  --text-2:      #909A87;
-  --text-3:      #5E665A;
-  --text-faint:  #3C423A;
+  --accent-glow: rgba(41, 182, 246, 0.26);
+  --accent-dim:  rgba(41, 182, 246, 0.14);
+  --bg-base:     #0C1116;
+  --bg-panel:    #10161C;
+  --bg-card:     #141B22;
+  --bg-input:    #17202A;
+  --border:      #222C36;
+  --border-mid:  #2C3844;
+  --text-bright: #ECF1F6;
+  --text-1:      #DFE6EE;
+  --text-2:      #8A96A3;
+  --text-3:      #5B6470;
+  --text-faint:  #3A414A;
   --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.40);
   color-scheme: dark;
 
-  /* Chrome oscuro (verde pino) */
-  --sidebar-bg:          #14241D;
-  --sidebar-border:      #21382C;
-  --sidebar-icon:        #6E8579;
+  /* Chrome oscuro (azul noche) */
+  --sidebar-bg:          #0F2233;
+  --sidebar-border:      #1E3A4F;
+  --sidebar-icon:        #6E8299;
   --sidebar-icon-active: #ffffff;
-  --sidebar-label:       #5E7568;
-  --topbar-grad:         linear-gradient(0deg, #14241D 0%, #14241D 100%);
-  --topbar-fg:           #F0F4EC;
-  --topbar-fg-dim:       rgba(240, 244, 236, 0.65);
+  --sidebar-label:       #5E6E82;
+  --topbar-grad:         linear-gradient(0deg, #0F2233 0%, #0F2233 100%);
+  --topbar-fg:           #ECF1F6;
+  --topbar-fg-dim:       rgba(236, 241, 246, 0.65);
   --topbar-pill-bg:      rgba(255, 255, 255, 0.14);
   --topbar-pill-border:  rgba(255, 255, 255, 0.24);
-  --topbar-pill-fg:      #F0F4EC;
+  --topbar-pill-fg:      #ECF1F6;
 }
 
 /* ── Tema CLARO (papel) ── */
 :root[data-theme="light"] {
-  --accent-glow: rgba(37, 211, 102, 0.16);
-  --accent-dim:  rgba(37, 211, 102, 0.10);
+  --accent-glow: rgba(41, 182, 246, 0.16);
+  --accent-dim:  rgba(41, 182, 246, 0.10);
   --bg-base:     #F4F6F8;
   --bg-panel:    #ffffff;
   --bg-card:     #ffffff;
@@ -86,9 +86,9 @@ html, body, #root { transition: background-color 0.25s ease; }
   --topbar-grad:         linear-gradient(0deg, #ffffff 0%, #ffffff 100%);
   --topbar-fg:           #1F2937;
   --topbar-fg-dim:       #8A97A3;
-  --topbar-pill-bg:      #E7F8EE;
-  --topbar-pill-border:  #C7ECD6;
-  --topbar-pill-fg:      #128C4A;
+  --topbar-pill-bg:      #E6F4FE;
+  --topbar-pill-border:  #C3E7FB;
+  --topbar-pill-fg:      #1585C7;
 }
 
 /* Scrollbar global */
@@ -146,7 +146,7 @@ html, body, #root { transition: background-color 0.25s ease; }
 
 /* Flash al entrar un mensaje nuevo (realtime) */
 @keyframes convFlash {
-  0%   { background: rgba(46, 139, 87, 0.20); }
+  0%   { background: rgba(41, 182, 246, 0.20); }
   100% { background: transparent; }
 }
 .conv-flash { animation: convFlash 2.4s ease-out; }
@@ -298,4 +298,16 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent) !importa
   .settings-content { padding: 16px !important; }
 }
 
-/* Banner "Requiere atención" del dashboard: p
+/* Banner "Requiere atención" del dashboard: pulso suave para llamar la atención del dueño. */
+@keyframes attentionPulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(251,146,60,0.15), 0 6px 20px -10px rgba(251,146,60,0.5); }
+  50%      { box-shadow: 0 0 0 1px rgba(251,146,60,0.35), 0 10px 28px -8px rgba(251,146,60,0.85); }
+}
+.attention-banner {
+  animation: attentionPulse 2.4s ease-in-out infinite;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.attention-banner:hover { transform: translateY(-1px); filter: brightness(1.05); }
+@media (prefers-reduced-motion: reduce) {
+  .attention-banner { animation: none; }
+}

@@ -23,10 +23,10 @@ function timeAgo(dateStr: string): string {
 }
 
 const EVENT_STYLES: Record<ActivityEvent['type'], { icon: string; color: string; bg: string }> = {
-  new_message:      { icon: 'ti-message-2',   color: '#2E8B57', bg: 'var(--bg-card)' },
+  new_message:      { icon: 'ti-message-2',   color: '#1585c7', bg: 'var(--bg-card)' },
   new_conversation: { icon: 'ti-message-plus', color: '#38bdf8', bg: '#0e1e2e' },
-  ai_response:      { icon: 'ti-sparkles',     color: '#22c55e', bg: '#0a1a0e' },
-  resolved:         { icon: 'ti-circle-check', color: '#34d399', bg: '#0a1e18' },
+  ai_response:      { icon: 'ti-sparkles',     color: '#22a7f0', bg: '#0a1a0e' },
+  resolved:         { icon: 'ti-circle-check', color: '#4fc3f7', bg: '#0a1e18' },
   error:            { icon: 'ti-alert-circle', color: '#f87171', bg: '#2e0e0e' },
 }
 
@@ -215,8 +215,8 @@ const s: Record<string, React.CSSProperties> = {
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   headerLeft: { display: 'flex', alignItems: 'center', gap: 10 },
   headerTitle: { fontSize: 13, fontWeight: 500, color: 'var(--text-1)' },
-  livePill: { display: 'flex', alignItems: 'center', gap: 5, background: '#0a1a0e', border: '0.5px solid #1a2e1e', borderRadius: 20, padding: '3px 8px', fontSize: 11, color: '#22c55e' },
-  liveDot: { width: 6, height: 6, borderRadius: '50%', background: '#22c55e', animation: 'pulse 2s infinite' },
+  livePill: { display: 'flex', alignItems: 'center', gap: 5, background: '#0a1a0e', border: '0.5px solid #1a2e1e', borderRadius: 20, padding: '3px 8px', fontSize: 11, color: '#22a7f0' },
+  liveDot: { width: 6, height: 6, borderRadius: '50%', background: '#22a7f0', animation: 'pulse 2s infinite' },
   liveDotPaused: { background: 'var(--text-3)', animation: 'none' },
   eventCount: { fontSize: 11, color: 'var(--text-3)' },
   headerActions: { display: 'flex', gap: 6 },

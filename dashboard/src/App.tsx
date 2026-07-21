@@ -49,14 +49,14 @@ interface Conversation {
 }
 
 const TAG_PRESETS: { label: string; color: string }[] = [
-  { label: 'Venta',        color: '#22c55e' },
+  { label: 'Venta',        color: '#22a7f0' },
   { label: 'Soporte',      color: '#38bdf8' },
   { label: 'Urgente',      color: '#f87171' },
-  { label: 'Turno',        color: '#2E8B57' },
+  { label: 'Turno',        color: '#1585c7' },
   { label: 'Consulta',     color: '#f59e0b' },
   { label: 'Seguimiento',  color: '#fb923c' },
   { label: 'Reclamo',      color: '#e879f9' },
-  { label: 'Resuelto',     color: '#34d399' },
+  { label: 'Resuelto',     color: '#4fc3f7' },
 ]
 
 interface Metrics {
@@ -120,7 +120,7 @@ function lightenHex(hex: string, amount: number): string {
   return '#' + l(r) + l(g) + l(b)
 }
 
-const AVATAR_COLORS = ['#2E8B57','#f59e0b','#22c55e','#f87171','#38bdf8','#fb923c','#e879f9','#34d399']
+const AVATAR_COLORS = ['#1585c7','#f59e0b','#22a7f0','#f87171','#38bdf8','#fb923c','#e879f9','#4fc3f7']
 function avatarColor(id: string): string {
   let hash = 0
   for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash)
@@ -682,7 +682,7 @@ export default function App() {
 
   if (authLoading) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', flexDirection: 'column', gap: 12, fontFamily: 'inherit' }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #25D366, #128C4A)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', boxShadow: '0 4px 16px rgba(37,211,102,0.30)' }}>W</div>
+      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #29b6f6, #10689e)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', boxShadow: '0 4px 16px rgba(41, 182, 246,0.30)' }}>W</div>
       <div style={{ fontSize: 12, color: 'var(--text-3)' }}>Cargando...</div>
     </div>
   )
@@ -727,7 +727,7 @@ export default function App() {
             <i className={`ti ${n.icon}`} />
             <span>{n.label}</span>
             {n.id === 'inbox' && unreadCount > 0 && (
-              <span style={{ position: 'absolute', top: 6, width: 6, height: 6, borderRadius: '50%', background: '#2E8B57' }} />
+              <span style={{ position: 'absolute', top: 6, width: 6, height: 6, borderRadius: '50%', background: '#1585c7' }} />
             )}
           </button>
         ))}
@@ -806,10 +806,10 @@ export default function App() {
           if (daysLeft <= 0) return null
           const urgent = daysLeft <= 2
           return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', fontSize: 12, fontWeight: 500, background: urgent ? 'rgba(251,146,60,0.08)' : 'rgba(167,139,250,0.07)', borderBottom: `1px solid ${urgent ? 'rgba(251,146,60,0.2)' : 'rgba(167,139,250,0.15)'}`, color: urgent ? '#fb923c' : '#2E8B57' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', fontSize: 12, fontWeight: 500, background: urgent ? 'rgba(251,146,60,0.08)' : 'rgba(167,139,250,0.07)', borderBottom: `1px solid ${urgent ? 'rgba(251,146,60,0.2)' : 'rgba(167,139,250,0.15)'}`, color: urgent ? '#fb923c' : '#1585c7' }}>
               <i className={`ti ${urgent ? 'ti-alarm' : 'ti-clock'}`} style={{ fontSize: 13 }} />
               {daysLeft === 1 ? '⚠️ Tu prueba vence mañana.' : `Período de prueba: te quedan ${daysLeft} días.`}
-              <span style={{ color: urgent ? '#f97316' : '#3FA86B', marginLeft: 2 }}>Contactanos para continuar.</span>
+              <span style={{ color: urgent ? '#f97316' : '#3aa9e5', marginLeft: 2 }}>Contactanos para continuar.</span>
             </div>
           )
         })()}
@@ -840,13 +840,13 @@ export default function App() {
                   value={metrics.todayMessages.toLocaleString()}
                   sub={`${metrics.totalMessages.toLocaleString()} total`}
                   trend={todayTrend} trendDetail={`período anterior: ${yesterdayMsgCount}`}
-                  icon="ti-message-2" iconColor="#2E8B57" onClick={() => setTab('inbox')} />
+                  icon="ti-message-2" iconColor="#1585c7" onClick={() => setTab('inbox')} />
                 <MetricCard label="Tokens / costo" value={`${(metrics.totalTokens / 1000).toFixed(1)}k`}
                   sub={`~$${metrics.estimatedCost.toFixed(2)} USD`} color="#5b6cff"
                   icon="ti-coins" iconColor="#5b6cff" onClick={() => setTab('analytics')} />
                 <MetricCard label="Reservas realizadas" value={reservations.toString()}
                   sub={dashScale === 'day' ? 'hoy' : dashScale === 'week' ? 'esta semana' : dashScale === 'month' ? 'este mes' : dashScale === '6months' ? 'últimos 6 meses' : 'este año'}
-                  color="#22c55e" icon="ti-calendar-check" iconColor="#22c55e" onClick={apptEnabled ? () => setTab('appointments') : undefined} />
+                  color="#22a7f0" icon="ti-calendar-check" iconColor="#22a7f0" onClick={apptEnabled ? () => setTab('appointments') : undefined} />
                 <MetricCard label="Contactos únicos" value={metrics.uniqueContacts.toLocaleString()} sub="registrados"
                   icon="ti-users" iconColor="#8b5cf6" onClick={() => setTab('contacts')} />
                 <MetricCard label="Pendientes" value={metrics.pendingConversations.toString()}
@@ -921,7 +921,7 @@ export default function App() {
                   {showTagFilterPopover && (
                     <div className="popover-enter" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, background: 'var(--bg-card)', border: '1px solid var(--border-mid)', borderRadius: 10, padding: 6, zIndex: 100, boxShadow: '0 8px 24px rgba(0,0,0,0.6)', minWidth: 160 }}>
                       <button onClick={() => { setTagFilter(null); setShowTagFilterPopover(false) }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: !tagFilter ? 'var(--bg-card)' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: !tagFilter ? '#2E8B57' : 'var(--text-2)', fontSize: 12, fontFamily: 'inherit' }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: !tagFilter ? 'var(--bg-card)' : 'transparent', border: 'none', borderRadius: 6, padding: '6px 10px', cursor: 'pointer', color: !tagFilter ? '#1585c7' : 'var(--text-2)', fontSize: 12, fontFamily: 'inherit' }}>
                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--text-3)', flexShrink: 0 }} />
                         Todas
                         {!tagFilter && <i className="ti ti-check" style={{ fontSize: 11, marginLeft: 'auto' }} />}
@@ -945,8 +945,8 @@ export default function App() {
                     {f === 'all' ? 'Todas' : f === 'active' ? 'Activas' : f === 'pending' ? 'Pendientes' : 'Resueltas'}
                     <span style={{
                       marginLeft: 4, borderRadius: 10, padding: '0 5px', fontSize: 10,
-                      background: convFilter === f ? '#2E8B5722' : 'var(--border-mid)',
-                      color: convFilter === f ? '#2E8B57' : 'var(--text-3)',
+                      background: convFilter === f ? '#1585c722' : 'var(--border-mid)',
+                      color: convFilter === f ? '#1585c7' : 'var(--text-3)',
                     }}>
                       {filterCounts[f]}
                     </span>
@@ -984,7 +984,7 @@ export default function App() {
                       </span>
                       {' · '}{selectedConv.status}
                       {selectedConv.contact?.interaction_count != null && (
-                        <> · <span style={{ color: '#2E8B57' }}>{selectedConv.contact.interaction_count} interacciones</span></>
+                        <> · <span style={{ color: '#1585c7' }}>{selectedConv.contact.interaction_count} interacciones</span></>
                       )}
                     </div>
                   </div>
@@ -1027,7 +1027,7 @@ export default function App() {
 
                     {/* Resumen IA */}
                     <button onClick={generateSummary} disabled={summaryLoading}
-                      style={{ ...s.chip, color: summaryLoading ? 'var(--text-3)' : '#2E8B57' }}
+                      style={{ ...s.chip, color: summaryLoading ? 'var(--text-3)' : '#1585c7' }}
                       title="Generar resumen IA">
                       <i className={`ti ${summaryLoading ? 'ti-loader-2 ti-spin' : 'ti-sparkles'}`} style={{ fontSize: 11 }} />
                       {summaryLoading ? 'Resumiendo...' : 'resumen'}
@@ -1043,7 +1043,7 @@ export default function App() {
                     </div>
                     {selectedConv.status !== 'resolved' && (
                       <button onClick={() => closeConversation(selectedConv)}
-                        style={{ ...s.chip, color: '#22c55e', borderColor: '#1a2e1e' }}>
+                        style={{ ...s.chip, color: '#22a7f0', borderColor: '#1a2e1e' }}>
                         <i className="ti ti-check" style={{ fontSize: 11 }} aria-hidden="true" /> resolver
                       </button>
                     )}
@@ -1080,8 +1080,8 @@ export default function App() {
                       {/* Estado e IA pills */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
                         <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 5,
-                          background: selectedConv.status === 'active' ? '#22c55e20' : selectedConv.status === 'pending' ? '#f59e0b20' : 'var(--text-3)20',
-                          color: selectedConv.status === 'active' ? '#22c55e' : selectedConv.status === 'pending' ? '#f59e0b' : 'var(--text-2)' }}>
+                          background: selectedConv.status === 'active' ? '#22a7f020' : selectedConv.status === 'pending' ? '#f59e0b20' : 'var(--text-3)20',
+                          color: selectedConv.status === 'active' ? '#22a7f0' : selectedConv.status === 'pending' ? '#f59e0b' : 'var(--text-2)' }}>
                           {selectedConv.status === 'active' ? 'activa' : selectedConv.status === 'pending' ? 'pendiente' : 'resuelta'}
                         </span>
                         <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 5,
@@ -1241,7 +1241,7 @@ export default function App() {
 
                     <div style={{ position: 'relative' as const }} ref={quickRepliesRef}>
                       <button onClick={() => { setShowQuickReplies(p => !p); if (noteMode) setNoteMode(false) }}
-                        style={{ ...s.iconBtn, ...(showQuickReplies ? { color: '#2E8B57', background: 'var(--bg-card)' } : {}) }}
+                        style={{ ...s.iconBtn, ...(showQuickReplies ? { color: '#1585c7', background: 'var(--bg-card)' } : {}) }}
                         title="Respuestas rápidas">
                         <i className="ti ti-bolt" style={{ fontSize: 14 }} aria-hidden="true" />
                       </button>
@@ -1377,8 +1377,8 @@ function DashboardHero({ name, automationRate, pending, totalMessages, onGoPendi
   const status = pending > 0
     ? { label: 'Requiere atención', color: '#fb923c', icon: 'ti-alert-triangle' }
     : totalMessages === 0
-      ? { label: 'Listo para arrancar', color: '#3FA86B', icon: 'ti-rocket' }
-      : { label: 'Todo al día', color: '#22c55e', icon: 'ti-circle-check' }
+      ? { label: 'Listo para arrancar', color: '#3aa9e5', icon: 'ti-rocket' }
+      : { label: 'Todo al día', color: '#22a7f0', icon: 'ti-circle-check' }
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: 12, marginBottom: 18 }}>
@@ -1455,7 +1455,7 @@ function MetricCard({ label, value, sub, color, trend, trendDetail, onClick, ico
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={s.metricLabel}>{label}</div>
         {icon && (
-          <div style={{ ...s.metricIcon, color: accent || '#2E8B57', background: (accent || '#2E8B57') + '18' }}>
+          <div style={{ ...s.metricIcon, color: accent || '#1585c7', background: (accent || '#1585c7') + '18' }}>
             <i className={`ti ${icon}`} style={{ fontSize: 14 }} aria-hidden="true" />
           </div>
         )}
@@ -1463,7 +1463,7 @@ function MetricCard({ label, value, sub, color, trend, trendDetail, onClick, ico
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
         <div style={s.metricValue}>{display}</div>
         {trend && trend !== 'neutral' && (
-          <span style={{ fontSize: 12, color: trend === 'up' ? '#22c55e' : '#f87171', marginBottom: 3 }}>
+          <span style={{ fontSize: 12, color: trend === 'up' ? '#22a7f0' : '#f87171', marginBottom: 3 }}>
             <i className={`ti ti-trending-${trend}`} style={{ fontSize: 14 }} />
           </span>
         )}
@@ -1490,7 +1490,7 @@ function ConvList({ conversations, selected, onSelect, onCopyPhone, recentId }: 
         const color = avatarColor(c.id)
         const name = c.contact?.name ?? c.contact?.phone ?? 'Desconocido'
         const preview = c.last_message?.content ?? 'Sin mensajes'
-        const statusColor = c.status === 'active' ? '#22c55e' : c.status === 'pending' ? '#f59e0b' : 'var(--text-3)'
+        const statusColor = c.status === 'active' ? '#22a7f0' : c.status === 'pending' ? '#f59e0b' : 'var(--text-3)'
         return (
           <div key={c.id} className={'conv-row' + (c.id === recentId ? ' conv-flash' : '')} onClick={() => onSelect(c)}
             style={{ ...s.convRow, ...(isActive ? s.convRowActive : {}) }}>
@@ -1582,7 +1582,7 @@ const s: Record<string, React.CSSProperties> = {
   topbar: { padding: '12px 22px', display: 'flex', alignItems: 'center', gap: 10, background: 'var(--topbar-grad)', borderBottom: '0.5px solid var(--sidebar-border)', position: 'relative', zIndex: 5 },
   topbarTitle: { fontSize: 15, fontWeight: 700, color: 'var(--topbar-fg)', letterSpacing: '-0.01em' },
   prodBadge: { background: 'var(--topbar-pill-bg)', border: '1px solid var(--topbar-pill-border)', borderRadius: 8, padding: '4px 10px', fontSize: 11, color: 'var(--topbar-pill-fg)', display: 'flex', alignItems: 'center', gap: 5 },
-  liveDot: { width: 6, height: 6, borderRadius: '50%', background: '#25D366', flexShrink: 0, animation: 'pulse 2s infinite' },
+  liveDot: { width: 6, height: 6, borderRadius: '50%', background: '#29b6f6', flexShrink: 0, animation: 'pulse 2s infinite' },
 
   // ── Dashboard ───────────────────────────────────────────────────────────────
   scrollArea: { overflowY: 'auto', padding: 22 },
@@ -1642,7 +1642,7 @@ const s: Record<string, React.CSSProperties> = {
   toastContainer: { position: 'fixed', bottom: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 9999 },
   toast: { padding: '10px 16px', borderRadius: 10, fontSize: 12, fontWeight: 500, boxShadow: '0 8px 24px rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' },
   toastInfo:    { background: '#13132a', border: '1px solid #2a2a4a', color: 'var(--text-1)' },
-  toastSuccess: { background: '#0a1e10', border: '1px solid #1a4a25', color: '#22c55e' },
+  toastSuccess: { background: '#0a1e10', border: '1px solid #1a4a25', color: '#22a7f0' },
   toastWarning: { background: '#1a1408', border: '1px solid #4a3010', color: '#f59e0b' },
   // ── Tags ────────────────────────────────────────────────────────────────────
   tagPopover: { position: 'absolute', top: '100%', right: 0, marginTop: 6, background: 'var(--bg-card)', border: '1px solid var(--border-mid)', borderRadius: 12, padding: 8, width: 180, zIndex: 200, boxShadow: 'var(--card-shadow)' },
@@ -1657,4 +1657,6 @@ const s: Record<string, React.CSSProperties> = {
   noteBadge: { fontSize: 10, color: '#d97706', display: 'flex', alignItems: 'center', gap: 3, marginBottom: 3, fontWeight: 500 },
   noteBubble: { background: '#160f00', border: '1px solid #3a2500', borderRadius: 10, borderBottomLeftRadius: 3, padding: '9px 13px', fontSize: 13, lineHeight: 1.6, color: '#fde68a', wordBreak: 'break-word' },
   inputAreaNote: { borderTopColor: '#3a2500', background: '#0e0900' },
-  noteModeBar: { fontSize: 11, color: '#
+  noteModeBar: { fontSize: 11, color: '#d97706', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, padding: '0 2px', fontWeight: 500 },
+  textareaNote: { borderColor: '#3a2500', background: '#100b00' },
+}

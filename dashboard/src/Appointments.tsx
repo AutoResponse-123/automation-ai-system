@@ -131,7 +131,7 @@ function TurnoCard({ appt, categories, variant, today, lang, confirmingId, setCo
     ? { label: t('appointments_status_cancelled'), color: '#dc2626' }
     : appt.status === 'completed'
       ? { label: t('appointments_status_completed'), color: '#38bdf8' }
-      : { label: t('appointments_status_scheduled'), color: '#22c55e' }
+      : { label: t('appointments_status_scheduled'), color: '#22a7f0' }
   const dtLabel = variant === 'list'
     ? formatFullDateTime(appt.appointment_date, appt.appointment_time, lang)
     : formatTime(appt.appointment_time)

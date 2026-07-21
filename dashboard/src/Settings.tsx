@@ -112,14 +112,14 @@ interface ConversationTag {
 
 // Etiquetas por defecto (las mismas que trae el Inbox). El dueño puede editarlas.
 const DEFAULT_TAGS: ConversationTag[] = [
-  { id: 'venta',       label: 'Venta',       color: '#22c55e' },
+  { id: 'venta',       label: 'Venta',       color: '#22a7f0' },
   { id: 'soporte',     label: 'Soporte',     color: '#38bdf8' },
   { id: 'urgente',     label: 'Urgente',     color: '#f87171' },
-  { id: 'turno',       label: 'Turno',       color: '#2E8B57' },
+  { id: 'turno',       label: 'Turno',       color: '#1585c7' },
   { id: 'consulta',    label: 'Consulta',    color: '#f59e0b' },
   { id: 'seguimiento', label: 'Seguimiento', color: '#fb923c' },
   { id: 'reclamo',     label: 'Reclamo',     color: '#e879f9' },
-  { id: 'resuelto',    label: 'Resuelto',    color: '#34d399' },
+  { id: 'resuelto',    label: 'Resuelto',    color: '#4fc3f7' },
 ]
 
 export default function Settings({ onSave, businessId, onThemeChange, onFontChange, plan = 'trial' }: {
@@ -233,10 +233,10 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
   }
   const [newCatName, setNewCatName] = useState('')
   const [newCatDuration, setNewCatDuration] = useState(30)
-  const [newCatColor, setNewCatColor] = useState('#2E8B57')
+  const [newCatColor, setNewCatColor] = useState('#1585c7')
   const [editingCatId, setEditingCatId] = useState<string | null>(null)
   const [newTagLabel, setNewTagLabel] = useState('')
-  const [newTagColor, setNewTagColor] = useState('#22c55e')
+  const [newTagColor, setNewTagColor] = useState('#22a7f0')
   const [editingTagId, setEditingTagId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState<string>('')
   const [useAlternateEmail, setUseAlternateEmail] = useState(false)
@@ -276,7 +276,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
         daily_summary: data.daily_summary ?? false,
         summary_frequency: data.summary_frequency ?? 'daily',
         max_messages_before_escalation: data.max_messages_before_escalation ?? 10,
-        accent_color: data.accent_color ?? '#2E8B57',
+        accent_color: data.accent_color ?? '#1585c7',
         google_calendar_id: data.google_calendar_id ?? null,
         google_refresh_token: data.google_refresh_token ?? null,
         reminders_enabled: data.reminders_enabled ?? false,
@@ -401,7 +401,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
             onClick={() => setShowSectionDropdown(p => !p)}
             style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 10, padding: '10px 14px', cursor: 'pointer', color: 'var(--text-1)', fontSize: 13, fontFamily: 'inherit' }}
           >
-            <i className={`ti ${sections.find(s => s.id === activeSection)?.icon}`} style={{ fontSize: 16, color: '#2E8B57' }} />
+            <i className={`ti ${sections.find(s => s.id === activeSection)?.icon}`} style={{ fontSize: 16, color: '#1585c7' }} />
             <span style={{ flex: 1, textAlign: 'left' as const, fontWeight: 500 }}>
               {sections.find(s => s.id === activeSection)?.label}
             </span>
@@ -413,11 +413,11 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                 const isActive = activeSection === sec.id
                 return (
                   <button key={sec.id} onClick={() => { setActiveSection(sec.id as Section); setShowSectionDropdown(false) }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: isActive ? 'var(--border)' : 'transparent', border: 'none', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', color: isActive ? '#3FA86B' : 'var(--text-2)', fontSize: 13, fontFamily: 'inherit' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: isActive ? 'var(--border)' : 'transparent', border: 'none', borderRadius: 8, padding: '10px 12px', cursor: 'pointer', color: isActive ? '#3aa9e5' : 'var(--text-2)', fontSize: 13, fontFamily: 'inherit' }}
                   >
                     <i className={`ti ${sec.icon}`} style={{ fontSize: 15 }} />
                     {sec.label}
-                    {isActive && <i className="ti ti-check" style={{ fontSize: 12, marginLeft: 'auto', color: '#2E8B57' }} />}
+                    {isActive && <i className="ti ti-check" style={{ fontSize: 12, marginLeft: 'auto', color: '#1585c7' }} />}
                   </button>
                 )
               })}
@@ -434,7 +434,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
               <button key={sec.id} onClick={() => setActiveSection(sec.id)}
                 style={{ ...s.sectBtn, ...(isActive ? s.sectBtnActive : {}) }}
                 className="settings-sidenav-btn"
-                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.color = '#2E8B57' }}
+                onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.color = '#1585c7' }}
                 onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.color = '#7a7a9a' }}
               >
                 <i className={`ti ${sec.icon}`} style={{ fontSize: 15, opacity: isActive ? 1 : 0.7 }} aria-hidden="true" />
@@ -502,7 +502,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                 <TagInput tags={config.closing_phrases} value={newClosing} onChange={setNewClosing}
                   onAdd={() => addTag('closing_phrases', newClosing, setNewClosing)}
                   onRemove={(i) => removeTag('closing_phrases', i)}
-                  placeholder={uis('Ej: ¡Hasta pronto! 👋', 'E.g.: See you soon! 👋')} color="#2E8B57" />
+                  placeholder={uis('Ej: ¡Hasta pronto! 👋', 'E.g.: See you soon! 👋')} color="#1585c7" />
               </Field>
 
               <Field label={uis('Palabras prohibidas', 'Forbidden words')} hint={uis('El bot nunca usará estas palabras en sus respuestas', 'The bot will never use these words in its responses')}>
@@ -825,9 +825,9 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{
                             fontSize: 11, fontWeight: 600, minWidth: 64, textAlign: 'center',
-                            color: hours.closed ? 'var(--text-3)' : '#2E8B57',
+                            color: hours.closed ? 'var(--text-3)' : '#1585c7',
                             background: hours.closed ? 'transparent' : 'var(--bg-card)',
-                            border: hours.closed ? '0.5px solid var(--border-mid)' : '0.5px solid #2E8B5755',
+                            border: hours.closed ? '0.5px solid var(--border-mid)' : '0.5px solid #1585c755',
                             borderRadius: 6, padding: '3px 8px', transition: 'all 0.2s',
                           }}>
                             {day.charAt(0).toUpperCase() + day.slice(1)}
@@ -845,7 +845,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                                 onChange={e => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, close: e.target.value } } })} />
                               <button
                                 onClick={() => update('schedule', { ...config.schedule, hours: { ...config.schedule.hours, [day]: { ...hours, breaks: [...(hours.breaks ?? []), { start: '13:00', end: '14:00' }] } } })}
-                                style={{ marginLeft: 'auto', fontSize: 10, color: '#2E8B57', background: '#12122a', border: '0.5px solid #2E8B5744', borderRadius: 20, padding: '4px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontWeight: 500 }}>
+                                style={{ marginLeft: 'auto', fontSize: 10, color: '#1585c7', background: '#12122a', border: '0.5px solid #1585c744', borderRadius: 20, padding: '4px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, fontWeight: 500 }}>
                                 ☕ descanso
                               </button>
                             </>
@@ -960,7 +960,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                     value={config.accent_color}
                     onChange={e => { update('accent_color', e.target.value); onThemeChange?.(e.target.value, bgColor) }} />
                   <div style={{ display: 'flex', gap: 6 }}>
-                    {['#2E8B57','#22c55e','#38bdf8','#f59e0b','#f87171','#e879f9','#fb923c','#34d399'].map(c => (
+                    {['#1585c7','#22a7f0','#38bdf8','#f59e0b','#f87171','#e879f9','#fb923c','#4fc3f7'].map(c => (
                       <div key={c} onClick={() => { update('accent_color', c); onThemeChange?.(c, bgColor) }}
                         style={{ width: 22, height: 22, borderRadius: '50%', background: c, cursor: 'pointer',
                           border: config.accent_color === c ? '2px solid #fff' : '2px solid transparent',
@@ -1074,7 +1074,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>{uis('Menú de botones', 'Quick-reply menu')}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2 }}>{uis('Botones tocables que el bot puede ofrecer en el chat. Escribilos acá y los creamos por vos.', 'Tappable buttons the bot can offer in chat. Write them here and we create them for you.')}</div>
                   </div>
-                  {config.menu_content_sid && <span style={{ fontSize: 10, fontWeight: 700, background: '#2E8B5722', color: '#3FA86B', border: '1px solid #2E8B5744', borderRadius: 4, padding: '2px 8px' }}>{uis('ACTIVO', 'ACTIVE')}</span>}
+                  {config.menu_content_sid && <span style={{ fontSize: 10, fontWeight: 700, background: '#1585c722', color: '#3aa9e5', border: '1px solid #1585c744', borderRadius: 4, padding: '2px 8px' }}>{uis('ACTIVO', 'ACTIVE')}</span>}
                 </div>
 
                 <label style={{ fontSize: 11, color: 'var(--text-3)' }}>{uis('Mensaje del menú', 'Menu message')}</label>
@@ -1117,7 +1117,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                       {uis('Desactivar', 'Turn off')}
                     </button>
                   )}
-                  {menuMsg && <span style={{ fontSize: 12, color: menuMsg.kind === 'ok' ? '#2E8B57' : '#dc2626' }}>{menuMsg.text}</span>}
+                  {menuMsg && <span style={{ fontSize: 12, color: menuMsg.kind === 'ok' ? '#1585c7' : '#dc2626' }}>{menuMsg.text}</span>}
                 </div>
               </div>
 
@@ -1132,7 +1132,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>Google Calendar</div>
                       <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2 }}>{uis('Disponible en el plan Pro', 'Available on the Pro plan')}</div>
                     </div>
-                    <span style={{ fontSize: 10, fontWeight: 700, background: '#2E8B5722', color: '#3FA86B', border: '1px solid #2E8B5744', borderRadius: 4, padding: '2px 8px' }}>PRO</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, background: '#1585c722', color: '#3aa9e5', border: '1px solid #1585c744', borderRadius: 4, padding: '2px 8px' }}>PRO</span>
                   </div>
                 </div>
               ) : (
@@ -1193,7 +1193,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                         const active = (config.reminder_hours_before || []).includes(opt.value)
                         return (
                           <button key={opt.value}
-                            style={{ padding: '5px 12px', borderRadius: 6, border: `1px solid ${active ? '#226B43' : opt.rec ? '#2f5e47' : '#2d2d3d'}`, background: active ? '#1e3b2c' : 'var(--bg-card)', color: active ? '#3FA86B' : 'var(--text-2)', fontSize: 12, cursor: 'pointer' }}
+                            style={{ padding: '5px 12px', borderRadius: 6, border: `1px solid ${active ? '#226B43' : opt.rec ? '#2f5e47' : '#2d2d3d'}`, background: active ? '#1e3b2c' : 'var(--bg-card)', color: active ? '#3aa9e5' : 'var(--text-2)', fontSize: 12, cursor: 'pointer' }}
                             onClick={async () => {
                               const current = config.reminder_hours_before || []
                               const next = (active ? current.filter((h: number) => h !== opt.value) : [...current, opt.value]).sort((a: number, b: number) => a - b)
@@ -1212,14 +1212,14 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                           const mins = Math.round(h * 60)
                           const lbl = mins % 60 === 0 ? `${mins / 60} h antes` : `${mins} min antes`
                           return (
-                            <span key={h} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 8px 5px 12px', borderRadius: 6, border: '1px solid #226B43', background: '#1e3b2c', color: '#3FA86B', fontSize: 12 }}>
+                            <span key={h} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 8px 5px 12px', borderRadius: 6, border: '1px solid #226B43', background: '#1e3b2c', color: '#3aa9e5', fontSize: 12 }}>
                               {lbl}
                               <button onClick={async () => {
                                 const next = (config.reminder_hours_before || []).filter((x: number) => x !== h)
                                 const { error } = await supabase.from('businesses').update({ reminder_hours_before: next }).eq('id', businessId!)
                                 if (error) { alert(uis('No se pudo guardar: ', 'Could not save: ') + error.message); return }
                                 update('reminder_hours_before', next)
-                              }} style={{ background: 'none', border: 'none', color: '#3FA86B', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                              }} style={{ background: 'none', border: 'none', color: '#3aa9e5', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
                             </span>
                           )
                         })}
@@ -1265,7 +1265,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>Mercado Pago</div>
                       <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2 }}>{uis('Disponible en el plan Pro', 'Available on the Pro plan')}</div>
                     </div>
-                    <span style={{ fontSize: 10, fontWeight: 700, background: '#2E8B5722', color: '#3FA86B', border: '1px solid #2E8B5744', borderRadius: 4, padding: '2px 8px' }}>PRO</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, background: '#1585c722', color: '#3aa9e5', border: '1px solid #1585c744', borderRadius: 4, padding: '2px 8px' }}>PRO</span>
                   </div>
                 </div>
               ) : (
@@ -1292,12 +1292,12 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
               <div style={{ background: 'var(--bg-card)', border: `0.5px solid ${config.sheets_refresh_token ? '#2a3a2a' : 'var(--border-mid)'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <i className="ti ti-table" style={{ fontSize: 18, color: '#34d399' }} />
+                    <i className="ti ti-table" style={{ fontSize: 18, color: '#4fc3f7' }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-1)' }}>Google Sheets</span>
-                      {config.sheets_refresh_token && <span style={{ fontSize: 10, background: '#0a2e14', border: '0.5px solid #1a4a25', color: '#22c55e', borderRadius: 4, padding: '1px 6px' }}>Activo</span>}
+                      {config.sheets_refresh_token && <span style={{ fontSize: 10, background: '#0a2e14', border: '0.5px solid #1a4a25', color: '#22a7f0', borderRadius: 4, padding: '1px 6px' }}>Activo</span>}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
                       {config.sheets_refresh_token
@@ -1322,13 +1322,13 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                               if (id) update('sheets_spreadsheet_id', id)
                             } catch { alert('Error exportando. Intentá de nuevo.') }
                           }}
-                          style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: 'var(--border)', color: '#2E8B57', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                          style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: 'var(--border)', color: '#1585c7', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
                           Exportar
                         </button>
                         {config.sheets_spreadsheet_id && (
                           <button
                             onClick={() => window.open(`https://docs.google.com/spreadsheets/d/${config.sheets_spreadsheet_id}`, '_blank')}
-                            style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: '#0a2e14', color: '#22c55e', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+                            style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: '#0a2e14', color: '#22a7f0', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
                             Abrir
                           </button>
                         )}
@@ -1685,7 +1685,7 @@ function IntegrationCard({ icon, iconColor, name, description, status, connectLa
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-1)' }}>{name}</span>
-            {isConnected && <span style={{ fontSize: 10, background: '#0a2e14', border: '0.5px solid #1a4a25', color: '#22c55e', borderRadius: 4, padding: '1px 6px' }}>Activo</span>}
+            {isConnected && <span style={{ fontSize: 10, background: '#0a2e14', border: '0.5px solid #1a4a25', color: '#22a7f0', borderRadius: 4, padding: '1px 6px' }}>Activo</span>}
           </div>
           <div style={{ fontSize: 11, color: isDisabled ? '#2a2a4a' : 'var(--text-3)', marginTop: 2 }}>{description}</div>
         </div>
@@ -1711,7 +1711,7 @@ function SectionHeader({ icon, title, subtitle }: { icon: string; title: string;
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <i className={`ti ${icon}`} style={{ fontSize: 16, color: '#2E8B57' }} aria-hidden="true" />
+        <i className={`ti ${icon}`} style={{ fontSize: 16, color: '#1585c7' }} aria-hidden="true" />
         <h2 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-1)', margin: 0 }}>{title}</h2>
       </div>
       <p style={{ fontSize: 12, color: 'var(--text-3)', margin: 0, paddingLeft: 24 }}>{subtitle}</p>
@@ -1762,7 +1762,7 @@ const s: Record<string, React.CSSProperties> = {
   sectNav: { background: 'var(--bg-card)', borderRight: '0.5px solid var(--border-mid)', padding: '16px 8px', display: 'flex', flexDirection: 'column', gap: 1, overflowY: 'auto', overflowX: 'hidden' as const },
   sectNavTitle: { fontSize: 8.5, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0, fontWeight: 600, padding: '0 4px', marginBottom: 8, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' },
   sectBtn: { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 7, border: 'none', background: 'transparent', color: '#7a7a9a', fontSize: 12, fontWeight: 500, cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'color 0.15s, background 0.15s', letterSpacing: '0.01em' },
-  sectBtnActive: { background: 'var(--border)', color: '#3FA86B' },
+  sectBtnActive: { background: 'var(--border)', color: '#3aa9e5' },
   content: { display: 'grid', gridTemplateRows: '1fr auto', overflow: 'hidden' },
   contentInner: { overflowY: 'auto', padding: 24 },
   section: { maxWidth: 680 },
@@ -1774,8 +1774,8 @@ const s: Record<string, React.CSSProperties> = {
   toneGrid: { display: 'flex', flexWrap: 'wrap' as const, gap: 6 },
   langGrid: { display: 'flex', gap: 6 },
   toneBtn: { background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '5px 12px', fontSize: 12, color: 'var(--text-2)', cursor: 'pointer' },
-  toneBtnActive: { background: 'var(--bg-card)', borderColor: '#2E8B57', color: '#2E8B57' },
-  addBtn: { background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#2E8B57', cursor: 'pointer', whiteSpace: 'nowrap' as const, flexShrink: 0 },
+  toneBtnActive: { background: 'var(--bg-card)', borderColor: '#1585c7', color: '#1585c7' },
+  addBtn: { background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#1585c7', cursor: 'pointer', whiteSpace: 'nowrap' as const, flexShrink: 0 },
   toggleRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 10, padding: '12px 14px' },
   toggleTrack: { width: 40, height: 22, borderRadius: 11, background: 'var(--border-mid)', position: 'relative' as const, cursor: 'pointer', transition: 'background 0.25s', flexShrink: 0 },
   toggleTrackOn: { background: '#226B43' },
@@ -1788,5 +1788,5 @@ const s: Record<string, React.CSSProperties> = {
   dayLabel: { fontSize: 12, fontWeight: 500, color: 'var(--text-1)' },
   timeInput: { background: 'var(--bg-input)', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '4px 6px', color: 'var(--text-1)', fontSize: 12, outline: 'none' },
   saveBar: { borderTop: '0.5px solid var(--border-mid)', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-card)' },
-  saveBtn: { background: '#2E8B57', border: 'none', borderRadius: 8, padding: '8px 20px', color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer' },
+  saveBtn: { background: '#1585c7', border: 'none', borderRadius: 8, padding: '8px 20px', color: '#fff', fontSize: 13, fontWeight: 500, cursor: 'pointer' },
 }

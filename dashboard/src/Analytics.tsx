@@ -33,7 +33,7 @@ interface CategoryStat {
 
 type Range = '7d' | '14d' | '30d' | '90d' | '6m' | '1y'
 
-const CAT_COLORS = ['#2E8B57','#22c55e','#38bdf8','#f59e0b','#f87171','#e879f9','#fb923c','#34d399']
+const CAT_COLORS = ['#1585c7','#22a7f0','#38bdf8','#f59e0b','#f87171','#e879f9','#fb923c','#4fc3f7']
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -112,8 +112,8 @@ function StackedChart({ stats }: { stats: DayStat[] }) {
     <div style={s.chartCard}>
       <div style={s.chartTitle}>Mensajes por día</div>
       <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-        <div style={s.legendItem}><div style={{ ...s.legendDot, background: '#2E8B57' }} />Usuario</div>
-        <div style={s.legendItem}><div style={{ ...s.legendDot, background: '#22c55e' }} />IA</div>
+        <div style={s.legendItem}><div style={{ ...s.legendDot, background: '#1585c7' }} />Usuario</div>
+        <div style={s.legendItem}><div style={{ ...s.legendDot, background: '#22a7f0' }} />IA</div>
       </div>
       <div style={s.barsArea}>
         {stats.map((d, i) => {
@@ -129,8 +129,8 @@ function StackedChart({ stats }: { stats: DayStat[] }) {
               </div>
               <div style={s.barTrack}>
                 <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', flexDirection: 'column', height: `${userPct + botPct}%`, transition: 'height 0.3s' }}>
-                  <div style={{ flex: botPct, background: isHovered ? '#22c55e' : '#22c55e99', borderRadius: '3px 3px 0 0', transition: 'background 0.15s' }} />
-                  <div style={{ flex: userPct, background: isHovered ? '#2E8B57' : '#2E8B5799', transition: 'background 0.15s' }} />
+                  <div style={{ flex: botPct, background: isHovered ? '#22a7f0' : '#22a7f099', borderRadius: '3px 3px 0 0', transition: 'background 0.15s' }} />
+                  <div style={{ flex: userPct, background: isHovered ? '#1585c7' : '#1585c799', transition: 'background 0.15s' }} />
                 </div>
               </div>
               <div style={{ ...s.barLabel, color: isHovered ? 'var(--text-2)' : 'var(--text-faint)', transition: 'color 0.15s' }}>
@@ -170,7 +170,7 @@ function HourlyChart({ hours }: { hours: HourStat[] }) {
                 <div style={{
                   position: 'absolute', bottom: 0, left: 0, right: 0, borderRadius: 2,
                   height: `${pct}%`,
-                  background: isHot ? '#f59e0b' : '#2E8B57',
+                  background: isHot ? '#f59e0b' : '#1585c7',
                   opacity: isHovered ? 1 : 0.7,
                   transition: 'height 0.3s, opacity 0.15s',
                 }} />
@@ -184,7 +184,7 @@ function HourlyChart({ hours }: { hours: HourStat[] }) {
       </div>
       <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
         <div style={s.legendItem}><div style={{ ...s.legendDot, background: '#f59e0b' }} />Hora pico (≥75%)</div>
-        <div style={s.legendItem}><div style={{ ...s.legendDot, background: '#2E8B57' }} />Normal</div>
+        <div style={s.legendItem}><div style={{ ...s.legendDot, background: '#1585c7' }} />Normal</div>
       </div>
     </div>
   )
@@ -357,7 +357,7 @@ export default function Analytics({ businessId }: { businessId: string | null })
           {/* Summary */}
           <div style={s.summaryGrid}>
             <SummaryCard label={t('analytics_messages_period')} value={totalMsgs.toLocaleString()} />
-            <SummaryCard label={t('analytics_avg_automation')} value={`${avgAutomation}%`} color="#22c55e" />
+            <SummaryCard label={t('analytics_avg_automation')} value={`${avgAutomation}%`} color="#22a7f0" />
             <SummaryCard label={t('analytics_appts_total')} value={String(apptTotal)} color="#38bdf8" />
             <SummaryCard label={t('analytics_escalation_rate')} value={escalationRate > 0 ? `${escalationRate}%` : '0%'} color={escalationRate > 20 ? '#f87171' : 'var(--text-3)'} sub={`${escalationCount} de ${totalConvs} convs`} />
             <SummaryCard label={t('analytics_peak_hour')} value={peakHour.count > 0 ? `${peakHour.hour.toString().padStart(2,'0')}:00` : '—'} color="#f59e0b" sub={peakHour.count > 0 ? `${peakHour.count} msgs` : ''} />
@@ -367,7 +367,7 @@ export default function Analytics({ businessId }: { businessId: string | null })
           {/* Charts row 1 */}
           <div style={s.chartsGrid}>
             <StackedChart stats={stats} />
-            <BarChart stats={stats} valueKey="automationRate" color="#22c55e" label={t('analytics_chart_automation')} format={v => `${v}%`} />
+            <BarChart stats={stats} valueKey="automationRate" color="#22a7f0" label={t('analytics_chart_automation')} format={v => `${v}%`} />
           </div>
 
           {/* Horario pico — full width */}
@@ -377,7 +377,7 @@ export default function Analytics({ businessId }: { businessId: string | null })
 
           {/* Charts row 2 */}
           <div style={{ ...s.chartsGrid, marginTop: 10 }}>
-            <BarChart stats={stats} valueKey="tokens" color="#2E8B57" label={t('analytics_chart_tokens')} format={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v)} />
+            <BarChart stats={stats} valueKey="tokens" color="#1585c7" label={t('analytics_chart_tokens')} format={v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(v)} />
             <BarChart stats={stats} valueKey="assistant" color="#38bdf8" label={t('analytics_chart_ai_responses')} />
           </div>
 
@@ -429,7 +429,7 @@ export default function Analytics({ businessId }: { businessId: string | null })
                       <tr key={c.phone} style={{ borderBottom: '0.5px solid #0d0d20' }}>
                         <td style={{ padding: '5px 8px 5px 0', color: 'var(--text-faint)' }}>{i + 1}</td>
                         <td style={{ padding: '5px 8px 5px 0', color: 'var(--text-1)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name || c.phone}</td>
-                        <td style={{ padding: '5px 0 5px 8px', color: '#2E8B57', fontWeight: 500, textAlign: 'right' as const }}>{c.interaction_count}</td>
+                        <td style={{ padding: '5px 0 5px 8px', color: '#1585c7', fontWeight: 500, textAlign: 'right' as const }}>{c.interaction_count}</td>
                         <td style={{ padding: '5px 0 5px 8px', color: 'var(--text-3)', textAlign: 'right' as const }}>
                           {c.last_interaction ? new Date(c.last_interaction).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' }) : '—'}
                         </td>
@@ -473,7 +473,7 @@ const s: Record<string, React.CSSProperties> = {
   headerTitle: { fontSize: 13, fontWeight: 500, color: 'var(--text-1)' },
   rangeGroup: { display: 'flex', gap: 4, marginLeft: 'auto' },
   rangeBtn: { background: 'transparent', border: '0.5px solid var(--border-mid)', borderRadius: 6, padding: '4px 10px', fontSize: 11, color: 'var(--text-3)', cursor: 'pointer', transition: 'all 0.15s' },
-  rangeBtnActive: { background: 'var(--bg-card)', borderColor: 'var(--border-mid)', color: '#2E8B57' },
+  rangeBtnActive: { background: 'var(--bg-card)', borderColor: 'var(--border-mid)', color: '#1585c7' },
   loading: { display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, padding: '8px 0' },
   summaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, marginBottom: 16 },
   summaryCard: { background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 10, padding: '10px 12px' },

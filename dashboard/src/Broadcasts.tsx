@@ -177,7 +177,7 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
   }
 
   const statusBadge = (st: string) => {
-    if (st === 'approved') return { label: 'Aprobada', color: '#2E8B57', bg: '#2E8B5722' }
+    if (st === 'approved') return { label: 'Aprobada', color: '#1585c7', bg: '#1585c722' }
     if (st === 'rejected') return { label: 'Rechazada', color: '#dc2626', bg: '#dc262622' }
     return { label: 'Pendiente', color: '#b8860b', bg: '#f59e0b22' }
   }
@@ -234,7 +234,7 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
               <i className="ti ti-send" style={{ fontSize: 14 }} /> {sending ? 'Enviando…' : 'Enviar'}
             </button>
           </div>
-          {msg && <div style={{ ...s.msg, color: msg.kind === 'ok' ? '#2E8B57' : '#dc2626' }}>{msg.text}</div>}
+          {msg && <div style={{ ...s.msg, color: msg.kind === 'ok' ? '#1585c7' : '#dc2626' }}>{msg.text}</div>}
         </div>
 
         {/* Plantillas */}
@@ -272,7 +272,7 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
           <button onClick={createTemplate} disabled={creating} style={{ ...s.sendBtn, marginTop: 12, alignSelf: 'flex-start' }}>
             <i className="ti ti-send-2" style={{ fontSize: 14 }} /> {creating ? 'Enviando…' : 'Enviar a aprobar'}
           </button>
-          {tplMsg && <div style={{ ...s.msg, color: tplMsg.kind === 'ok' ? '#2E8B57' : '#dc2626' }}>{tplMsg.text}</div>}
+          {tplMsg && <div style={{ ...s.msg, color: tplMsg.kind === 'ok' ? '#1585c7' : '#dc2626' }}>{tplMsg.text}</div>}
 
           {templates.length > 0 && (
             <div style={{ marginTop: 14 }}>
@@ -304,7 +304,7 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
                 )}
               </div>
               <div style={s.histStat}>
-                <span style={{ color: b.status === 'done' ? '#2E8B57' : 'var(--text-2)' }}>{b.sent}/{b.total}</span>
+                <span style={{ color: b.status === 'done' ? '#1585c7' : 'var(--text-2)' }}>{b.sent}/{b.total}</span>
                 {b.failed > 0 && <span style={{ color: '#dc2626', fontSize: 11 }}> · {b.failed} fallaron</span>}
               </div>
             </div>

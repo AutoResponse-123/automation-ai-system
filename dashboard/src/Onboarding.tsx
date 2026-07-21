@@ -82,7 +82,7 @@ export default function Onboarding({ business, onGoToSettings }: OnboardingProps
   return (
     <div style={{
       background: 'linear-gradient(135deg, #0d0d1a 0%, #0a0a14 100%)',
-      border: `1px solid ${allConfigured ? '#10b98140' : 'var(--accent)'}`,
+      border: `1px solid ${allConfigured ? '#14a0e040' : 'var(--accent)'}`,
       borderRadius: 14,
       marginBottom: 20,
       overflow: 'hidden',
@@ -92,8 +92,8 @@ export default function Onboarding({ business, onGoToSettings }: OnboardingProps
         style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', cursor: 'pointer', userSelect: 'none' }}
         onClick={() => setExpanded(e => !e)}
       >
-        <div style={{ width: 36, height: 36, borderRadius: 9, background: allConfigured ? '#10b98118' : 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <i className={`ti ${allConfigured ? 'ti-circle-check' : 'ti-rocket'}`} style={{ color: allConfigured ? '#10b981' : 'var(--accent)', fontSize: 18 }} />
+        <div style={{ width: 36, height: 36, borderRadius: 9, background: allConfigured ? '#14a0e018' : 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <i className={`ti ${allConfigured ? 'ti-circle-check' : 'ti-rocket'}`} style={{ color: allConfigured ? '#14a0e0' : 'var(--accent)', fontSize: 18 }} />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 600, color: 'var(--text-1)', fontSize: 14 }}>
@@ -105,9 +105,9 @@ export default function Onboarding({ business, onGoToSettings }: OnboardingProps
         </div>
         {/* Progress bar inline */}
         <div style={{ width: 80, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: allConfigured ? '#10b981' : 'var(--accent)' }}>{pct}%</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: allConfigured ? '#14a0e0' : 'var(--accent)' }}>{pct}%</span>
           <div style={{ width: '100%', height: 4, background: 'var(--border-mid)', borderRadius: 2 }}>
-            <div style={{ width: `${pct}%`, height: '100%', background: allConfigured ? '#10b981' : 'var(--accent)', borderRadius: 2, transition: 'width 0.4s' }} />
+            <div style={{ width: `${pct}%`, height: '100%', background: allConfigured ? '#14a0e0' : 'var(--accent)', borderRadius: 2, transition: 'width 0.4s' }} />
           </div>
         </div>
         <i className={`ti ti-chevron-${expanded ? 'up' : 'down'}`} style={{ fontSize: 14, color: 'var(--text-3)', flexShrink: 0 }} />
@@ -123,15 +123,15 @@ export default function Onboarding({ business, onGoToSettings }: OnboardingProps
           {steps.map((step, i) => (
             <div key={step.id} style={{
               display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10,
-              background: step.done ? 'var(--accent-dim)' : step.isAction ? '#10b98108' : 'var(--bg-card)',
-              border: `1px solid ${step.done ? 'var(--accent)30' : step.isAction ? '#10b98130' : 'var(--border-mid)'}`,
+              background: step.done ? 'var(--accent-dim)' : step.isAction ? '#14a0e008' : 'var(--bg-card)',
+              border: `1px solid ${step.done ? 'var(--accent)30' : step.isAction ? '#14a0e030' : 'var(--border-mid)'}`,
             }}>
               <div style={{
                 width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: step.done ? 'var(--accent)' : step.isAction ? '#10b98130' : 'var(--border-mid)',
+                background: step.done ? 'var(--accent)' : step.isAction ? '#14a0e030' : 'var(--border-mid)',
                 fontSize: step.done ? 12 : 11, fontWeight: 700,
-                color: step.done ? '#fff' : step.isAction ? '#10b981' : 'var(--text-3)',
+                color: step.done ? '#fff' : step.isAction ? '#14a0e0' : 'var(--text-3)',
               }}>
                 {step.done ? <i className="ti ti-check" style={{ fontSize: 12 }} /> : step.isAction ? <i className={`ti ${step.icon}`} style={{ fontSize: 13 }} /> : step.num}
               </div>
@@ -143,7 +143,7 @@ export default function Onboarding({ business, onGoToSettings }: OnboardingProps
               </div>
               {!step.done && (
                 step.isAction ? (
-                  <span style={{ fontSize: 11, color: '#10b981', background: '#10b98118', border: '1px solid #10b98130', borderRadius: 6, padding: '3px 8px', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 11, color: '#14a0e0', background: '#14a0e018', border: '1px solid #14a0e030', borderRadius: 6, padding: '3px 8px', whiteSpace: 'nowrap' }}>
                     Te contactamos
                   </span>
                 ) : (
