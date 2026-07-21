@@ -151,7 +151,17 @@ function ThemeToggle({ theme, setTheme }: { theme: 'light' | 'dark'; setTheme: (
 
 export default function App() {
   const [lang, setLang] = useState<Lang>(() => (localStorage.getItem('ui_lang') as Lang) || 'es')
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('ui_theme') as 'light' | 'dark') || 'light')
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    // El tema claro es el principal. Migración única: si el usuario tenía guardado
+    // 'oscuro' de antes (cuando el default era otro), lo reseteamos a claro una sola vez.
+    // A partir de ahí se respeta lo que elija a mano con el botón.
+    if (localStorage.getItem('ui_theme_default_v2') !== '1') {
+      localStorage.setItem('ui_theme_default_v2', '1')
+      localStorage.setItem('ui_theme', 'light')
+      return 'light'
+    }
+    return (localStorage.getItem('ui_theme') as 'light' | 'dark') || 'light'
+  })
   const [dashFont, setDashFont] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Bricolage Grotesque')
   const [tab, setTab] = useState<Tab>('dashboard')
   const [session, setSession] = useState<Session | null>(null)
