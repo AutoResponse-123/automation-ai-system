@@ -221,6 +221,17 @@ export default function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     try { localStorage.setItem('ui_theme', theme) } catch { /* ignore */ }
+    // El fondo personalizado (ar_bg_color) es SOLO para modo oscuro. En claro se
+    // limpian esos overrides en línea para que el tema blanco del CSS tome el control
+    // (si no, los fondos quedan oscuros y solo cambian los bordes).
+    const root = document.documentElement
+    const bgProps = ['--bg-base', '--bg-panel', '--bg-card', '--bg-input', '--border', '--border-mid']
+    if (theme === 'light') {
+      bgProps.forEach(p => root.style.removeProperty(p))
+    } else {
+      const bg = localStorage.getItem('ar_bg_color')
+      if (bg && /^#[0-9a-fA-F]{6}$/.test(bg)) applyTheme(undefined, bg)
+    }
   }, [theme])
 
   // Tipografía global: aplicar al <html> para que afecte ABSOLUTAMENTE todo
@@ -297,7 +308,7 @@ export default function App() {
     if (data) {
       setBusinessId(data.id)
       setBusinessData(data)
-      const bg = localStorage.getItem('ar_bg_color') ?? undefined
+      const bg = theme === 'dark' ? (localStorage.getItem('ar_bg_color') ?? undefined) : undefined
       applyTheme(data.accent_color ?? undefined, bg)
       const savedFont = localStorage.getItem('ar_font')
       if (savedFont && savedFont !== 'Inter' && savedFont !== 'Bricolage Grotesque') {
