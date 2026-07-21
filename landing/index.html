@@ -6,7 +6,7 @@
   <title>Wasso — IA para tu negocio en WhatsApp</title>
   <meta name="description" content="Automatizá la atención al cliente de tu negocio con inteligencia artificial. Bot para WhatsApp que responde, agenda turnos, entiende audios y nunca duerme." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -46,7 +46,7 @@
       color-scheme: dark;
     }
     html { scroll-behavior: smooth; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-1); line-height: 1.6; transition: background-color 0.25s ease, color 0.25s ease; }
+    body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text-1); line-height: 1.6; transition: background-color 0.25s ease, color 0.25s ease; }
     a { color: inherit; text-decoration: none; }
     .grad-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 
@@ -154,7 +154,8 @@
       justify-content: center; font-size: 22px; margin-bottom: 16px;
     }
     .feature-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
-    .feature-card p { font-size: 14px; color: var(--text-2); line-height: 1.6; }
+    .feature-card p { font-size: 14px; color: var(--text-2); line-height: 1.6; max-height: 0; opacity: 0; margin-top: 0; overflow: hidden; transition: max-height 0.35s ease, opacity 0.25s ease, margin-top 0.25s ease; }
+    .feature-card:hover p { max-height: 260px; opacity: 1; margin-top: 8px; }
 
     /* How it works */
     .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; margin-top: 48px; }
@@ -204,11 +205,12 @@
     .ta-biz { font-size: 12px; color: var(--text-2); }
 
     /* FAQ */
-    .faq { max-width: 680px; margin: 48px auto 0; display: flex; flex-direction: column; gap: 12px; }
-    .faq-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--card-shadow); }
-    .faq-q { width: 100%; background: none; border: none; color: var(--text-1); font-size: 15px; font-weight: 600; padding: 18px 20px; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-    .faq-q:hover { color: var(--accent-light); }
-    .faq-a { padding: 0 20px 18px; font-size: 14px; color: var(--text-2); line-height: 1.7; }
+    .faq { max-width: 680px; margin: 48px auto 0; display: flex; flex-direction: column; gap: 10px; }
+    .faq-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; transition: border-color 0.18s; }
+    .faq-item:hover { border-color: var(--accent-light); }
+    .faq-q { width: 100%; background: none; border: none; color: var(--text-1); font-size: 15px; font-weight: 500; padding: 20px 22px; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .faq-q span { color: var(--accent-light); font-size: 22px; font-weight: 400; line-height: 1; flex-shrink: 0; }
+    .faq-a { padding: 0 22px 20px; font-size: 14px; color: var(--text-2); line-height: 1.7; }
 
     /* CTA */
     .cta-section {
@@ -253,7 +255,7 @@
   </div>
   <div class="nav-right">
     <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" aria-label="Cambiar tema" title="Cambiar tema">🌙</button>
-    <a href="https://wa.me/5491156095323?text=Hola%21%20Quiero%20probar%20Wasso%20gratis%207%20d%C3%ADas" class="btn btn-primary">Empezar gratis →</a>
+    <a href="https://wa.me/5491156095323?text=Hola%21%20Quiero%20probar%20Wasso%20gratis%201%20mes" class="btn btn-primary">Empezar gratis →</a>
   </div>
 </nav>
 
@@ -263,10 +265,10 @@
   <h1>Tu negocio atiende<br /><em>24/7 en WhatsApp</em></h1>
   <p>Wasso automatiza la atención al cliente de tu negocio con <strong>Claude, la mejor inteligencia artificial del mercado</strong>. Responde preguntas, agenda turnos, entiende audios y nunca descansa.</p>
   <div class="hero-btns">
-    <a href="https://wa.me/5491156095323?text=Hola%21%20Quiero%20probar%20Wasso%20gratis%207%20d%C3%ADas" class="btn btn-primary">Probar gratis 7 días</a>
+    <a href="https://wa.me/5491156095323?text=Hola%21%20Quiero%20probar%20Wasso%20gratis%201%20mes" class="btn btn-primary">Probar gratis 1 mes</a>
     <a href="#features" class="btn btn-outline">Ver cómo funciona</a>
   </div>
-  <p class="hero-note">Sin tarjeta de crédito · Sin contratos · Cancelá cuando quieras</p>
+  <p class="hero-note">Sin tarjeta de crédito obligatoria · Sin contratos · Cancelá cuando quieras</p>
 
   <!-- Chat preview -->
   <div class="chat-preview">
@@ -349,37 +351,6 @@
   </div>
 </section>
 
-<!-- How it works -->
-<section style="background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
-  <div class="center">
-    <div class="section-label">Cómo funciona</div>
-    <h2 class="section-title">Listo en menos de 10 minutos</h2>
-    <p class="section-sub">Sin código, sin configuraciones complicadas.</p>
-  </div>
-  <div class="steps">
-    <div class="step">
-      <div class="step-num">1</div>
-      <h3>Cargás tu negocio</h3>
-      <p>Nombre, servicios, precios, horarios e instrucciones especiales para el bot.</p>
-    </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <h3>Conectás WhatsApp</h3>
-      <p>Te conectamos al número de WhatsApp de tu negocio. Sin tecnicismos, lo gestionamos juntos.</p>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <h3>El bot ya atiende</h3>
-      <p>Tus clientes escriben por WhatsApp y reciben respuestas al instante, 24/7.</p>
-    </div>
-    <div class="step">
-      <div class="step-num">4</div>
-      <h3>Seguís desde el dashboard</h3>
-      <p>Ves todas las conversaciones en tiempo real y podés tomar control cuando sea necesario.</p>
-    </div>
-  </div>
-</section>
-
 <!-- Pricing -->
 <section id="pricing" class="center">
   <div class="section-label">Precios</div>
@@ -402,7 +373,7 @@
         <li class="no">Recordatorios automáticos</li>
         <li class="no">Entiende audios</li>
       </ul>
-      <a href="https://wa.me/5491156095323?text=Hola%21%20Quiero%20probar%20Wasso%20gratis%207%20d%C3%ADas" class="btn btn-outline">Empezar gratis 7 días →</a>
+      <a href="https://wa.me/5491156095323?text=Hola%21%20Quiero%20probar%20Wasso%20gratis%201%20mes" class="btn btn-outline">Empezar gratis 1 mes →</a>
     </div>
     <div class="plan-card featured">
       <div class="plan-badge">🚀 Precio de lanzamiento · ⭐ Más popular</div>
@@ -419,7 +390,7 @@
         <li>Soporte humano por WhatsApp</li>
         <li class="no">Entiende audios</li>
       </ul>
-      <a href="https://wa.me/5491156095323?text=Hola%21%20Quiero%20probar%20Wasso%20gratis%207%20d%C3%ADas" class="btn btn-primary">Empezar gratis 7 días →</a>
+      <a href="https://wa.me/5491156095323?text=Hola%21%20Quiero%20probar%20Wasso%20gratis%201%20mes" class="btn btn-primary">Empezar gratis 1 mes →</a>
     </div>
     <div class="plan-card">
       <div class="plan-badge" style="background: var(--accent);">👑 Máxima potencia</div>
@@ -436,56 +407,13 @@
         <li>MercadoPago integrado</li>
         <li>Soporte humano prioritario</li>
       </ul>
-      <a href="https://wa.me/5491156095323?text=Hola%21%20Quiero%20probar%20Wasso%20gratis%207%20d%C3%ADas" class="btn btn-outline">Empezar gratis 7 días →</a>
+      <a href="https://wa.me/5491156095323?text=Hola%21%20Quiero%20probar%20Wasso%20gratis%201%20mes" class="btn btn-outline">Empezar gratis 1 mes →</a>
     </div>
   </div>
 
   <p style="margin-top: 24px; font-size: 13px; color: var(--text-2);">
-    ✓ 7 días gratis · ✓ Sin tarjeta de crédito · ✓ Cancelá cuando quieras · ✓ Precio bloqueado para siempre para quienes entren ahora
+    ✓ 1 mes gratis · ✓ Sin tarjeta de crédito obligatoria · ✓ Cancelá cuando quieras · ✓ Precio bloqueado para siempre para quienes entren ahora
   </p>
-</section>
-
-<!-- Testimonials -->
-<section style="background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
-  <div class="center">
-    <div class="section-label">Testimonios</div>
-    <h2 class="section-title">Negocios que ya usan Wasso</h2>
-  </div>
-  <div class="testimonials">
-    <div class="testimonial">
-      <div class="stars">★★★★★</div>
-      <p>"Antes perdíamos consultas los fines de semana. Ahora el bot responde al toque y agenda turnos mientras dormimos."</p>
-      <div class="testimonial-author">
-        <div class="ta-avatar" style="background: #2563eb;">MR</div>
-        <div>
-          <div class="ta-name">María R.</div>
-          <div class="ta-biz">Estética & Bienestar</div>
-        </div>
-      </div>
-    </div>
-    <div class="testimonial">
-      <div class="stars">★★★★★</div>
-      <p>"Lo que más me gustó es que el bot sabe exactamente qué servicios ofrezco y a qué precio. Mis clientes no lo distinguen de una persona real."</p>
-      <div class="testimonial-author">
-        <div class="ta-avatar" style="background: #059669;">CL</div>
-        <div>
-          <div class="ta-name">Carlos L.</div>
-          <div class="ta-biz">Clínica Dental</div>
-        </div>
-      </div>
-    </div>
-    <div class="testimonial">
-      <div class="stars">★★★★★</div>
-      <p>"Los recordatorios automáticos de turno redujeron los ausentismos casi a cero. Solo eso ya paga el costo mensual."</p>
-      <div class="testimonial-author">
-        <div class="ta-avatar" style="background: #d97706;">AG</div>
-        <div>
-          <div class="ta-name">Ana G.</div>
-          <div class="ta-biz">Psicóloga - Consultorio privado</div>
-        </div>
-      </div>
-    </div>
-  </div>
 </section>
 
 <!-- FAQ -->
@@ -546,7 +474,7 @@
     <h2 class="section-title">¿Tenés preguntas?</h2>
     <p class="section-sub">Escribinos y te respondemos en menos de 24 horas.</p>
   </div>
-  <form id="contact-form" style="max-width: 540px; margin: 40px auto 0; display: flex; flex-direction: column; gap: 16px;" onsubmit="submitContact(event)">
+  <form id="contact-form" style="max-width: 540px; margin: 40px auto 0; display: flex; flex-direction: column; gap: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 30px;" onsubmit="submitContact(event)">
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
       <div>
         <label style="font-size: 12px; font-weight: 600; color: var(--text-2); display: block; margin-bottom: 6px;">Nombre</label>
@@ -583,8 +511,8 @@
 <!-- CTA -->
 <section class="cta-section">
   <h2>Tu negocio merece un asistente<br />que nunca duerme</h2>
-  <p>7 días de prueba gratis. Sin tarjeta de crédito.</p>
-  <a href="https://wa.me/5491156095323?text=Hola%21%20Quiero%20probar%20Wasso%20gratis%207%20d%C3%ADas" class="btn btn-primary" style="font-size: 16px; padding: 15px 36px;">
+  <p>1 mes de prueba gratis. Sin tarjeta de crédito obligatoria.</p>
+  <a href="https://wa.me/5491156095323?text=Hola%21%20Quiero%20probar%20Wasso%20gratis%201%20mes" class="btn btn-primary" style="font-size: 16px; padding: 15px 36px;">
     Empezar gratis ahora →
   </a>
 </section>
