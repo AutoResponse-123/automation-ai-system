@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 const { supabase } = require('../config/supabase');
 const { sendWhatsAppTemplate } = require('../services/twilio');
 const { resolveRecipients, uniqueByPhone, parseTemplate, resolveVars } = require('../services/broadcast');
+const { getOrCreateConversation, saveMessage } = require('../services/conversation');
 
 const router = Router();
 
@@ -80,11 +81,17 @@ router.post('/send', async (req: Request, res: Response) => {
   // Mapeo de variables de la plantilla (nombre/negocio/teléfono) para personalizar por contacto.
   const { data: tpl } = await supabase
     .from('broadcast_templates')
-    .select('var_keys')
+    .select('var_keys, body')
     .eq('business_id', businessId)
     .eq('content_sid', contentSid)
     .maybeSingle();
   const varKeys: string[] = tpl?.var_keys || [];
+  const tplBody: string = tpl?.body || '';
+
+  // Reconstruye el texto REAL que recibió el contacto (reemplaza {{1}},{{2}}… por sus valores)
+  // para poder guardarlo en la conversación y que aparezca en el Inbox.
+  const renderBody = (vars: Record<string, string>): string =>
+    String(tplBody).replace(/\{\{(\d+)\}\}/g, (_m: string, n: string) => vars[n] ?? '');
 
   // Si la plantilla usa datos del turno, cargamos el próximo turno de cada contacto.
   const usesAppt = varKeys.some((k: string) => ['fecha', 'hora', 'servicio'].includes(k));
@@ -151,6 +158,17 @@ router.post('/send', async (req: Request, res: Response) => {
           business.phone_whatsapp
         );
         sent++;
+        // Guardar el mensaje en la conversación del contacto para que aparezca en el Inbox.
+        // Si esto falla, el WhatsApp ya se envió: lo logueamos pero NO contamos como fallido.
+        try {
+          const bodyText = renderBody(vars);
+          if (bodyText.trim()) {
+            const { conversationId } = await getOrCreateConversation(businessId, r.phone, 0);
+            await saveMessage(conversationId, 'assistant', bodyText);
+          }
+        } catch (persistErr: any) {
+          console.error('[broadcast] no se pudo guardar el mensaje en el inbox', r.phone, persistErr?.message || persistErr);
+        }
       } catch (err: any) {
         failed++;
         // Guardamos el motivo real (código + mensaje de Twilio) para mostrarlo en el panel.
