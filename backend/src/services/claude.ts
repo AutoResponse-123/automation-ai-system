@@ -289,9 +289,11 @@ async function callClaude(
           }).select('id').maybeSingle();
 
           if (insertErr) {
-            const dup = insertErr.code === '23505' || /duplicate|unique/i.test(insertErr.message || '');
+            // 23505 = índice único (mismo horario exacto). 23P01 = constraint de exclusión
+            // appointments_no_overlap (solapamiento parcial). Ambos = el horario ya está tomado.
+            const dup = insertErr.code === '23505' || insertErr.code === '23P01' || /duplicate|unique|exclu|overlap/i.test(insertErr.message || '');
             if (dup) {
-              toolResult = `Ese horario (${reqTime}) lo acaban de tomar. Pedile al cliente que elija otro y consultá de nuevo con get_available_slots. NO confirmes este turno.`;
+              toolResult = `Ese horario (${reqTime}) ya no está disponible. Pedile al cliente que elija otro y consultá de nuevo con get_available_slots. NO confirmes este turno.`;
               console.log('[create_appointment] doble-reserva evitada:', reqDate, reqTime);
             } else {
               console.error('[appointments insert]', insertErr.message);
@@ -353,9 +355,11 @@ async function callClaude(
             }).select('id').maybeSingle();
 
             if (insertErr) {
-              const dup = insertErr.code === '23505' || /duplicate|unique/i.test(insertErr.message || '');
+              // 23505 = índice único (mismo horario exacto). 23P01 = constraint de exclusión
+            // appointments_no_overlap (solapamiento parcial). Ambos = el horario ya está tomado.
+            const dup = insertErr.code === '23505' || insertErr.code === '23P01' || /duplicate|unique|exclu|overlap/i.test(insertErr.message || '');
               toolResult = dup
-                ? `Ese horario (${newTime}) lo acaban de tomar. El turno actual SIGUE ACTIVO. Ofrecele otro horario y NO confirmes el cambio.`
+                ? `Ese horario (${newTime}) ya no está disponible. El turno actual SIGUE ACTIVO. Ofrecele otro horario y NO confirmes el cambio.`
                 : `ERROR al reprogramar (${insertErr.message}). El turno actual SIGUE ACTIVO. Pedile disculpas y derivá a un humano. NO confirmes el cambio.`;
               if (!dup) { try { require('./logger').captureError(insertErr, 'reschedule_insert'); } catch {} }
             } else {
