@@ -133,7 +133,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
   const isPro = plan === 'pro' || plan === 'enterprise' || plan === 'trial'
   const { lang, setLang } = useLang()
   const uis = (es: string, en: string) => lang === 'en' ? en : es
-  const { permission, enabled: notifEnabled, setEnabled: setNotifEnabled, requestPermission, sendNotification, isSupported } = useNotifications()
+  useNotifications()
   const [config, setConfig] = useState<BusinessConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)

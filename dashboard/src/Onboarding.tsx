@@ -120,7 +120,7 @@ export default function Onboarding({ business, onGoToSettings }: OnboardingProps
       {/* Steps */}
       {expanded && (
         <div style={{ borderTop: '1px solid var(--border-mid)', padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {steps.map((step, i) => (
+          {steps.map((step) => (
             <div key={step.id} style={{
               display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10,
               background: step.done ? 'var(--accent-dim)' : step.isAction ? '#14a0e008' : 'var(--bg-card)',

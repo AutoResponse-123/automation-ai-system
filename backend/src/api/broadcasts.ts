@@ -234,13 +234,15 @@ function twilioAuthHeader() {
 // POST /api/broadcasts/templates — crea una plantilla de difusión y la manda a
 // aprobar a WhatsApp/Meta. Queda 'pending' hasta que Meta la apruebe (~1 día hábil).
 router.post('/templates', async (req: Request, res: Response) => {
-  const { businessId, body, category } = req.body || {};
+  const { businessId, body, category, name } = req.body || {};
   if (!businessId || !body) { res.status(400).json({ error: 'businessId y body son requeridos' }); return; }
   if (!(await verifyBusinessOwner(req.headers.authorization, businessId))) {
     res.status(403).json({ error: 'No autorizado' }); return;
   }
 
   const cat = ['marketing', 'utility'].includes(String(category)) ? String(category) : 'marketing';
+  // Nombre amigable que elige el dueño para diferenciar plantillas en el panel (opcional).
+  const displayName = String(name || '').trim().slice(0, 60) || null;
 
   // Convertir tokens amigables ([nombre]/[negocio]/[telefono]) a {{1}}, {{2}}…
   const { body: tBody, varKeys } = parseTemplate(body);
@@ -281,8 +283,8 @@ router.post('/templates', async (req: Request, res: Response) => {
 
     const { data: row } = await supabase
       .from('broadcast_templates')
-      .insert({ business_id: businessId, content_sid: created.sid, name: approvalName, body: tBody, var_keys: varKeys, category: cat, status: 'pending' })
-      .select('id, content_sid, name, body, category, status, created_at')
+      .insert({ business_id: businessId, content_sid: created.sid, name: approvalName, display_name: displayName, body: tBody, var_keys: varKeys, category: cat, status: 'pending' })
+      .select('id, content_sid, name, display_name, body, category, status, created_at')
       .maybeSingle();
 
     res.json({ ok: true, template: row });
@@ -303,7 +305,7 @@ router.get('/templates', async (req: Request, res: Response) => {
 
   const { data: templates } = await supabase
     .from('broadcast_templates')
-    .select('id, content_sid, name, body, var_keys, category, status, created_at')
+    .select('id, content_sid, name, display_name, body, var_keys, category, status, created_at')
     .eq('business_id', businessId)
     .order('created_at', { ascending: false });
 

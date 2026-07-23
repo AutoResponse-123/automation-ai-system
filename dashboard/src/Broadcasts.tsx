@@ -14,7 +14,7 @@ interface Broadcast {
   last_error?: string | null
 }
 interface Template {
-  id: string; content_sid: string; name: string; body: string
+  id: string; content_sid: string; name: string; display_name?: string | null; body: string
   var_keys?: string[]; category: string; status: string; created_at: string
 }
 
@@ -56,6 +56,7 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
 
   // Plantillas
   const [templates, setTemplates] = useState<Template[]>([])
+  const [newName, setNewName] = useState('')
   const [newBody, setNewBody] = useState('')
   const [newCategory, setNewCategory] = useState<'marketing' | 'utility'>('marketing')
   const [creating, setCreating] = useState(false)
@@ -115,11 +116,12 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
       // Se manda el texto con los tokens amigables; el backend los convierte a {{1}}, {{2}}…
       const res = await authedFetch('/api/broadcasts/templates', {
         method: 'POST',
-        body: JSON.stringify({ businessId, body: newBody.trim(), category: newCategory }),
+        body: JSON.stringify({ businessId, name: newName.trim() || null, body: newBody.trim(), category: newCategory }),
       })
       const j = await res.json()
       if (!res.ok) throw new Error(j.error || 'Error al crear la plantilla')
       setTplMsg({ kind: 'ok', text: '¡Plantilla enviada a aprobación! Meta suele tardar ~1 día hábil.' })
+      setNewName('')
       setNewBody('')
       loadTemplates()
     } catch (e: any) {
@@ -214,7 +216,7 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
           ) : (
             <select value={selectedSid} onChange={e => setSelectedSid(e.target.value)} style={s.input}>
               <option value="">Elegí una plantilla…</option>
-              {approved.map(tp => <option key={tp.id} value={tp.content_sid}>{tp.body.slice(0, 50)}</option>)}
+              {approved.map(tp => <option key={tp.id} value={tp.content_sid}>{tp.display_name || tp.body.slice(0, 50)}</option>)}
             </select>
           )}
 
@@ -242,6 +244,10 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
           <div style={s.cardTitle}>Plantillas</div>
           <div style={s.hint}>Escribí el mensaje. Meta tiene que aprobarlo antes de poder enviarlo (es obligatorio para mensajes que vos iniciás).</div>
 
+          <label style={s.label}>Nombre de la plantilla (opcional)</label>
+          <input style={s.input} value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ej: Promo 20% off corte" maxLength={60} />
+
+          <label style={s.label}>Mensaje</label>
           <textarea
             style={{ ...s.input, minHeight: 80, resize: 'vertical' as const }}
             value={newBody}
@@ -280,7 +286,10 @@ export default function Broadcasts({ businessId }: { businessId?: string }) {
                 const b = statusBadge(tp.status)
                 return (
                   <div key={tp.id} style={s.tplRow}>
-                    <span style={s.tplBody}>{tp.body.replace(/\{\{(\d+)\}\}/g, (_m, n: string) => `[${tp.var_keys?.[Number(n) - 1] || 'dato'}]`)}</span>
+                    <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {tp.display_name && <span style={s.tplName}>{tp.display_name}</span>}
+                      <span style={s.tplBody}>{tp.body.replace(/\{\{(\d+)\}\}/g, (_m, n: string) => `[${tp.var_keys?.[Number(n) - 1] || 'dato'}]`)}</span>
+                    </div>
                     <span style={{ ...s.badge, color: b.color, background: b.bg }}>{b.label}</span>
                   </div>
                 )
@@ -339,6 +348,7 @@ const s: Record<string, React.CSSProperties> = {
   sendBtn: { display: 'flex', alignItems: 'center', gap: 6, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' },
   msg: { fontSize: 12, marginTop: 10 },
   tplRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '8px 0', borderBottom: '0.5px solid var(--border)' },
+  tplName: { fontSize: 12, fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   tplBody: { fontSize: 12, color: 'var(--text-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   badge: { fontSize: 10, fontWeight: 700, borderRadius: 4, padding: '2px 8px', whiteSpace: 'nowrap' as const, flexShrink: 0 },
   histRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '0.5px solid var(--border)', gap: 10 },
