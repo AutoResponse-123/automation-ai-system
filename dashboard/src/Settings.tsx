@@ -95,7 +95,7 @@ const LANGUAGES = [
   { code: 'pt', label: 'Português' },
 ]
 
-type Section = 'personalidad' | 'negocio' | 'escalacion' | 'horarios' | 'notificaciones' | 'apariencia' | 'integraciones' | 'etiquetas' | 'turnos'
+type Section = 'personalidad' | 'negocio' | 'escalacion' | 'horarios' | 'notificaciones' | 'integraciones' | 'etiquetas' | 'turnos'
 
 interface AppointmentCategory {
   id: string
@@ -122,7 +122,7 @@ const DEFAULT_TAGS: ConversationTag[] = [
   { id: 'resuelto',    label: 'Resuelto',    color: '#4fc3f7' },
 ]
 
-export default function Settings({ onSave, businessId, onThemeChange, onFontChange, plan = 'trial' }: {
+export default function Settings({ onSave, businessId, onThemeChange, plan = 'trial' }: {
   onSave?: () => void
   businessId: string | null
   onThemeChange?: (accent?: string, bg?: string) => void
@@ -131,7 +131,7 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
 }) {
   // Features Pro habilitadas para Pro, Enterprise y el trial (para que prueben). Basic no.
   const isPro = plan === 'pro' || plan === 'enterprise' || plan === 'trial'
-  const { lang, setLang } = useLang()
+  const { lang } = useLang()
   const uis = (es: string, en: string) => lang === 'en' ? en : es
   useNotifications()
   const [config, setConfig] = useState<BusinessConfig | null>(null)
@@ -150,8 +150,8 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
   const [autoResumeCustom, setAutoResumeCustom] = useState(false)
   const [newReminderQty, setNewReminderQty] = useState('')
   const [newReminderUnit, setNewReminderUnit] = useState('min')
-  const [bgColor, setBgColor] = useState<string>(() => localStorage.getItem('ar_bg_color') ?? 'var(--bg-base)')
-  const [fontFamily, setFontFamily] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Bricolage Grotesque')
+  const [bgColor] = useState<string>(() => localStorage.getItem('ar_bg_color') ?? 'var(--bg-base)')
+  const [fontFamily] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Bricolage Grotesque')
 
   // Prueba de resumen por email
   const [testingSummary, setTestingSummary] = useState(false)
@@ -222,19 +222,6 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
     }
   }
 
-  function applyFont(font: string) {
-    const existing = document.getElementById('ar-font-link')
-    if (existing) existing.remove()
-    if (font !== 'Inter' && font !== 'Bricolage Grotesque') {
-      const link = document.createElement('link')
-      link.id = 'ar-font-link'
-      link.rel = 'stylesheet'
-      link.href = `https://fonts.googleapis.com/css2?family=${font.replace(/ /g, '+')}:wght@400;500;600;700&display=swap`
-      document.head.appendChild(link)
-    }
-    setFontFamily(font)
-    onFontChange?.(font)
-  }
   const [newCatName, setNewCatName] = useState('')
   const [newCatDuration, setNewCatDuration] = useState(30)
   const [newCatColor, setNewCatColor] = useState('#1585c7')
@@ -397,7 +384,6 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
     escalacion:     ['Escalación',       'Escalation'],
     horarios:       ['Horarios',         'Schedule'],
     notificaciones: ['Notificaciones',   'Notifications'],
-    apariencia:     ['Apariencia',       'Appearance'],
     integraciones:  ['Integraciones',    'Integrations'],
     etiquetas:      ['Etiquetas',        'Labels'],
     turnos:         [config.schedule?.label?.trim() || 'Turnos', config.schedule?.label?.trim() || 'Appointments'],
@@ -410,7 +396,6 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
     { id: 'escalacion',     icon: 'ti-user-bolt',      label: sl('escalacion') },
     { id: 'horarios',       icon: 'ti-clock',          label: sl('horarios') },
     { id: 'notificaciones', icon: 'ti-bell',           label: sl('notificaciones') },
-    { id: 'apariencia',     icon: 'ti-palette',        label: sl('apariencia') },
     { id: 'integraciones',  icon: 'ti-plug',           label: sl('integraciones') },
     { id: 'etiquetas',      icon: 'ti-tag',            label: sl('etiquetas') },
     { id: 'turnos',         icon: 'ti-calendar-event', label: sl('turnos') },
@@ -974,123 +959,6 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                 </div>
               </Field>
 
-            </div>
-          )}
-
-          {/* ── Apariencia ── */}
-          {activeSection === 'apariencia' && (
-            <div style={s.section}>
-              <SectionHeader icon="ti-palette" title={uis('Apariencia', 'Appearance')} subtitle={uis('Personalizá los colores de tu dashboard — los cambios se aplican en vivo', 'Customize your dashboard colors — changes apply live')} />
-
-              {/* Color de acento */}
-              <Field label={uis('Color de acento', 'Accent color')} hint={uis('Afecta botones, íconos activos, badges y acentos en todo el dashboard', 'Affects buttons, active icons, badges and accents throughout the dashboard')}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' as const }}>
-                  <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 3 }}>
-                  <input type="color" value={config.accent_color}
-                    onChange={e => { update('accent_color', e.target.value); onThemeChange?.(e.target.value, bgColor) }}
-                    style={{ width: 44, height: 44, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 10, padding: 2 }} />
-                  <span style={{ fontSize: 9, color: 'var(--text-3)' }}>{uis('click para personalizar', 'click to customize')}</span>
-                  </div>
-                  <input style={{ ...s.input, width: 110, fontFamily: 'monospace', fontSize: 12 }}
-                    value={config.accent_color}
-                    onChange={e => { update('accent_color', e.target.value); onThemeChange?.(e.target.value, bgColor) }} />
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {['#1585c7','#22a7f0','#38bdf8','#f59e0b','#f87171','#e879f9','#fb923c','#4fc3f7'].map(c => (
-                      <div key={c} onClick={() => { update('accent_color', c); onThemeChange?.(c, bgColor) }}
-                        style={{ width: 22, height: 22, borderRadius: '50%', background: c, cursor: 'pointer',
-                          border: config.accent_color === c ? '2px solid #fff' : '2px solid transparent',
-                          boxShadow: config.accent_color === c ? `0 0 8px ${c}88` : 'none',
-                          transition: 'all 0.15s' }} />
-                    ))}
-                  </div>
-                </div>
-              </Field>
-
-              {/* Color de fondo */}
-              <Field label={uis('Color de fondo', 'Background color')} hint={uis('Cambia el tono base del dashboard — usá colores muy oscuros para mejores resultados', 'Changes the base tone of the dashboard — use very dark colors for best results')}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' as const }}>
-                  <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 3 }}>
-                  <input type="color" value={bgColor}
-                    onChange={e => { setBgColor(e.target.value); onThemeChange?.(config.accent_color, e.target.value) }}
-                    style={{ width: 44, height: 44, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 10, padding: 2 }} />
-                  <span style={{ fontSize: 9, color: 'var(--text-3)' }}>{uis('click para personalizar', 'click to customize')}</span>
-                  </div>
-                  <input style={{ ...s.input, width: 110, fontFamily: 'monospace', fontSize: 12 }}
-                    value={bgColor}
-                    onChange={e => { setBgColor(e.target.value); onThemeChange?.(config.accent_color, e.target.value) }} />
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {['var(--bg-base)','#0a0a0f','#060610','#070d07','#0d0709','#07090d','#0a0808','#08080a'].map(c => (
-                      <div key={c} onClick={() => { setBgColor(c); onThemeChange?.(config.accent_color, c) }}
-                        style={{ width: 22, height: 22, borderRadius: '50%', background: c, cursor: 'pointer',
-                          border: bgColor === c ? '2px solid #fff' : '1px solid #333',
-                          transition: 'all 0.15s' }} />
-                    ))}
-                  </div>
-                </div>
-              </Field>
-
-              {/* Preview */}
-              <div style={{ marginTop: 8, padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-card)' }}>
-                <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 10, fontWeight: 500, textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Preview</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const }}>
-                  <div style={{ background: 'linear-gradient(135deg, var(--accent-dark), var(--accent))', borderRadius: 8, padding: '6px 14px', fontSize: 12, color: '#fff', fontWeight: 500 }}>{uis('Botón principal', 'Main button')}</div>
-                  <div style={{ background: 'var(--accent-dim)', border: '1px solid var(--border-mid)', borderRadius: 8, padding: '6px 14px', fontSize: 12, color: 'var(--accent)' }}>{uis('Badge acento', 'Accent badge')}</div>
-                  <div style={{ background: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 14px', fontSize: 12, color: 'var(--text-1)' }}>{uis('Fondo panel', 'Panel background')}</div>
-                </div>
-              </div>
-
-              <div style={{ marginTop: 14, padding: '10px 14px', background: '#1a1200', border: '1px solid #3a2500', borderRadius: 8, fontSize: 12, color: '#fde68a' }}>
-                <i className="ti ti-info-circle" style={{ marginRight: 6 }} />
-                {uis('Los cambios de color se aplican en vivo. Guardá para que persistan al recargar.', 'Color changes apply live. Save to persist them after reload.')}
-              </div>
-
-              {/* Fuente */}
-              <Field label={uis('Fuente del dashboard', 'Dashboard font')} hint={uis('Se aplica en todo el dashboard — guardá para que persista', 'Applies to the entire dashboard — save to persist')}>
-                {(() => {
-                  const FONTS = [
-                    { id: 'Inter',         desc: uis('Limpia y moderna (por defecto)', 'Clean and modern (default)') },
-                    { id: 'DM Sans',       desc: uis('Amigable y redondeada', 'Friendly and rounded') },
-                    { id: 'Space Grotesk', desc: uis('Geométrica y técnica', 'Geometric and technical') },
-                    { id: 'Outfit',        desc: uis('Minimalista y legible', 'Minimalist and readable') },
-                    { id: 'Nunito',        desc: uis('Suave y amigable', 'Soft and friendly') },
-                    { id: 'Syne',          desc: uis('Futurista y llamativa', 'Futuristic and bold') },
-                  ]
-                  return (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
-                      {FONTS.map(f => (
-                        <div key={f.id} onClick={() => applyFont(f.id)}
-                          style={{
-                            background: fontFamily === f.id ? 'var(--accent-dim)' : 'var(--bg-card)',
-                            border: `0.5px solid ${fontFamily === f.id ? 'var(--accent)' : 'var(--border-mid)'}`,
-                            borderRadius: 10, padding: '10px 14px', cursor: 'pointer',
-                            transition: 'all 0.15s',
-                          }}>
-                          <div style={{ fontSize: 15, fontWeight: 600, color: fontFamily === f.id ? 'var(--accent)' : 'var(--text-1)', fontFamily: `'${f.id}', system-ui, sans-serif`, marginBottom: 3 }}>
-                            {f.id}
-                          </div>
-                          <div style={{ fontSize: 10, color: 'var(--text-3)' }}>{f.desc}</div>
-                          <div style={{ fontSize: 11, color: fontFamily === f.id ? 'var(--accent)' : 'var(--text-3)', fontFamily: `'${f.id}', system-ui, sans-serif`, marginTop: 4 }}>
-                            {uis('Hola, ¿cómo estás?', 'Hello, how are you?')}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                })()}
-              </Field>
-
-              {/* Idioma de la interfaz */}
-              <Field label={uis('Idioma de la interfaz', 'Interface language')} hint={uis('Cambia el idioma del dashboard (no afecta al bot)', 'Changes the dashboard language (does not affect the bot)')}>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {(['es', 'en'] as const).map(l => (
-                    <button key={l}
-                      onClick={() => setLang(l)}
-                      style={{ padding: '6px 18px', borderRadius: 8, border: `1px solid ${lang === l ? 'var(--accent)' : '#2d2d3d'}`, background: lang === l ? 'var(--accent-dim)' : 'var(--bg-card)', color: lang === l ? 'var(--accent)' : 'var(--text-2)', fontSize: 13, cursor: 'pointer', fontWeight: lang === l ? 600 : 400 }}>
-                      {l === 'es' ? '🇦🇷 Español' : '🇺🇸 English'}
-                    </button>
-                  ))}
-                </div>
-              </Field>
             </div>
           )}
 
