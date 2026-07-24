@@ -40,13 +40,16 @@ export async function sendMail(opts: { to: string; subject: string; html: string
   if (process.env.RESEND_API_KEY) {
     const { Resend } = require('resend');
     const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({
+    // Resend NO lanza excepción ante errores de API: devuelve { error }. Lo chequeamos
+    // y lo propagamos para que el que llama se entere (si no, "éxito" falso).
+    const { error } = await resend.emails.send({
       from: process.env.RESEND_FROM || 'Wasso <onboarding@resend.dev>',
       to: opts.to,
       subject: opts.subject,
       html: opts.html,
       ...(opts.replyTo ? { replyTo: opts.replyTo } : {}),
     });
+    if (error) throw new Error(`Resend: ${error.message || JSON.stringify(error)}`);
     return;
   }
 

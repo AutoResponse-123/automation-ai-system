@@ -41,8 +41,11 @@ router.post('/test-summary', async (req: Request, res: Response) => {
     await sendSummary({ ...business, escalation_email: recipient }, period);
     res.json({ ok: true, sentTo: recipient, period });
   } catch (err: any) {
-    console.error('[test-summary] error', err?.message || err);
-    res.status(500).json({ error: 'No se pudo enviar el resumen de prueba.' });
+    // Endpoint solo para el dueño autenticado: devolvemos el motivo real (ej. error de Resend)
+    // para poder diagnosticar desde el panel.
+    const detail = err?.message || err?.error?.message || String(err);
+    console.error('[test-summary] error', detail);
+    res.status(500).json({ error: `No se pudo enviar el resumen: ${detail}` });
   }
 });
 
