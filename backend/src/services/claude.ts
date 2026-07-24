@@ -316,6 +316,13 @@ async function callClaude(
             }
             const { advanceStage } = require('./pipeline');
             advanceStage(contactData?.id, 'agendó').catch((e: any) => console.error('[pipeline async]', e.message));
+            // Guardar el nombre en el contacto si todavía no lo tiene (fuente para difusiones/personalización).
+            const newClientName = String(toolUseBlock.input.client_name || '').trim();
+            if (contactData?.id && newClientName) {
+              supabase.from('contacts').update({ name: newClientName })
+                .eq('id', contactData.id).or('name.is.null,name.eq.')
+                .then(() => {}, (e: any) => console.error('[contact name sync]', e?.message || e));
+            }
             toolResult = `Turno creado exitosamente.`;
             console.log(`[create_appointment] OK — ${reqDate} ${reqTime} (event: ${eventId || 'sin google'})`);
           }
@@ -373,6 +380,13 @@ async function callClaude(
               } catch (gErr: any) { console.error('[reschedule] Google event falló:', gErr?.message || gErr); }
               const { advanceStage } = require('./pipeline');
               advanceStage(appt.contact_id, 'agendó').catch((e: any) => console.error('[pipeline async]', e.message));
+              // Guardar el nombre en el contacto si todavía no lo tiene.
+              const reClientName = String(appt.client_name || '').trim();
+              if (appt.contact_id && reClientName) {
+                supabase.from('contacts').update({ name: reClientName })
+                  .eq('id', appt.contact_id).or('name.is.null,name.eq.')
+                  .then(() => {}, (e: any) => console.error('[contact name sync]', e?.message || e));
+              }
               toolResult = `Turno reprogramado: de ${appt.appointment_date} ${String(appt.appointment_time).slice(0, 5)} a ${newDate} ${newTime}.`;
               console.log(`[reschedule_appointment] ${appt.id} → ${newDate} ${newTime}`);
             }

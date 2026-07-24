@@ -21,9 +21,12 @@ async function verifyBusinessOwner(authHeader: string | undefined, businessId: s
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 // WhatsApp/Twilio RECHAZA una plantilla si alguna variable va vacía (ej. un contacto
-// sin nombre → {{1}} vacío → falla el envío). Cuando falta el dato usamos este fallback
-// en vez de mandar "" y que falle. Cambiá esta palabra si querés otro saludo genérico.
-const NAME_FALLBACK = 'crack';
+// sin nombre → {{1}} vacío → falla el envío). Como no se puede mandar "", cuando NO se
+// conoce el nombre usamos un emoji de saludo en lugar de un apodo inventado: así el
+// mensaje queda "Hola 👋, ..." (saludo sin nombre) en vez de "Hola crack, ...".
+// Nota: el nombre real ahora sale de contacts.name o del último turno (ver nameOf); este
+// fallback solo aplica a contactos verdaderamente sin nombre en ningún lado.
+const NAME_FALLBACK = '👋';
 
 // Última red de seguridad: garantiza que ningún valor de variable quede vacío.
 function ensureNonEmpty(vars: Record<string, string>): Record<string, string> {
@@ -113,6 +116,28 @@ router.post('/send', async (req: Request, res: Response) => {
     }
   }
 
+  // Fallback de nombre: si el contacto no tiene name, usamos el de su turno más reciente
+  // (client_name). Así la personalización funciona aunque el nombre solo esté en los turnos.
+  const nameByContact: Record<string, string> = {};
+  {
+    const ids = recipients.map((r: any) => r.id).filter(Boolean);
+    if (ids.length) {
+      const { data: named } = await supabase
+        .from('appointments')
+        .select('contact_id, client_name, created_at')
+        .eq('business_id', businessId)
+        .in('contact_id', ids)
+        .not('client_name', 'is', null)
+        .order('created_at', { ascending: false });
+      for (const a of named || []) {
+        const nm = String(a.client_name || '').trim();
+        if (a.contact_id && nm && !nameByContact[a.contact_id]) nameByContact[a.contact_id] = nm;
+      }
+    }
+  }
+  // Nombre resuelto para un contacto (contacto → último turno → vacío si no se conoce).
+  const nameOf = (r: any): string => (r.name || '').trim() || nameByContact[r.id] || '';
+
   const fmtDate = (d: string): string => {
     try { return new Date(d + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }); }
     catch { return d; }
@@ -120,7 +145,7 @@ router.post('/send', async (req: Request, res: Response) => {
   const ctxFor = (r: any): Record<string, string> => {
     const a = apptByContact[r.id];
     return {
-      nombre: (r.name || '').trim() || NAME_FALLBACK,
+      nombre: nameOf(r),
       negocio: business.name || 'nuestro negocio',
       telefono: r.phone || '',
       fecha: a ? fmtDate(a.appointment_date) : 'a coordinar',
@@ -147,7 +172,7 @@ router.post('/send', async (req: Request, res: Response) => {
       try {
         const rawVars = varKeys.length
           ? resolveVars(varKeys, ctxFor(r))
-          : personalize(variables || {}, r.name);
+          : personalize(variables || {}, nameOf(r));
         const vars = ensureNonEmpty(rawVars);
         await sendWhatsAppTemplate(
           r.phone,
