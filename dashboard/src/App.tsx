@@ -406,7 +406,11 @@ export default function App() {
       root.style.setProperty('--accent-glow', accent + '44')
       root.style.setProperty('--accent-dim',  accent + '1e')
     }
-    if (bg && /^#[0-9a-fA-F]{6}$/.test(bg)) {
+    // El color de fondo custom es SOLO para modo oscuro. En claro NO se aplica (si no,
+    // pinta el fondo oscuro encima del tema claro y queda a medias). El tema es la fuente
+    // de verdad, así que miramos el data-theme vivo en vez de un valor que puede estar viejo.
+    const isDark = root.getAttribute('data-theme') === 'dark'
+    if (isDark && bg && /^#[0-9a-fA-F]{6}$/.test(bg)) {
       root.style.setProperty('--bg-base',  bg)
       root.style.setProperty('--bg-panel', lightenHex(bg, 0.018))
       root.style.setProperty('--bg-card',  lightenHex(bg, 0.035))
