@@ -86,6 +86,13 @@ interface Toast {
 }
 
 type Tab = 'dashboard' | 'inbox' | 'analytics' | 'contacts' | 'pipeline' | 'broadcasts' | 'activity' | 'appointments' | 'settings'
+const VALID_TABS: Tab[] = ['dashboard', 'inbox', 'analytics', 'contacts', 'pipeline', 'broadcasts', 'activity', 'appointments', 'settings']
+// Pestaña actual según la URL (#contacts) o, si no hay, el default. Permite que al refrescar
+// se mantenga la vista y que funcionen atrás/adelante del navegador.
+const tabFromHash = (): Tab | null => {
+  const h = (window.location.hash || '').replace(/^#\/?/, '').trim()
+  return (VALID_TABS as string[]).includes(h) ? (h as Tab) : null
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -163,7 +170,7 @@ export default function App() {
     return (localStorage.getItem('ui_theme') as 'light' | 'dark') || 'light'
   })
   const [dashFont, setDashFont] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Bricolage Grotesque')
-  const [tab, setTab] = useState<Tab>('dashboard')
+  const [tab, setTab] = useState<Tab>(() => tabFromHash() || 'dashboard')
   const [session, setSession] = useState<Session | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [businessId, setBusinessId] = useState<string | null>(null)
@@ -228,6 +235,24 @@ export default function App() {
   const threadConvIdsRef = useRef<string[]>([])
 
   // Tema claro/oscuro: aplicar al <html> y persistir
+  // Mantener la URL en sincronía con la pestaña, para que al refrescar se quede en la
+  // misma vista (ej: #contacts) en vez de volver al dashboard.
+  useEffect(() => {
+    if (window.location.hash.replace(/^#\/?/, '') !== tab) {
+      window.location.hash = tab
+    }
+  }, [tab])
+
+  // Atrás/adelante del navegador (o edición manual del hash): reflejar en la pestaña.
+  useEffect(() => {
+    const onHashChange = () => {
+      const t = tabFromHash()
+      if (t) setTab(t)
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     try { localStorage.setItem('ui_theme', theme) } catch { /* ignore */ }
