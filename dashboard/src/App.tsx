@@ -87,12 +87,15 @@ interface Toast {
 
 type Tab = 'dashboard' | 'inbox' | 'analytics' | 'contacts' | 'pipeline' | 'broadcasts' | 'activity' | 'appointments' | 'settings'
 const VALID_TABS: Tab[] = ['dashboard', 'inbox', 'analytics', 'contacts', 'pipeline', 'broadcasts', 'activity', 'appointments', 'settings']
-// Pestaña actual según la URL (#contacts) o, si no hay, el default. Permite que al refrescar
-// se mantenga la vista y que funcionen atrás/adelante del navegador.
-const tabFromHash = (): Tab | null => {
-  const h = (window.location.hash || '').replace(/^#\/?/, '').trim()
-  return (VALID_TABS as string[]).includes(h) ? (h as Tab) : null
+// El hash refleja la vista para que al refrescar se mantenga (y funcionen atrás/adelante).
+// Formato: "#<tab>" o, en el inbox con una conversación abierta, "#inbox/<contactId>".
+const parseHash = (): { tab: Tab | null; sub: string | null } => {
+  const raw = (window.location.hash || '').replace(/^#\/?/, '').trim()
+  const [first, ...rest] = raw.split('/')
+  const tab = (VALID_TABS as string[]).includes(first) ? (first as Tab) : null
+  return { tab, sub: rest.join('/') || null }
 }
+const tabFromHash = (): Tab | null => parseHash().tab
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -235,23 +238,52 @@ export default function App() {
   const threadConvIdsRef = useRef<string[]>([])
 
   // Tema claro/oscuro: aplicar al <html> y persistir
-  // Mantener la URL en sincronía con la pestaña, para que al refrescar se quede en la
-  // misma vista (ej: #contacts) en vez de volver al dashboard.
-  useEffect(() => {
-    if (window.location.hash.replace(/^#\/?/, '') !== tab) {
-      window.location.hash = tab
-    }
-  }, [tab])
+  // Deep-link pendiente: contactId que vino en la URL (#inbox/<id>) y todavía no se
+  // pudo seleccionar porque las conversaciones no cargaron. Mientras esté seteado, NO
+  // pisamos la URL (si no, perderíamos el id antes de poder abrir la conversación).
+  const pendingConvRef = useRef<string | null>(
+    (() => { const { tab: t, sub } = parseHash(); return t === 'inbox' ? sub : null })()
+  )
 
-  // Atrás/adelante del navegador (o edición manual del hash): reflejar en la pestaña.
+  // Mantener la URL en sincronía con la vista, para que al refrescar se quede donde estaba
+  // (ej: #contacts, o #inbox/<contactId> si hay una conversación abierta) en vez de volver
+  // al dashboard.
+  useEffect(() => {
+    if (pendingConvRef.current) return // esperando resolver un deep-link: no tocar la URL
+    const desired = tab === 'inbox' && selectedConv?.contact_id
+      ? `inbox/${selectedConv.contact_id}`
+      : tab
+    if (window.location.hash.replace(/^#\/?/, '') !== desired) {
+      window.location.hash = desired
+    }
+  }, [tab, selectedConv])
+
+  // Cuando llegan las conversaciones, resolver el deep-link pendiente abriendo esa conversación.
+  useEffect(() => {
+    if (!pendingConvRef.current || !conversations.length) return
+    const conv = conversations.find(c => c.contact_id === pendingConvRef.current)
+    pendingConvRef.current = null
+    if (conv) setSelectedConv(conv)
+    else if (window.location.hash.replace(/^#\/?/, '').startsWith('inbox/')) window.location.hash = 'inbox'
+  }, [conversations])
+
+  // Atrás/adelante del navegador (o edición manual del hash): reflejar en la vista.
   useEffect(() => {
     const onHashChange = () => {
-      const t = tabFromHash()
-      if (t) setTab(t)
+      const { tab: t, sub } = parseHash()
+      if (!t) return
+      setTab(t)
+      if (t === 'inbox' && sub) {
+        const conv = conversations.find(c => c.contact_id === sub)
+        if (conv) setSelectedConv(conv)
+        else pendingConvRef.current = sub
+      } else if (t !== 'inbox') {
+        setSelectedConv(null)
+      }
     }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
-  }, [])
+  }, [conversations])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
