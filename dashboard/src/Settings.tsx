@@ -153,6 +153,10 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
   const [bgColor, setBgColor] = useState<string>(() => localStorage.getItem('ar_bg_color') ?? 'var(--bg-base)')
   const [fontFamily, setFontFamily] = useState<string>(() => localStorage.getItem('ar_font') ?? 'Bricolage Grotesque')
 
+  // Prueba de resumen por email
+  const [testingSummary, setTestingSummary] = useState(false)
+  const [summaryTestMsg, setSummaryTestMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
+
   // Builder del menú de botones del bot
   const [menuBody, setMenuBody] = useState('¿En qué te puedo ayudar?')
   const [menuButtons, setMenuButtons] = useState<string[]>(['Agendar turno', 'Ver servicios', 'Hablar con alguien'])
@@ -347,6 +351,27 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
 
   function update(key: keyof BusinessConfig, value: any) {
     setConfig(prev => prev ? { ...prev, [key]: value } : prev)
+  }
+
+  // Envía un resumen de prueba al instante (usa el login, no el secreto del cron).
+  async function sendTestSummary() {
+    setSummaryTestMsg(null)
+    setTestingSummary(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/notifications/test-summary`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify({ period: config?.summary_frequency ?? 'daily' }),
+      })
+      const j = await res.json()
+      if (!res.ok) throw new Error(j.error || 'No se pudo enviar')
+      setSummaryTestMsg({ kind: 'ok', text: uis(`Resumen enviado a ${j.sentTo}. Revisá el correo (mirá spam la primera vez).`, `Summary sent to ${j.sentTo}. Check your inbox (spam the first time).`) })
+    } catch (e: any) {
+      setSummaryTestMsg({ kind: 'err', text: e.message })
+    } finally {
+      setTestingSummary(false)
+    }
   }
 
   function addTag(key: 'escalation_keywords' | 'forbidden_words' | 'closing_phrases', value: string, setter: (v: string) => void) {
@@ -936,6 +961,16 @@ export default function Settings({ onSave, businessId, onThemeChange, onFontChan
                       <div style={{ ...s.toggleThumb, ...(config.daily_summary ? s.toggleThumbOn : {}) }} />
                     </div>
                   </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
+                  <button type="button" onClick={sendTestSummary} disabled={testingSummary}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border-mid)', background: 'transparent', color: 'var(--text-1)', fontSize: 12, cursor: testingSummary ? 'default' : 'pointer', fontFamily: 'inherit', opacity: testingSummary ? 0.6 : 1 }}>
+                    <i className="ti ti-mail-forward" style={{ fontSize: 14 }} />
+                    {testingSummary ? uis('Enviando…', 'Sending…') : uis('Enviar resumen de prueba', 'Send test summary')}
+                  </button>
+                  {summaryTestMsg && (
+                    <span style={{ fontSize: 12, color: summaryTestMsg.kind === 'ok' ? 'var(--accent)' : '#dc2626' }}>{summaryTestMsg.text}</span>
+                  )}
                 </div>
               </Field>
 

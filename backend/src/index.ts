@@ -7,6 +7,7 @@ const cronRouter = require('./api/cron');
 const adminRouter = require('./api/admin');
 const contactRouter = require('./api/contact');
 const broadcastRouter = require('./api/broadcasts');
+const notificationsRouter = require('./api/notifications');
 const authRouter = require('./api/auth').default;
 const { startRemindersJob } = require('./services/reminders');
 const { initLogger, errorHandler } = require('./services/logger');
@@ -82,6 +83,7 @@ app.use('/api/cron', cronRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/contact', contactLimiter, contactRouter);
 app.use('/api/broadcasts', broadcastRouter);
+app.use('/api/notifications', notificationsRouter);
 app.use('/api/auth', signupLimiter, authRouter);
 
 // ── Manejo global de errores (al final de las rutas) ────────────────────────────
