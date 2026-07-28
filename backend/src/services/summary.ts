@@ -1,12 +1,6 @@
+import { C, FONT, esc, shell, header, footer, button } from './emailTheme';
 const { supabase } = require('../config/supabase');
 const { sendMail } = require('./mailer');
-
-// Escapa texto que viene de clientes antes de meterlo en el HTML del email
-function esc(s: any): string {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
 
 async function buildSummaryData(businessId: string, sinceIso: string, todayStr: string) {
   const convIds = (
@@ -42,59 +36,80 @@ async function buildSummaryData(businessId: string, sinceIso: string, todayStr: 
   };
 }
 
+// Card de métrica. Se renderiza como <td> porque Gmail, Outlook y Yahoo
+// descartan display:grid / flex — por eso las tarjetas salían apiladas.
+function metricCell(value: number | string, label: string, opts: { alert?: boolean } = {}) {
+  const bg     = opts.alert ? C.warnBg : C.cardAlt;
+  const border = opts.alert ? C.warnBorder : C.border;
+  const color  = opts.alert ? C.warnText : C.accent;
+  return `<td width="33.33%" valign="top" style="padding:0 4px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+           style="background:${bg};border:1px solid ${border};border-radius:10px;">
+      <tr><td align="center" style="padding:18px 8px;">
+        <div style="font-family:${FONT};font-size:30px;line-height:34px;font-weight:700;color:${color};">${value}</div>
+        <div style="font-family:${FONT};font-size:11px;line-height:15px;color:${C.text2};margin-top:6px;letter-spacing:.02em;">${label}</div>
+      </td></tr>
+    </table>
+  </td>`;
+}
+
 function buildHtml(business: any, period: 'daily' | 'weekly', data: ReturnType<typeof buildSummaryData> extends Promise<infer T> ? T : never, dateLabel: string) {
   const periodLabel = period === 'weekly' ? 'Resumen semanal' : 'Resumen diario';
-  const dashUrl = 'https://automation-ai-dashboard.vercel.app';
 
-  const apptRows = data.appts.map((a: any) =>
-    `<tr>
-      <td style="padding:6px 8px;border-bottom:1px solid #1e1e2e;">${a.appointment_date}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid #1e1e2e;">${a.appointment_time?.slice(0,5)}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid #1e1e2e;">${esc(a.client_name) || '—'}</td>
-      <td style="padding:6px 8px;border-bottom:1px solid #1e1e2e;color:#a78bfa;">${esc(a.title)}</td>
+  const apptRows = data.appts.map((a: any, i: number) =>
+    `<tr style="background:${i % 2 ? C.cardAlt : C.card};">
+      <td style="padding:10px 12px;border-bottom:1px solid ${C.border};font-family:${FONT};font-size:13px;color:${C.text1};white-space:nowrap;">${esc(a.appointment_date)}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid ${C.border};font-family:${FONT};font-size:13px;color:${C.text1};font-weight:600;white-space:nowrap;">${esc(a.appointment_time?.slice(0, 5))}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid ${C.border};font-family:${FONT};font-size:13px;color:${C.text1};">${esc(a.client_name) || '—'}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid ${C.border};font-family:${FONT};font-size:13px;color:${C.accentDark};">${esc(a.title)}</td>
     </tr>`
   ).join('');
 
-  return `
-  <div style="font-family:sans-serif;max-width:560px;margin:0 auto;background:#0d0d14;color:#e2e8f0;border-radius:12px;overflow:hidden;border:1px solid #1e1e2e;">
-    <div style="background:#7c3aed;padding:24px 28px;">
-      <h2 style="color:#fff;margin:0;font-size:18px;">📊 ${periodLabel} — ${esc(business.name)}</h2>
-      <p style="color:#ddd6fe;margin:4px 0 0;font-size:13px;">${dateLabel}</p>
-    </div>
-    <div style="padding:24px 28px;">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;">
-        <div style="background:#1a1a2e;border-radius:8px;padding:16px;text-align:center;">
-          <div style="font-size:28px;font-weight:700;color:#a78bfa;">${data.totalConvs}</div>
-          <div style="font-size:12px;color:#6b7280;margin-top:4px;">Conversaciones</div>
-        </div>
-        <div style="background:#1a1a2e;border-radius:8px;padding:16px;text-align:center;">
-          <div style="font-size:28px;font-weight:700;color:#a78bfa;">${data.totalMsgs}</div>
-          <div style="font-size:12px;color:#6b7280;margin-top:4px;">Mensajes recibidos</div>
-        </div>
-        <div style="background:${data.pendingCount > 0 ? '#2e1a1a' : '#1a1a2e'};border-radius:8px;padding:16px;text-align:center;border:${data.pendingCount > 0 ? '1px solid #7f1d1d' : 'none'};">
-          <div style="font-size:28px;font-weight:700;color:${data.pendingCount > 0 ? '#ef4444' : '#a78bfa'};">${data.pendingCount}</div>
-          <div style="font-size:12px;color:#6b7280;margin-top:4px;">Escaladas</div>
-        </div>
+  const preheader = `${data.totalConvs} conversaciones · ${data.totalAppts} turnos próximos${data.pendingCount > 0 ? ` · ${data.pendingCount} escaladas` : ''}`;
+
+  return shell({
+    title: `${periodLabel} — ${business.name}`,
+    preheader,
+    body: `
+    ${header(`${periodLabel} — ${esc(business.name)}`, esc(dateLabel))}
+
+    <tr><td style="padding:24px 24px 8px;">
+      <!-- Métricas en fila real (tabla, no grid) -->
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 -4px;">
+        <tr>
+          ${metricCell(data.totalConvs, 'Conversaciones')}
+          ${metricCell(data.totalMsgs, 'Mensajes recibidos')}
+          ${metricCell(data.pendingCount, 'Escaladas', { alert: data.pendingCount > 0 })}
+        </tr>
+      </table>
+    </td></tr>
+
+    ${data.totalAppts > 0 ? `
+    <tr><td style="padding:20px 24px 0;">
+      <div style="font-family:${FONT};font-size:13px;font-weight:700;color:${C.text1};margin-bottom:10px;">Próximos turnos <span style="color:${C.text3};font-weight:500;">(${data.totalAppts})</span></div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+             style="border:1px solid ${C.border};border-radius:10px;overflow:hidden;border-collapse:separate;">
+        <tr style="background:${C.navy};">
+          <th align="left" style="padding:9px 12px;font-family:${FONT};font-size:11px;font-weight:600;color:#8A96A3;text-transform:uppercase;letter-spacing:.05em;">Fecha</th>
+          <th align="left" style="padding:9px 12px;font-family:${FONT};font-size:11px;font-weight:600;color:#8A96A3;text-transform:uppercase;letter-spacing:.05em;">Hora</th>
+          <th align="left" style="padding:9px 12px;font-family:${FONT};font-size:11px;font-weight:600;color:#8A96A3;text-transform:uppercase;letter-spacing:.05em;">Cliente</th>
+          <th align="left" style="padding:9px 12px;font-family:${FONT};font-size:11px;font-weight:600;color:#8A96A3;text-transform:uppercase;letter-spacing:.05em;">Servicio</th>
+        </tr>
+        ${apptRows}
+      </table>
+    </td></tr>` : `
+    <tr><td style="padding:16px 24px 0;">
+      <div style="font-family:${FONT};font-size:13px;color:${C.text2};background:${C.cardAlt};border:1px solid ${C.border};border-radius:10px;padding:14px 16px;">
+        No hay turnos agendados para los próximos días.
       </div>
-      ${data.totalAppts > 0 ? `
-      <h3 style="font-size:14px;font-weight:600;margin:0 0 12px;color:#e2e8f0;">📅 Próximos turnos (${data.totalAppts})</h3>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px;">
-        <thead><tr style="background:#1a1a2e;">
-          <th style="padding:8px;text-align:left;color:#6b7280;font-weight:500;">Fecha</th>
-          <th style="padding:8px;text-align:left;color:#6b7280;font-weight:500;">Hora</th>
-          <th style="padding:8px;text-align:left;color:#6b7280;font-weight:500;">Cliente</th>
-          <th style="padding:8px;text-align:left;color:#6b7280;font-weight:500;">Servicio</th>
-        </tr></thead>
-        <tbody>${apptRows}</tbody>
-      </table>` : ''}
-      <a href="${dashUrl}" style="display:inline-block;background:#7c3aed;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
-        Ver dashboard →
-      </a>
-    </div>
-    <div style="padding:14px 28px;background:#0a0a12;border-top:1px solid #1e1e2e;font-size:11px;color:#4b5563;">
-      Wasso · Podés desactivar este resumen desde Configuración → Notificaciones
-    </div>
-  </div>`;
+    </td></tr>`}
+
+    <tr><td style="padding:22px 24px 26px;">
+      ${button('Ver dashboard &rarr;')}
+    </td></tr>
+
+    ${footer('Wasso · Podés desactivar este resumen desde Configuración &rarr; Notificaciones')}`,
+  });
 }
 
 export async function sendSummary(business: any, period: 'daily' | 'weekly') {
@@ -112,7 +127,7 @@ export async function sendSummary(business: any, period: 'daily' | 'weekly') {
     : now.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const periodLabel = period === 'weekly' ? 'semana' : 'hoy';
-  const subject = `📊 Resumen de ${periodLabel} — ${business.name} (${data.totalConvs} conv, ${data.totalAppts} turnos)`;
+  const subject = `Resumen de ${periodLabel} — ${business.name} (${data.totalConvs} conv, ${data.totalAppts} turnos)`;
 
   await sendMail({
     to: business.escalation_email,
