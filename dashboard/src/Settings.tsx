@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 import { useNotifications } from './hooks/useNotifications'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useLang } from './i18n'
+import { hasProFeatures } from './plans'
 
 
 interface BusinessConfig {
@@ -129,8 +130,8 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'ba
   onFontChange?: (font: string) => void
   plan?: string
 }) {
-  // Features Pro habilitadas para Pro y Premium. Basic no.
-  const isPro = plan === 'pro' || plan === 'premium'
+  // Features Pro habilitadas para Pro y Premium. Basic no. (ver src/plans.ts)
+  const isPro = hasProFeatures(plan)
   const { lang } = useLang()
   const uis = (es: string, en: string) => lang === 'en' ? en : es
   useNotifications()

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import { PLANS, PLAN_COLORS, DEFAULT_PLAN } from './plans'
 
 interface Business {
   id: string; name: string; type: string; is_active: boolean; plan: string
@@ -15,12 +16,9 @@ function timeAgo(d: string) {
   return `${Math.floor(s / 86400)}d`
 }
 
-const PLAN_COLORS: Record<string, string> = {
-  basic: 'var(--accent-2)', pro: 'var(--accent)', premium: 'var(--purple)'
-}
+// Planes, colores y precios viven en src/plans.ts (única fuente de verdad).
 // El período de prueba no es un plan: se asigna el plan real que va a pagar el
 // cliente y el corte se hace a mano (bajar plan o suspender).
-const PLANS = ['basic', 'pro', 'premium']
 
 const SEED_COLORS = ['#10b981','#f59e0b','#3b82f6','#8b5cf6','#ef4444','#ec4899']
 function seedColor(id: string) {
@@ -202,7 +200,7 @@ export default function Clients() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.name}</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>{b.plan || 'basic'} · {b.msg_count || 0} msgs</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>{b.plan || DEFAULT_PLAN} · {b.msg_count || 0} msgs</div>
                 </div>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: b.is_active ? 'var(--accent)' : 'var(--danger)', flexShrink: 0 }} />
               </div>
@@ -231,13 +229,13 @@ export default function Clients() {
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>{selected.name}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Badge label={selected.plan || 'basic'} color={PLAN_COLORS[selected.plan] || 'var(--text-2)'} />
+                <Badge label={selected.plan || DEFAULT_PLAN} color={PLAN_COLORS[selected.plan] || 'var(--text-2)'} />
                 <Badge label={selected.is_active ? 'activo' : 'suspendido'} color={selected.is_active ? 'var(--accent)' : 'var(--danger)'} />
                 {selected.type && <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{selected.type}</span>}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <select value={selected.plan || 'basic'} onChange={e => updatePlan(selected, e.target.value)}
+              <select value={selected.plan || DEFAULT_PLAN} onChange={e => updatePlan(selected, e.target.value)}
                 style={{ background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 7, padding: '6px 10px', fontSize: 12, color: 'var(--text-1)', cursor: 'pointer', outline: 'none', fontFamily: 'inherit' }}>
                 {PLANS.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
               </select>

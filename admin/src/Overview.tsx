@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import { PLANS, PLAN_PRICE } from './plans'
 
 interface OverviewProps {
   onNavigate: (tab: any) => void
@@ -122,7 +123,6 @@ export default function Overview({ onNavigate, onAlertCount }: OverviewProps) {
     const userN = allM?.filter(x => x.sender === 'user').length ?? 0
     const automationRate = userN > 0 ? Math.min(100, Math.round((assistN / userN) * 100)) : 0
 
-    const PLAN_PRICE: Record<string, number> = { basic: 19.99, pro: 39.99, premium: 89.99 }
     const { data: activeBizPlans } = await supabase.from('businesses').select('plan').eq('is_active', true)
     const estimatedMRR = (activeBizPlans ?? []).reduce((s: number, b: any) => s + (PLAN_PRICE[b.plan] || 0), 0)
     const counts: Record<string, number> = {}
@@ -159,11 +159,14 @@ export default function Overview({ onNavigate, onAlertCount }: OverviewProps) {
   )
   if (!m) return null
 
-  const planRevenue = [
-    { plan: 'Premium', clients: planCounts['premium'] || 0, price: 89.99 },
-    { plan: 'Pro', clients: planCounts['pro'] || 0, price: 39.99 },
-    { plan: 'Basic', clients: planCounts['basic'] || 0, price: 19.99 },
-  ]
+  // Del más caro al más barato, leyendo precios de src/plans.ts.
+  const planRevenue = [...PLANS]
+    .sort((a, b) => PLAN_PRICE[b] - PLAN_PRICE[a])
+    .map(p => ({
+      plan: p.charAt(0).toUpperCase() + p.slice(1),
+      clients: planCounts[p] || 0,
+      price: PLAN_PRICE[p],
+    }))
 
   return (
     <div style={{ overflowY: 'auto', height: '100%', padding: '20px 24px' }}>

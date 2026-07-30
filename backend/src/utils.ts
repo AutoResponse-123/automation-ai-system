@@ -72,7 +72,11 @@ export function buildSystemPrompt(business: any, contactSummary?: string): strin
   const apptEnabled = business.schedule?.appointments_enabled !== false;
   const apptLabel = (business.schedule?.label || '').trim() || 'turnos';
 
-  if (apptEnabled && business.appointment_categories?.length > 0) {
+  // Las categorías existen para agendar, así que se gatean igual que el resto de
+  // la agenda: un Basic no tiene herramientas de turnos y no hay que sugerirle
+  // que agende (termina prometiendo reservas que no puede hacer). Sus servicios
+  // y precios los sigue contando desde los campos `services` y `prices`.
+  if (apptEnabled && hasProFeatures(business.plan) && business.appointment_categories?.length > 0) {
     const cats = business.appointment_categories.map((c: any) => `- ${c.name} (${c.duration_minutes} min)`).join('\n');
     parts.push(`\nCategorías de servicio disponibles:\n${cats}\nUsá estas categorías y duraciones al agendar.`);
   }

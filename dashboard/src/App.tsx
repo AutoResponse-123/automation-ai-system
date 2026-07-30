@@ -6,6 +6,7 @@ import type { Lang } from './i18n'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
+import { hasProFeatures } from './plans'
 import Analytics from './Analytics'
 import Contacts from './Contacts'
 import Pipeline from './Pipeline'
@@ -735,18 +736,21 @@ export default function App() {
 
   const apptEnabled = businessData?.schedule?.appointments_enabled !== false
   const apptLabel = (businessData?.schedule?.label || '').trim() || tr('nav_appointments', lang)
+  // Los turnos son una feature Pro. En Basic la sección sigue visible pero
+  // bloqueada, para que se vea qué se gana al subir de plan. (ver src/plans.ts)
+  const isPro = hasProFeatures(businessData?.plan)
   // Etiquetas del negocio (configurables en Configuración → Etiquetas). Si están vacías, usa los presets.
   const activeTags: { label: string; color: string }[] =
     (businessData?.conversation_tags?.length ? businessData.conversation_tags : TAG_PRESETS)
 
-  const navItems: { id: Tab; icon: string; label: string }[] = [
+  const navItems: { id: Tab; icon: string; label: string; locked?: boolean }[] = [
     { id: 'dashboard',    icon: 'ti-layout-dashboard', label: tr('nav_dashboard', lang) },
     { id: 'inbox',        icon: 'ti-message-2',        label: tr('nav_inbox', lang) },
     { id: 'analytics',    icon: 'ti-chart-bar',        label: tr('nav_analytics', lang) },
     { id: 'contacts',     icon: 'ti-users',            label: tr('nav_contacts', lang) },
     { id: 'pipeline',     icon: 'ti-layout-kanban',    label: tr('nav_pipeline', lang) },
     { id: 'broadcasts',   icon: 'ti-speakerphone',     label: tr('nav_broadcasts', lang) },
-    ...(apptEnabled ? [{ id: 'appointments' as Tab, icon: 'ti-calendar', label: apptLabel }] : []),
+    ...(apptEnabled ? [{ id: 'appointments' as Tab, icon: isPro ? 'ti-calendar' : 'ti-lock', label: apptLabel, locked: !isPro }] : []),
     { id: 'activity',     icon: 'ti-activity',         label: tr('nav_activity', lang) },
     { id: 'settings',     icon: 'ti-settings',         label: tr('nav_settings', lang) },
   ]
@@ -784,8 +788,8 @@ export default function App() {
           <span style={s.brandName}>Wasso</span>
         </div>
         {navItems.map(n => (
-          <button key={n.id} onClick={() => setTab(n.id)} title={n.label}
-            style={{ ...s.sIcon, ...(tab === n.id ? s.sIconActive : {}) }}>
+          <button key={n.id} onClick={() => setTab(n.id)} title={n.locked ? `${n.label} — ${lang === 'en' ? 'Available on Pro and Premium' : 'Disponible en Pro y Premium'}` : n.label}
+            style={{ ...s.sIcon, ...(tab === n.id ? s.sIconActive : {}), ...(n.locked ? { opacity: 0.55 } : {}) }}>
             <i className={`ti ${n.icon}`} style={{ fontSize: 19, width: 22, textAlign: 'center', flexShrink: 0 }} aria-hidden="true" />
             <span style={{ ...s.sLabel, ...(tab === n.id ? { color: 'var(--accent)', fontWeight: 600 } : {}) }}>{n.label}</span>
             {n.id === 'inbox' && unreadCount > 0 && (
@@ -1399,7 +1403,31 @@ export default function App() {
           }} />
         )}
         {tab === 'broadcasts' && businessId && <Broadcasts businessId={businessId} />}
-        {tab === 'appointments' && businessId && apptEnabled && <Appointments businessId={businessId} label={apptLabel} />}
+        {tab === 'appointments' && businessId && apptEnabled && (isPro ? (
+          <Appointments businessId={businessId} label={apptLabel} />
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 24 }}>
+            <div style={{ background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 14, padding: '32px 28px', maxWidth: 460, textAlign: 'center' }}>
+              <div style={{ width: 52, height: 52, borderRadius: 14, background: '#1585c718', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <i className="ti ti-lock" style={{ fontSize: 24, color: '#3aa9e5' }} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-1)' }}>{apptLabel}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, background: '#1585c722', color: '#3aa9e5', border: '1px solid #1585c744', borderRadius: 4, padding: '2px 8px' }}>PRO</span>
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6, marginBottom: 18 }}>
+                {lang === 'en'
+                  ? 'Appointment booking is available on the Pro and Premium plans. The assistant checks real availability on Google Calendar, books, reschedules and cancels on its own, and sends reminders before each appointment.'
+                  : 'La gestión de turnos está disponible en los planes Pro y Premium. El asistente consulta la disponibilidad real en Google Calendar, agenda, reprograma y cancela solo, y manda recordatorios antes de cada turno.'}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                {lang === 'en' ? 'Your current plan: ' : 'Tu plan actual: '}
+                <b style={{ color: 'var(--text-2)' }}>{businessData?.plan ?? 'basic'}</b>
+                {lang === 'en' ? '. Contact us to upgrade.' : '. Escribinos para subir de plan.'}
+              </div>
+            </div>
+          </div>
+        ))}
         {tab === 'activity' && <Activity />}
         {tab === 'settings' && <Settings businessId={businessId} onThemeChange={applyTheme} onFontChange={f => { setDashFont(f); localStorage.setItem('ar_font', f) }} plan={businessData?.plan ?? 'basic'} />}
       </div>

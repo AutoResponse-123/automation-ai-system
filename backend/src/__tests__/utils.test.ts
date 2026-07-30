@@ -153,13 +153,26 @@ describe('buildSystemPrompt', () => {
     expect(prompt).not.toContain('get_available_slots');
   });
 
-  it('incluye categorías si están configuradas', () => {
+  it('incluye categorías si están configuradas y el plan es Pro', () => {
     const prompt = buildSystemPrompt({
       ...baseBusiness,
+      plan: 'pro',
       appointment_categories: [{ name: 'Corte', duration_minutes: 30 }],
     });
     expect(prompt).toContain('Corte');
     expect(prompt).toContain('30 min');
+  });
+
+  // Los turnos son feature Pro: a un Basic no hay que sugerirle que agende,
+  // porque no recibe las herramientas y termina prometiendo reservas falsas.
+  it('NO incluye categorías si el plan es Basic', () => {
+    const prompt = buildSystemPrompt({
+      ...baseBusiness,
+      plan: 'basic',
+      appointment_categories: [{ name: 'Corte', duration_minutes: 30 }],
+    });
+    expect(prompt).not.toContain('Categorías de servicio');
+    expect(prompt).not.toContain('al agendar');
   });
 
   it('en modo alias de Mercado Pago, le pide al bot aclarar el monto a transferir', () => {
