@@ -4,7 +4,7 @@ import { useNotifications } from './hooks/useNotifications'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useLang } from './i18n'
 import { hasProFeatures, hasAudioFeature } from './plans'
-import { LockedRow } from './LockedFeature'
+import { LockedRow, LockedPanel } from './LockedFeature'
 
 
 interface BusinessConfig {
@@ -402,7 +402,9 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'ba
     { id: 'notificaciones', icon: 'ti-bell',           label: sl('notificaciones') },
     { id: 'integraciones',  icon: 'ti-plug',           label: sl('integraciones') },
     { id: 'etiquetas',      icon: 'ti-tag',            label: sl('etiquetas') },
-    { id: 'turnos',         icon: 'ti-calendar-event', label: sl('turnos') },
+    // Candado en la sección de turnos si el plan no la incluye (igual que en
+    // el menú principal), para que el ícono ya avise antes de entrar.
+    { id: 'turnos',         icon: isPro ? 'ti-calendar-event' : 'ti-lock', label: sl('turnos') },
   ]
 
   return (
@@ -1279,8 +1281,21 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'ba
             </div>
           )}
 
-          {/* ── Turnos ── */}
-          {activeSection === 'turnos' && (
+          {/* ── Turnos — feature Pro. Sin esto un Basic podía configurar
+                 duraciones y servicios de una agenda que su plan no usa. ── */}
+          {activeSection === 'turnos' && !isPro && (
+            <div style={s.section}>
+              <LockedPanel
+                icon="ti-calendar-event" title={sl('turnos')} tier="pro" lang={lang}
+                currentPlan={plan}
+                description={uis(
+                  'El asistente consulta la disponibilidad real en Google Calendar, agenda, reprograma y cancela solo, y manda recordatorios antes de cada turno.',
+                  'The assistant checks real availability on Google Calendar, books, reschedules and cancels on its own, and sends reminders before each appointment.')}
+              />
+            </div>
+          )}
+
+          {activeSection === 'turnos' && isPro && (
             <div style={s.section}>
               <SectionHeader icon="ti-calendar-event" title={uis('Configuración de turnos', 'Appointment settings')} subtitle={uis('Elegí cómo se calculan los horarios y definí tus servicios', 'Choose how slots are calculated and define your services')} />
 
