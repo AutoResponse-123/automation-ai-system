@@ -889,19 +889,8 @@ export default function App() {
           </div>
         </div>
 
-        {/* Banner trial — solo en dashboard */}
-        {tab === 'dashboard' && businessData?.plan === 'trial' && businessData?.trial_ends_at && (() => {
-          const daysLeft = Math.floor((new Date(businessData.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-          if (daysLeft <= 0) return null
-          const urgent = daysLeft <= 2
-          return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', fontSize: 12, fontWeight: 500, background: urgent ? 'rgba(251,146,60,0.08)' : 'rgba(167,139,250,0.07)', borderBottom: `1px solid ${urgent ? 'rgba(251,146,60,0.2)' : 'rgba(167,139,250,0.15)'}`, color: urgent ? '#fb923c' : '#1585c7' }}>
-              <i className={`ti ${urgent ? 'ti-alarm' : 'ti-clock'}`} style={{ fontSize: 13 }} />
-              {daysLeft === 1 ? '⚠️ Tu prueba vence mañana.' : `Período de prueba: te quedan ${daysLeft} días.`}
-              <span style={{ color: urgent ? '#f97316' : '#3aa9e5', marginLeft: 2 }}>Contactanos para continuar.</span>
-            </div>
-          )
-        })()}
+        {/* El banner de trial fue eliminado: ya no existe el plan 'trial'. El
+            período de prueba lo controla el equipo manualmente. */}
 
         {/* Dashboard */}
         {tab === 'dashboard' && (
@@ -1412,7 +1401,7 @@ export default function App() {
         {tab === 'broadcasts' && businessId && <Broadcasts businessId={businessId} />}
         {tab === 'appointments' && businessId && apptEnabled && <Appointments businessId={businessId} label={apptLabel} />}
         {tab === 'activity' && <Activity />}
-        {tab === 'settings' && <Settings businessId={businessId} onThemeChange={applyTheme} onFontChange={f => { setDashFont(f); localStorage.setItem('ar_font', f) }} plan={businessData?.plan ?? 'trial'} />}
+        {tab === 'settings' && <Settings businessId={businessId} onThemeChange={applyTheme} onFontChange={f => { setDashFont(f); localStorage.setItem('ar_font', f) }} plan={businessData?.plan ?? 'basic'} />}
       </div>
 
       {/* Toasts */}

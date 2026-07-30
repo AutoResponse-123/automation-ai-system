@@ -65,17 +65,19 @@ export default function Alerts({ onCount }: AlertsProps) {
       })
     }
 
-    // 3. Trials próximos a vencer (< 5 días)
+    // 3. Períodos de prueba próximos a vencer (< 5 días).
+    // Ya no hay plan 'trial': la prueba se marca con trial_ends_at y el corte es
+    // manual, así que esta alerta es el recordatorio para hacerlo a tiempo.
     const in5 = new Date(now.getTime() + 5 * 86400000).toISOString()
     const { data: expiring } = await supabase
-      .from('businesses').select('id, name, trial_ends_at').eq('plan', 'trial').eq('is_active', true)
+      .from('businesses').select('id, name, plan, trial_ends_at').eq('is_active', true)
       .not('trial_ends_at', 'is', null).lte('trial_ends_at', in5)
     for (const b of expiring ?? []) {
       const daysLeft = Math.ceil((new Date(b.trial_ends_at).getTime() - now.getTime()) / 86400000)
       all.push({
         id: `trial-${b.id}`, severity: 'warning',
-        title: `Trial vence en ${daysLeft}d — ${b.name}`,
-        detail: `Vence el ${new Date(b.trial_ends_at).toLocaleDateString('es-AR')}. Convertir a plan pago.`,
+        title: daysLeft <= 0 ? `Prueba vencida — ${b.name}` : `Prueba vence en ${daysLeft}d — ${b.name}`,
+        detail: `Vence el ${new Date(b.trial_ends_at).toLocaleDateString('es-AR')}. Hoy está en ${b.plan}. Confirmar pago o suspender a mano.`,
         ago: '', icon: 'ti-clock-hour-4'
       })
     }

@@ -1,17 +1,24 @@
 export {};
 
-// Único lugar que define el acceso a las features Pro (turnos/Calendar, recordatorios,
-// Mercado Pago): Pro, Premium y el trial (para que prueben). Basic/starter NO.
-// ('enterprise' se mantiene como alias legacy del viejo nombre de Premium.)
-export function hasProFeatures(plan?: string): boolean {
-  return plan === 'pro' || plan === 'premium' || plan === 'enterprise' || plan === 'trial';
+// Planes válidos del sistema. Único lugar donde se define la lista.
+// El período de prueba NO es un plan: se asigna el plan real que va a pagar el
+// cliente y el control del tiempo es manual (ver trial_ends_at como anotación).
+export const PLANS = ['basic', 'pro', 'premium'] as const;
+export type Plan = typeof PLANS[number];
+
+export function isValidPlan(plan?: string): plan is Plan {
+  return PLANS.includes(plan as Plan);
 }
 
-// Las notas de voz (transcripción con IA) son EXCLUSIVAS del plan Premium.
-// Pro NO las tiene. (Si querés que el trial también las pruebe, agregá `|| plan === 'trial'`.)
-// ('enterprise' = alias legacy de Premium.)
+// Único lugar que define el acceso a las features Pro (turnos/Calendar,
+// recordatorios, Mercado Pago): Pro y Premium. Basic NO.
+export function hasProFeatures(plan?: string): boolean {
+  return plan === 'pro' || plan === 'premium';
+}
+
+// Las notas de voz (transcripción con IA) son EXCLUSIVAS del plan Premium. Pro NO las tiene.
 export function hasAudioFeature(plan?: string): boolean {
-  return plan === 'premium' || plan === 'enterprise';
+  return plan === 'premium';
 }
 
 export function buildSystemPrompt(business: any, contactSummary?: string): string {

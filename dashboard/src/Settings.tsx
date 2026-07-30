@@ -122,15 +122,15 @@ const DEFAULT_TAGS: ConversationTag[] = [
   { id: 'resuelto',    label: 'Resuelto',    color: '#4fc3f7' },
 ]
 
-export default function Settings({ onSave, businessId, onThemeChange, plan = 'trial' }: {
+export default function Settings({ onSave, businessId, onThemeChange, plan = 'basic' }: {
   onSave?: () => void
   businessId: string | null
   onThemeChange?: (accent?: string, bg?: string) => void
   onFontChange?: (font: string) => void
   plan?: string
 }) {
-  // Features Pro habilitadas para Pro, Enterprise y el trial (para que prueben). Basic no.
-  const isPro = plan === 'pro' || plan === 'enterprise' || plan === 'trial'
+  // Features Pro habilitadas para Pro y Premium. Basic no.
+  const isPro = plan === 'pro' || plan === 'premium'
   const { lang } = useLang()
   const uis = (es: string, en: string) => lang === 'en' ? en : es
   useNotifications()

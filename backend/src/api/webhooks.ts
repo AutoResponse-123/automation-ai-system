@@ -126,22 +126,14 @@ router.post('/whatsapp', async (req: any, res: any) => {
       return res.send(twiml.toString());
     }
 
-    if (business.plan === 'trial' && business.trial_ends_at) {
-      const trialEnd = new Date(business.trial_ends_at);
-      if (trialEnd < new Date()) {
-        await supabase.from('businesses').update({ is_active: false }).eq('id', business.id);
-        const trialMsg = `Tu período de prueba ha finalizado. Para continuar usando el servicio, contactanos para activar tu plan.`;
-        const twiml = new (require('twilio').twiml.MessagingResponse)();
-        twiml.message(trialMsg);
-        res.type('text/xml');
-        return res.send(twiml.toString());
-      }
-    }
+    // No hay corte automático por fin de prueba: el período de prueba se controla
+    // manualmente (se baja el plan o se desactiva el negocio desde el panel admin,
+    // lo que cae en el chequeo de is_active de más arriba).
 
     // Tope de conversaciones nuevas por mes según plan (coincide con la guía de venta).
     // Las conversaciones ya iniciadas siguen respondiendo; solo se frena un contacto
     // NUEVO una vez superado el tope. Pro/Premium dejan de ser ilimitados → protege margen.
-    const PLAN_LIMITS: Record<string, number> = { trial: 200, starter: 500, basic: 500, pro: 1500, premium: 4000, enterprise: 4000 };
+    const PLAN_LIMITS: Record<string, number> = { basic: 500, pro: 1500, premium: 4000 };
     const planLimit = PLAN_LIMITS[business.plan] ?? 500;
     if (planLimit > 0) {
       const monthStart = new Date();

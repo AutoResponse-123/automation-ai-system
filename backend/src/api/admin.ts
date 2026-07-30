@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 const { createClient } = require('@supabase/supabase-js');
+const { PLANS, isValidPlan } = require('../utils');
 
 const router = Router();
 
@@ -19,13 +20,20 @@ function checkAdminSecret(req: Request, res: Response): boolean {
 }
 
 // POST /api/admin/create-client
-// Body: { name, email, plan, phone_whatsapp?, trial_days? }
+// Body: { name, email, plan, phone_whatsapp?, trial_ends_at? }
+// El plan es obligatorio y debe ser uno de basic/pro/premium. El período de
+// prueba se maneja a mano: se asigna el plan real y, si se quiere dejar
+// registrada la fecha de corte, se pasa trial_ends_at (solo informativo).
 router.post('/create-client', async (req: Request, res: Response) => {
   if (!checkAdminSecret(req, res)) return;
 
-  const { name, email, plan = 'trial', phone_whatsapp = '', trial_days = 7 } = req.body;
+  const { name, email, plan, phone_whatsapp = '', trial_ends_at = null } = req.body;
   if (!name || !email) {
     res.status(400).json({ error: 'name y email son requeridos' });
+    return;
+  }
+  if (!isValidPlan(plan)) {
+    res.status(400).json({ error: `plan inválido. Debe ser uno de: ${PLANS.join(', ')}` });
     return;
   }
 
@@ -44,10 +52,8 @@ router.post('/create-client', async (req: Request, res: Response) => {
 
   const userId = authData.user.id;
 
-  // 2. Calcular trial_ends_at
-  const trialEndsAt = plan === 'trial'
-    ? new Date(Date.now() + trial_days * 24 * 3600000).toISOString()
-    : null;
+  // 2. Fecha de corte del período de prueba (opcional, solo informativa)
+  const trialEndsAt = trial_ends_at ?? null;
 
   // 3. Crear registro en businesses
   const { data: biz, error: bizError } = await adminSupabase

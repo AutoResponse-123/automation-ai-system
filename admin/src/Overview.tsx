@@ -122,7 +122,7 @@ export default function Overview({ onNavigate, onAlertCount }: OverviewProps) {
     const userN = allM?.filter(x => x.sender === 'user').length ?? 0
     const automationRate = userN > 0 ? Math.min(100, Math.round((assistN / userN) * 100)) : 0
 
-    const PLAN_PRICE: Record<string, number> = { trial: 0, basic: 19.99, pro: 39.99, premium: 89.99, starter: 19.99, enterprise: 89.99 }
+    const PLAN_PRICE: Record<string, number> = { basic: 19.99, pro: 39.99, premium: 89.99 }
     const { data: activeBizPlans } = await supabase.from('businesses').select('plan').eq('is_active', true)
     const estimatedMRR = (activeBizPlans ?? []).reduce((s: number, b: any) => s + (PLAN_PRICE[b.plan] || 0), 0)
     const counts: Record<string, number> = {}

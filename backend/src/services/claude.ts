@@ -4,6 +4,7 @@ const { getAvailableSlots, createEvent, isSlotFree, cancelEvent, resolveSlot, is
 const { supabase } = require('../config/supabase');
 const { createPaymentLink } = require('./mercadopago');
 const { sendCancellationEmail } = require('./email');
+const { hasProFeatures } = require('../utils');
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -144,9 +145,9 @@ async function callClaude(
   business?: any,
   clientPhone?: string
 ) {
-  // Features Pro (turnos/Calendar y Mercado Pago) solo para Pro/Enterprise/trial,
+  // Features Pro (turnos/Calendar y Mercado Pago) solo para Pro y Premium,
   // sin importar si quedó un token conectado de antes (un Basic no las usa).
-  const entitledPro = ['pro', 'premium', 'enterprise', 'trial'].includes(business?.plan);
+  const entitledPro = hasProFeatures(business?.plan);
   // Si el negocio desactivó la agenda (schedule.appointments_enabled === false), el bot NO ofrece agendar.
   const apptEnabled = business?.schedule?.appointments_enabled !== false;
   const hasCalendar = entitledPro && !!business?.google_refresh_token && apptEnabled;
@@ -172,7 +173,7 @@ async function callClaude(
   let guardRetries = 0;
 
   // Velocidad: usamos Haiku en TODOS los planes para que el bot responda lo más rápido
-  // posible (es muy capaz para atención + turnos). Antes Pro/trial usaba Sonnet (más lento).
+  // posible (es muy capaz para atención + turnos). Antes Pro usaba Sonnet (más lento).
   const model = 'claude-haiku-4-5-20251001';
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {

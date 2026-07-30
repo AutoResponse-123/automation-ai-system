@@ -8,7 +8,6 @@ const adminRouter = require('./api/admin');
 const contactRouter = require('./api/contact');
 const broadcastRouter = require('./api/broadcasts');
 const notificationsRouter = require('./api/notifications');
-const authRouter = require('./api/auth').default;
 const { startRemindersJob } = require('./services/reminders');
 const { initLogger, errorHandler } = require('./services/logger');
 
@@ -63,10 +62,6 @@ const contactLimiter = rateLimit({
   windowMs: 60_000 * 60, max: 5, standardHeaders: true, legacyHeaders: false,
   message: { error: 'Demasiados intentos. Esperá 1 hora.' }
 });
-const signupLimiter = rateLimit({
-  windowMs: 60_000 * 60, max: 3, standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Demasiados registros desde esta IP. Esperá 1 hora.' }
-});
 
 app.use(generalLimiter);
 app.use(express.json({ limit: '50kb' }));
@@ -84,7 +79,8 @@ app.use('/api/admin', adminRouter);
 app.use('/api/contact', contactLimiter, contactRouter);
 app.use('/api/broadcasts', broadcastRouter);
 app.use('/api/notifications', notificationsRouter);
-app.use('/api/auth', signupLimiter, authRouter);
+// El registro público (/api/auth/signup) fue eliminado: las cuentas las crea el
+// equipo desde el panel admin (POST /api/admin/clients).
 
 // ── Manejo global de errores (al final de las rutas) ────────────────────────────
 app.use(errorHandler);

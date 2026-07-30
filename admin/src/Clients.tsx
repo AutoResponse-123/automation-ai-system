@@ -16,10 +16,11 @@ function timeAgo(d: string) {
 }
 
 const PLAN_COLORS: Record<string, string> = {
-  trial: 'var(--warn)', basic: 'var(--accent-2)', pro: 'var(--accent)', premium: 'var(--purple)',
-  starter: 'var(--accent-2)', enterprise: 'var(--purple)'
+  basic: 'var(--accent-2)', pro: 'var(--accent)', premium: 'var(--purple)'
 }
-const PLANS = ['trial', 'basic', 'pro', 'premium']
+// El período de prueba no es un plan: se asigna el plan real que va a pagar el
+// cliente y el corte se hace a mano (bajar plan o suspender).
+const PLANS = ['basic', 'pro', 'premium']
 
 const SEED_COLORS = ['#10b981','#f59e0b','#3b82f6','#8b5cf6','#ef4444','#ec4899']
 function seedColor(id: string) {
@@ -47,7 +48,7 @@ export default function Clients() {
   const [showCreate, setShowCreate] = useState(false)
   const [saving, setSaving] = useState(false)
   const [createError, setCreateError] = useState('')
-  const [newForm, setNewForm] = useState({ name: '', email: '', phone: '', plan: 'trial', trial_days: '14' })
+  const [newForm, setNewForm] = useState({ name: '', email: '', phone: '', plan: 'basic', trial_ends_at: '' })
   const [setupLink, setSetupLink] = useState('')
   const [resendLink, setResendLink] = useState('')
 
@@ -59,12 +60,12 @@ export default function Clients() {
       const res = await fetch(backendUrl + '/api/admin/create-client', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-secret': import.meta.env.VITE_ADMIN_SECRET || '' },
-        body: JSON.stringify({ name: newForm.name, email: newForm.email, phone_whatsapp: newForm.phone, plan: newForm.plan, trial_days: Number(newForm.trial_days) }),
+        body: JSON.stringify({ name: newForm.name, email: newForm.email, phone_whatsapp: newForm.phone, plan: newForm.plan, trial_ends_at: newForm.trial_ends_at || null }),
       })
       const data = await res.json()
       if (!res.ok) { setCreateError(data.error || 'Error al crear cliente'); return }
       setSetupLink(data.setupLink || '')
-      setNewForm({ name: '', email: '', phone: '', plan: 'trial', trial_days: '14' })
+      setNewForm({ name: '', email: '', phone: '', plan: 'basic', trial_ends_at: '' })
       loadBusinesses()
     } catch (e: any) {
       setCreateError(e.message)
@@ -201,7 +202,7 @@ export default function Clients() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.name}</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>{b.plan || 'trial'} · {b.msg_count || 0} msgs</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>{b.plan || 'basic'} · {b.msg_count || 0} msgs</div>
                 </div>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: b.is_active ? 'var(--accent)' : 'var(--danger)', flexShrink: 0 }} />
               </div>
@@ -230,13 +231,13 @@ export default function Clients() {
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-1)', marginBottom: 4 }}>{selected.name}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Badge label={selected.plan || 'trial'} color={PLAN_COLORS[selected.plan] || 'var(--text-2)'} />
+                <Badge label={selected.plan || 'basic'} color={PLAN_COLORS[selected.plan] || 'var(--text-2)'} />
                 <Badge label={selected.is_active ? 'activo' : 'suspendido'} color={selected.is_active ? 'var(--accent)' : 'var(--danger)'} />
                 {selected.type && <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{selected.type}</span>}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <select value={selected.plan || 'trial'} onChange={e => updatePlan(selected, e.target.value)}
+              <select value={selected.plan || 'basic'} onChange={e => updatePlan(selected, e.target.value)}
                 style={{ background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 7, padding: '6px 10px', fontSize: 12, color: 'var(--text-1)', cursor: 'pointer', outline: 'none', fontFamily: 'inherit' }}>
                 {PLANS.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
               </select>
@@ -306,7 +307,7 @@ export default function Clients() {
               { label: 'User ID', value: selected.user_id || '—', mono: true },
               { label: 'WhatsApp', value: selected.phone_whatsapp || '—', mono: true },
               { label: 'Email escalación', value: selected.escalation_email || '—' },
-              { label: 'Trial vence', value: selected.trial_ends_at ? new Date(selected.trial_ends_at).toLocaleDateString('es-AR') : '—' },
+              { label: 'Fin de prueba', value: selected.trial_ends_at ? new Date(selected.trial_ends_at).toLocaleDateString('es-AR') : '—' },
               { label: 'Creado hace', value: timeAgo(selected.created_at) },
               { label: 'Tokens usados', value: (selected.token_count || 0).toLocaleString() },
               { label: 'Costo estimado', value: `$${((selected.token_count || 0) * 0.000003).toFixed(4)} USD` },
@@ -387,10 +388,10 @@ export default function Clients() {
               </select>
             </div>
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: 5 }}>Días de trial</label>
-              <input type="number" value={newForm.trial_days} onChange={e => setNewForm(prev => ({ ...prev, trial_days: e.target.value }))}
-                min="1" max="90" disabled={newForm.plan !== 'trial'}
-                style={{ width: '100%', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: newForm.plan !== 'trial' ? 'var(--text-3)' : 'var(--text-1)', outline: 'none', fontFamily: 'inherit' }} />
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-2)', display: 'block', marginBottom: 5 }}>Fin del período de prueba <span style={{ fontWeight: 400, color: 'var(--text-3)' }}>(opcional)</span></label>
+              <input type="date" value={newForm.trial_ends_at} onChange={e => setNewForm(prev => ({ ...prev, trial_ends_at: e.target.value }))}
+                style={{ width: '100%', background: 'var(--bg-raised)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: 'var(--text-1)', outline: 'none', fontFamily: 'inherit' }} />
+              <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 4 }}>Solo una anotación: no suspende nada automáticamente. Al vencer, bajá el plan o suspendé el cliente a mano.</div>
             </div>
             {createError && <div style={{ background: '#ef444418', border: '1px solid #ef444440', borderRadius: 8, padding: '8px 12px', fontSize: 11, color: '#ef4444', marginBottom: 14 }}>{createError}</div>}
             {setupLink && (
@@ -408,7 +409,7 @@ export default function Clients() {
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button
-                onClick={() => { setShowCreate(false); setCreateError(''); setSetupLink(''); setNewForm({ name: '', email: '', phone: '', plan: 'trial', trial_days: '14' }) }}
+                onClick={() => { setShowCreate(false); setCreateError(''); setSetupLink(''); setNewForm({ name: '', email: '', phone: '', plan: 'basic', trial_ends_at: '' }) }}
                 disabled={saving}
                 style={{ flex: 1, background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '9px', fontSize: 12, color: 'var(--text-2)', cursor: 'pointer', fontFamily: 'inherit' }}>
                 Cancelar

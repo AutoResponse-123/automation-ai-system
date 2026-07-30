@@ -4,7 +4,7 @@ import { supabase } from './supabase'
 interface DayStat { date: string; messages: number; tokens: number; cost: number }
 interface ClientStat { id: string; name: string; tokens: number; cost: number; msgs: number; plan: string }
 
-const PLAN_PRICE: Record<string, number> = { trial: 0, basic: 19.99, pro: 39.99, premium: 89.99, starter: 19.99, enterprise: 89.99 }
+const PLAN_PRICE: Record<string, number> = { basic: 19.99, pro: 39.99, premium: 89.99 }
 
 export default function Revenue() {
   const [stats, setStats] = useState<DayStat[]>([])
@@ -45,7 +45,7 @@ export default function Revenue() {
           tokens = bMsgs?.reduce((s, m) => s + (m.tokens_used ?? 0), 0) ?? 0
           msgCount = bMsgs?.length ?? 0
         }
-        return { id: b.id, name: b.name, tokens, cost: tokens * 0.000003, msgs: msgCount, plan: b.plan || 'trial' }
+        return { id: b.id, name: b.name, tokens, cost: tokens * 0.000003, msgs: msgCount, plan: b.plan || 'basic' }
       }))
       setClientStats(cs.sort((a, b) => b.cost - a.cost))
     }
@@ -211,4 +211,4 @@ export default function Revenue() {
   )
 }
 
-const PLAN_COLORS: Record<string, string> = { trial: '#f59e0b', basic: '#3b82f6', pro: '#10b981', premium: '#8b5cf6', starter: '#3b82f6', enterprise: '#8b5cf6' }
+const PLAN_COLORS: Record<string, string> = { basic: '#3b82f6', pro: '#10b981', premium: '#8b5cf6' }

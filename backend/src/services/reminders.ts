@@ -3,6 +3,7 @@ const cron = require('node-cron');
 const { supabase } = require('../config/supabase');
 const { sendWhatsAppMessage, sendWhatsAppTemplate } = require('./twilio');
 const { wallTimeToUtc } = require('./calendar');
+const { hasProFeatures } = require('../utils');
 
 async function autoCompleteAppointments() {
   try {
@@ -75,8 +76,8 @@ async function sendPendingReminders() {
     const now = new Date();
 
     for (const business of businesses) {
-      // Recordatorios = feature Pro (Pro/Enterprise/trial). Basic no.
-      if (!['pro', 'premium', 'enterprise', 'trial'].includes(business.plan)) continue;
+      // Recordatorios = feature Pro (Pro/Premium). Basic no.
+      if (!hasProFeatures(business.plan)) continue;
       if (!business.reminders_enabled) continue; // respeta el toggle del dashboard
       const hoursConfig: number[] = business.reminder_hours_before || [24];
       const tz = business.schedule?.timezone || 'America/Argentina/Buenos_Aires';

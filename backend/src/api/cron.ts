@@ -14,22 +14,9 @@ function checkSecret(req: Request, res: Response): boolean {
   return true;
 }
 
-// GET /api/cron/expire-trials
-router.get('/expire-trials', async (req: Request, res: Response) => {
-  if (!checkSecret(req, res)) return;
-  const now = new Date().toISOString();
-  const { data, error } = await supabase
-    .from('businesses')
-    .update({ is_active: false })
-    .eq('plan', 'trial')
-    .eq('is_active', true)
-    .lt('trial_ends_at', now)
-    .select('id, name, trial_ends_at');
-  if (error) { res.status(500).json({ error: error.message }); return; }
-  const count = data?.length ?? 0;
-  console.log('Cron expire-trials: ' + count + ' businesses suspendidos');
-  res.json({ suspended: count, businesses: data });
-});
+// El cron /expire-trials fue eliminado junto con el plan 'trial'. El período de
+// prueba se controla manualmente: se asigna el plan real y, al terminar, se baja
+// el plan o se desactiva el negocio desde el panel admin.
 
 // GET /api/cron/daily-summary — llamar a las 9am
 router.get('/daily-summary', async (req: Request, res: Response) => {
