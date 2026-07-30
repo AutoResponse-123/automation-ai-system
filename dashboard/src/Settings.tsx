@@ -3,7 +3,8 @@ import { supabase } from './supabase'
 import { useNotifications } from './hooks/useNotifications'
 import { useIsMobile } from './hooks/useIsMobile'
 import { useLang } from './i18n'
-import { hasProFeatures } from './plans'
+import { hasProFeatures, hasAudioFeature } from './plans'
+import { LockedRow } from './LockedFeature'
 
 
 interface BusinessConfig {
@@ -132,6 +133,8 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'ba
 }) {
   // Features Pro habilitadas para Pro y Premium. Basic no. (ver src/plans.ts)
   const isPro = hasProFeatures(plan)
+  // Notas de voz: exclusivas de Premium, ni siquiera Pro las tiene.
+  const isPremium = hasAudioFeature(plan)
   const { lang } = useLang()
   const uis = (es: string, en: string) => lang === 'en' ? en : es
   useNotifications()
@@ -1027,18 +1030,7 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'ba
 
               {/* Google Calendar */}
               {!isPro ? (
-                <div style={{ background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 10, padding: '14px 16px', marginBottom: 10, opacity: 0.6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <i className="ti ti-calendar" style={{ fontSize: 18, color: '#4285f4' }} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>Google Calendar</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2 }}>{uis('Disponible en el plan Pro', 'Available on the Pro plan')}</div>
-                    </div>
-                    <span style={{ fontSize: 10, fontWeight: 700, background: '#1585c722', color: '#3aa9e5', border: '1px solid #1585c744', borderRadius: 4, padding: '2px 8px' }}>PRO</span>
-                  </div>
-                </div>
+                <LockedRow icon="ti-calendar" iconColor="#4285f4" name="Google Calendar" tier="pro" lang={lang} />
               ) : (
                 <IntegrationCard
                   icon="ti-calendar" iconColor="#4285f4"
@@ -1059,7 +1051,14 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'ba
                 />
               )}
 
-              {/* Recordatorios automáticos */}
+              {/* Recordatorios automáticos — feature Pro.
+                  Antes solo se bloqueaban por "falta Google Calendar", que era
+                  engañoso: un Basic tampoco puede conectar Calendar, así que el
+                  motivo real es el plan. */}
+              {!isPro ? (
+                <LockedRow icon="ti-bell-ringing" iconColor="#f59e0b"
+                  name={uis('Recordatorios automáticos', 'Automatic reminders')} tier="pro" lang={lang} />
+              ) : (
               <div style={{ background: 'var(--bg-card)', border: `0.5px solid ${config.reminders_enabled ? '#2a3a2a' : 'var(--border-mid)'}`, borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -1157,21 +1156,11 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'ba
                   </div>
                 )}
               </div>
+              )}
 
               {/* Mercado Pago */}
               {!isPro ? (
-                <div style={{ background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 10, padding: '14px 16px', marginBottom: 10, opacity: 0.6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <i className="ti ti-brand-mastercard" style={{ fontSize: 18, color: '#00b1ea' }} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-1)' }}>Mercado Pago</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-2)', marginTop: 2 }}>{uis('Disponible en el plan Pro', 'Available on the Pro plan')}</div>
-                    </div>
-                    <span style={{ fontSize: 10, fontWeight: 700, background: '#1585c722', color: '#3aa9e5', border: '1px solid #1585c744', borderRadius: 4, padding: '2px 8px' }}>PRO</span>
-                  </div>
-                </div>
+                <LockedRow icon="ti-brand-mastercard" iconColor="#00b1ea" name="Mercado Pago" tier="pro" lang={lang} />
               ) : (
                 <IntegrationCard
                   icon="ti-brand-mastercard" iconColor="#00b1ea"
@@ -1190,6 +1179,31 @@ export default function Settings({ onSave, businessId, onThemeChange, plan = 'ba
                     update('mp_payment_link', null)
                   }}
                 />
+              )}
+
+              {/* Notas de voz — exclusivo de Premium. No tiene configuración:
+                  se activa solo según el plan. La tarjeta existe para que se
+                  vea qué incluye Premium (y qué le falta a Pro). */}
+              {!isPremium ? (
+                <LockedRow icon="ti-microphone" iconColor="#a78bfa"
+                  name={uis('Notas de voz', 'Voice notes')} tier="premium" lang={lang} />
+              ) : (
+                <div style={{ background: 'var(--bg-card)', border: '0.5px solid #2a3a2a', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <i className="ti ti-microphone" style={{ fontSize: 18, color: '#a78bfa' }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-1)' }}>{uis('Notas de voz', 'Voice notes')}</span>
+                        <span style={{ fontSize: 10, background: '#0a2e14', border: '0.5px solid #1a4a25', color: '#22a7f0', borderRadius: 4, padding: '1px 6px' }}>{uis('Activo', 'Active')}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
+                        {uis('El bot transcribe los audios que le mandan y responde como si fueran texto', 'The bot transcribes incoming voice notes and replies as if they were text')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* Google Sheets */}

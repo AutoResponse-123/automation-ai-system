@@ -7,6 +7,7 @@ import { RealtimeChannel } from '@supabase/supabase-js'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { hasProFeatures } from './plans'
+import { LockedPanel } from './LockedFeature'
 import Analytics from './Analytics'
 import Contacts from './Contacts'
 import Pipeline from './Pipeline'
@@ -749,7 +750,7 @@ export default function App() {
     { id: 'analytics',    icon: 'ti-chart-bar',        label: tr('nav_analytics', lang) },
     { id: 'contacts',     icon: 'ti-users',            label: tr('nav_contacts', lang) },
     { id: 'pipeline',     icon: 'ti-layout-kanban',    label: tr('nav_pipeline', lang) },
-    { id: 'broadcasts',   icon: 'ti-speakerphone',     label: tr('nav_broadcasts', lang) },
+    { id: 'broadcasts',   icon: isPro ? 'ti-speakerphone' : 'ti-lock', label: tr('nav_broadcasts', lang), locked: !isPro },
     ...(apptEnabled ? [{ id: 'appointments' as Tab, icon: isPro ? 'ti-calendar' : 'ti-lock', label: apptLabel, locked: !isPro }] : []),
     { id: 'activity',     icon: 'ti-activity',         label: tr('nav_activity', lang) },
     { id: 'settings',     icon: 'ti-settings',         label: tr('nav_settings', lang) },
@@ -1402,31 +1403,27 @@ export default function App() {
             if (conv) { setSelectedConv(conv); setTab('inbox') }
           }} />
         )}
-        {tab === 'broadcasts' && businessId && <Broadcasts businessId={businessId} />}
+        {tab === 'broadcasts' && businessId && (isPro ? (
+          <Broadcasts businessId={businessId} />
+        ) : (
+          <LockedPanel
+            icon="ti-speakerphone" title={tr('nav_broadcasts', lang)} tier="pro" lang={lang}
+            currentPlan={businessData?.plan}
+            description={lang === 'en'
+              ? 'Send an approved WhatsApp template to a segment of your contacts in one go — promos, announcements or reactivations. Replies land in your inbox like any other conversation.'
+              : 'Mandá una plantilla aprobada de WhatsApp a un segmento de tus contactos de una sola vez — promos, avisos o reactivaciones. Las respuestas te caen en la bandeja como cualquier otra conversación.'}
+          />
+        ))}
         {tab === 'appointments' && businessId && apptEnabled && (isPro ? (
           <Appointments businessId={businessId} label={apptLabel} />
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 24 }}>
-            <div style={{ background: 'var(--bg-card)', border: '0.5px solid var(--border-mid)', borderRadius: 14, padding: '32px 28px', maxWidth: 460, textAlign: 'center' }}>
-              <div style={{ width: 52, height: 52, borderRadius: 14, background: '#1585c718', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                <i className="ti ti-lock" style={{ fontSize: 24, color: '#3aa9e5' }} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
-                <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-1)' }}>{apptLabel}</span>
-                <span style={{ fontSize: 10, fontWeight: 700, background: '#1585c722', color: '#3aa9e5', border: '1px solid #1585c744', borderRadius: 4, padding: '2px 8px' }}>PRO</span>
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6, marginBottom: 18 }}>
-                {lang === 'en'
-                  ? 'Appointment booking is available on the Pro and Premium plans. The assistant checks real availability on Google Calendar, books, reschedules and cancels on its own, and sends reminders before each appointment.'
-                  : 'La gestión de turnos está disponible en los planes Pro y Premium. El asistente consulta la disponibilidad real en Google Calendar, agenda, reprograma y cancela solo, y manda recordatorios antes de cada turno.'}
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--text-3)' }}>
-                {lang === 'en' ? 'Your current plan: ' : 'Tu plan actual: '}
-                <b style={{ color: 'var(--text-2)' }}>{businessData?.plan ?? 'basic'}</b>
-                {lang === 'en' ? '. Contact us to upgrade.' : '. Escribinos para subir de plan.'}
-              </div>
-            </div>
-          </div>
+          <LockedPanel
+            icon="ti-calendar" title={apptLabel} tier="pro" lang={lang}
+            currentPlan={businessData?.plan}
+            description={lang === 'en'
+              ? 'The assistant checks real availability on Google Calendar, books, reschedules and cancels on its own, and sends reminders before each appointment.'
+              : 'El asistente consulta la disponibilidad real en Google Calendar, agenda, reprograma y cancela solo, y manda recordatorios antes de cada turno.'}
+          />
         ))}
         {tab === 'activity' && <Activity />}
         {tab === 'settings' && <Settings businessId={businessId} onThemeChange={applyTheme} onFontChange={f => { setDashFont(f); localStorage.setItem('ar_font', f) }} plan={businessData?.plan ?? 'basic'} />}
