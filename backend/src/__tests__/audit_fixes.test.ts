@@ -4,7 +4,9 @@ export {};
 const mockFreebusy = jest.fn().mockResolvedValue({ data: { calendars: { primary: { busy: [] } } } });
 jest.mock('googleapis', () => ({
   google: {
-    auth: { OAuth2: jest.fn().mockImplementation(() => ({ setCredentials: jest.fn(), generateAuthUrl: jest.fn() })) },
+    // `on` es necesario: getCalendarClient escucha el evento 'tokens' para
+    // persistir el refresh token si Google lo rota.
+    auth: { OAuth2: jest.fn().mockImplementation(() => ({ setCredentials: jest.fn(), generateAuthUrl: jest.fn(), on: jest.fn() })) },
     calendar: jest.fn().mockReturnValue({
       freebusy: { query: mockFreebusy },
       events: { insert: jest.fn(), delete: jest.fn() },

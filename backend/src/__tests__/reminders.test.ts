@@ -23,7 +23,7 @@ jest.mock('../config/supabase', () => ({
               id: 'biz_1', name: 'Barbería', bot_emoji: '✂', language: 'es',
               reminder_hours_before: [1], phone_whatsapp: '+5491172443409',
               schedule: { timezone: 'America/Argentina/Buenos_Aires' },
-              reminders_enabled: true, plan: 'enterprise',
+              reminders_enabled: true, plan: 'premium',
             }],
             error: null,
           }),
