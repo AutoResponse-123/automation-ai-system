@@ -6,7 +6,7 @@ import type { Lang } from './i18n'
 import { RealtimeChannel } from '@supabase/supabase-js'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
-import { hasProFeatures } from './plans'
+import { hasProFeatures, planLimit, monthStart } from './plans'
 import { LockedPanel } from './LockedFeature'
 import Analytics from './Analytics'
 import Contacts from './Contacts'
@@ -198,6 +198,8 @@ export default function App() {
   const [showTagFilterPopover, setShowTagFilterPopover] = useState(false)
   const [dashScale, setDashScale] = useState<'day' | 'week' | 'month' | '6months' | 'year'>('day')
   const [reservations, setReservations] = useState(0)
+  // Conversaciones iniciadas en el mes en curso, para el tope del plan.
+  const [monthlyConvs, setMonthlyConvs] = useState(0)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -570,6 +572,7 @@ export default function App() {
       { data: allMessages },
       { count: reservationCount },
       { count: escalationCount },
+      { count: monthlyConvCount },
     ] = await Promise.all([
       convIds.length ? supabase.from('messages').select('*', { count: 'exact', head: true }).in('conversation_id', convIds) : Promise.resolve({ count: 0 }),
       convIds.length ? supabase.from('messages').select('*', { count: 'exact', head: true }).in('conversation_id', convIds).gte('created_at', periodStart.toISOString()) : Promise.resolve({ count: 0 }),
@@ -581,6 +584,9 @@ export default function App() {
       convIds.length ? supabase.from('messages').select('sender').in('conversation_id', convIds).limit(1000) : Promise.resolve({ data: [] }),
       supabase.from('appointments').select('*', { count: 'exact', head: true }).eq('business_id', businessId).gte('created_at', periodStart.toISOString()),
       supabase.from('escalations').select('*', { count: 'exact', head: true }).eq('business_id', businessId).gte('created_at', periodStart.toISOString()),
+      // Consumo del mes contra el tope del plan. Misma consulta que hace el
+      // backend antes de frenar a un contacto nuevo (webhooks.ts).
+      supabase.from('conversations').select('*', { count: 'exact', head: true }).eq('business_id', businessId).gte('started_at', monthStart().toISOString()),
     ])
 
     const totalTokens = tokenData?.reduce((s, m) => s + (m.tokens_used || 0), 0) ?? 0
@@ -589,6 +595,7 @@ export default function App() {
 
     setYesterdayMsgCount(prevMessages ?? 0)
     setReservations(reservationCount ?? 0)
+    setMonthlyConvs(monthlyConvCount ?? 0)
     setMetrics({
       totalMessages: totalMessages ?? 0,
       todayMessages: periodMessages ?? 0,
@@ -894,8 +901,40 @@ export default function App() {
           </div>
         </div>
 
-        {/* El banner de trial fue eliminado: ya no existe el plan 'trial'. El
-            período de prueba lo controla el equipo manualmente. */}
+        {/* Consumo del mes contra el tope del plan. Solo aparece a partir del
+            60%: antes de eso es ruido. Sin esto, el cliente se enteraba de que
+            llegó al límite cuando el bot dejaba de responderle a alguien. */}
+        {tab === 'dashboard' && (() => {
+          const limit = planLimit(businessData?.plan)
+          const pct = limit > 0 ? Math.min(100, Math.round((monthlyConvs / limit) * 100)) : 0
+          if (pct < 60) return null
+          const full = monthlyConvs >= limit
+          const color = full ? '#f87171' : pct >= 85 ? '#fb923c' : '#3aa9e5'
+          return (
+            <div style={{ padding: '8px 16px', fontSize: 12, background: `${color}12`, borderBottom: `1px solid ${color}33`, color }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <i className={`ti ${full ? 'ti-alert-triangle' : 'ti-chart-bar'}`} style={{ fontSize: 13, flexShrink: 0 }} />
+                <span style={{ fontWeight: 500 }}>
+                  {lang === 'en'
+                    ? `${monthlyConvs.toLocaleString()} of ${limit.toLocaleString()} conversations this month (${pct}%)`
+                    : `${monthlyConvs.toLocaleString()} de ${limit.toLocaleString()} conversaciones este mes (${pct}%)`}
+                </span>
+                <span style={{ color: 'var(--text-3)', fontWeight: 400 }}>
+                  {full
+                    ? (lang === 'en'
+                        ? '— new contacts are not being answered. Returning customers still are. Contact us to upgrade.'
+                        : '— los contactos nuevos no están recibiendo respuesta. Los clientes que vuelven sí. Escribinos para subir de plan.')
+                    : (lang === 'en'
+                        ? '— resets on the 1st. Returning customers never count against the cap.'
+                        : '— se reinicia el día 1. Los clientes que vuelven nunca quedan bloqueados.')}
+                </span>
+              </div>
+              <div style={{ height: 4, borderRadius: 2, background: `${color}22`, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 2, transition: 'width .3s' }} />
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Dashboard */}
         {tab === 'dashboard' && (
