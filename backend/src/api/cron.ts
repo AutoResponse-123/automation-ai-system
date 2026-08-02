@@ -52,4 +52,18 @@ router.get('/send-reminders', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/cron/sync-provider-spend — gasto de Anthropic/OpenAI → provider_spend_daily
+// Agregar ?dry=1 para ver qué traería y la respuesta cruda, sin escribir nada.
+// Usalo las primeras corridas para comparar contra las consolas antes de confiar.
+router.get('/sync-provider-spend', async (req: Request, res: Response) => {
+  if (!checkSecret(req, res)) return;
+  try {
+    const { syncProviderSpend } = require('../services/providerBalance');
+    const result = await syncProviderSpend(req.query.dry === '1');
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
