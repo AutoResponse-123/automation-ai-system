@@ -8,6 +8,7 @@ import Conversations from './Conversations'
 import Revenue from './Revenue'
 import System from './System'
 import Alerts from './Alerts'
+import ProviderCredits from './ProviderCredits'
 
 type Tab = 'overview' | 'clients' | 'conversations' | 'revenue' | 'system' | 'alerts'
 
@@ -189,6 +190,7 @@ export default function AdminApp() {
             </div>
           ) : null })()}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 16 }}>
+            <ProviderCredits />
             <Clock />
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <div className="pulse" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />
