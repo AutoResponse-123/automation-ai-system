@@ -230,7 +230,10 @@ function startProviderBalanceJob(): void {
   cron.schedule('0 8 * * *', async () => {
     console.log('[providerBalance] Sincronizando gasto de proveedores...');
     await syncProviderSpend();
+    const { heartbeat } = require('./systemHealth');
+    await heartbeat('provider_spend');
   }, { timezone: 'America/Argentina/Buenos_Aires' });
+  require('./systemHealth').heartbeat('provider_spend');
   console.log('[providerBalance] Job iniciado — corre 08:00 ART');
 }
 

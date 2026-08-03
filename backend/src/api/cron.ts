@@ -71,4 +71,16 @@ router.get('/sync-provider-spend', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/cron/sync-twilio-balance — saldo real de Twilio → system_status
+// ?dry=1 para consultarlo sin escribir.
+router.get('/sync-twilio-balance', async (req: Request, res: Response) => {
+  if (!checkSecret(req, res)) return;
+  try {
+    const { syncTwilioBalance } = require('../services/systemHealth');
+    res.json(await syncTwilioBalance(req.query.dry === '1'));
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

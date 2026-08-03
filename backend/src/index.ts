@@ -10,6 +10,7 @@ const broadcastRouter = require('./api/broadcasts');
 const notificationsRouter = require('./api/notifications');
 const { startRemindersJob } = require('./services/reminders');
 const { startProviderBalanceJob } = require('./services/providerBalance');
+const { startSystemHealthJob } = require('./services/systemHealth');
 const { initLogger, errorHandler } = require('./services/logger');
 
 initLogger();
@@ -90,4 +91,5 @@ app.listen(PORT, () => {
   console.log('Server running on http://localhost:' + PORT);
   startRemindersJob();
   startProviderBalanceJob();
+  startSystemHealthJob();
 });

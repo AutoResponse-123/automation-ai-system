@@ -60,7 +60,11 @@ function startReminderJob() {
     console.log('[reminders] Ejecutando chequeo de recordatorios...');
     await sendPendingReminders();
     await autoCompleteAppointments();
+    // Latido: si esto deja de registrarse, el panel avisa que el job murió.
+    const { heartbeat } = require('./systemHealth');
+    await heartbeat('reminders');
   });
+  require('./systemHealth').heartbeat('reminders');
   console.log('[reminders] Job iniciado — corre cada 15 min');
 }
 

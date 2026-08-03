@@ -45,10 +45,18 @@ export default function Alerts({ onCount }: AlertsProps) {
     for (const c of pendConvs ?? []) {
       const b = (c as any).businesses
       const contact = (c as any).contacts
+      // Una escalación de 2 minutos y una de 2 días se veían igual. El tiempo de
+      // espera es justamente lo que decide si hay que correr o no.
+      const horas = (Date.now() - new Date(c.updated_at).getTime()) / 3600000
+      const demorada = horas >= 2
       all.push({
         id: `pending-${c.id}`, severity: 'critical',
-        title: `Conversación escalada — ${b?.name || 'Negocio desconocido'}`,
-        detail: `El cliente ${contact?.phone || 'desconocido'} está esperando atención humana.`,
+        title: demorada
+          ? `Escalada sin atender hace ${Math.floor(horas)}h — ${b?.name || 'Negocio desconocido'}`
+          : `Conversación escalada — ${b?.name || 'Negocio desconocido'}`,
+        detail: demorada
+          ? `El cliente ${contact?.phone || 'desconocido'} espera atención humana hace más de ${Math.floor(horas)} horas.`
+          : `El cliente ${contact?.phone || 'desconocido'} está esperando atención humana.`,
         ago: timeAgo(c.updated_at), icon: 'ti-message-exclamation'
       })
     }
@@ -100,7 +108,60 @@ export default function Alerts({ onCount }: AlertsProps) {
       }
     }
 
-    // 5. Info: Railway trial
+    // 5. Calendarios desconectados.
+    // calendar.ts ya detecta cuando Google revoca el token y pone
+    // google_refresh_token en null. El dato estaba en la base pero no lo miraba
+    // nadie: el negocio deja de recibir recordatorios y no se entera ni él ni vos.
+    const { data: sinCal } = await supabase
+      .from('businesses')
+      .select('id, name, reminders_enabled, google_refresh_token')
+      .eq('is_active', true).eq('reminders_enabled', true)
+      .is('google_refresh_token', null)
+    for (const b of sinCal ?? []) {
+      all.push({
+        id: `cal-${b.id}`, severity: 'critical',
+        title: `Calendario desconectado — ${b.name}`,
+        detail: 'Tiene recordatorios activados pero Google revocó el acceso. No se están enviando y el cliente no lo sabe. Hay que reconectar el calendario.',
+        ago: '', icon: 'ti-calendar-off'
+      })
+    }
+
+    // 6. Salud del sistema: saldo de Twilio y latido de los crons.
+    const { data: sys } = await supabase.from('system_status').select('*')
+    for (const s of sys ?? []) {
+      if (s.key === 'twilio_balance') {
+        if (s.status !== 'ok') {
+          const v = s.value ?? {}
+          all.push({
+            id: 'twilio-balance',
+            severity: s.status === 'critical' ? 'critical' : 'warning',
+            title: `Saldo bajo en Twilio — ${v.currency ?? 'USD'} ${Number(v.balance ?? 0).toFixed(2)}`,
+            detail: 'Twilio es el mayor costo variable del sistema. Si llega a cero no sale ni entra ningún mensaje, sin importar el saldo de Claude u OpenAI.',
+            ago: timeAgo(s.updated_at), icon: 'ti-brand-whatsapp'
+          })
+        }
+        continue
+      }
+
+      if (s.key.startsWith('cron:')) {
+        const job = s.key.slice(5)
+        const mins = Number(s.value?.interval_minutes) || 0
+        if (!mins) continue
+        const elapsed = (Date.now() - new Date(s.updated_at).getTime()) / 60000
+        // 2,5x el intervalo: tolera una corrida perdida sin gritar por un
+        // reinicio normal, pero detecta un job realmente muerto.
+        if (elapsed > mins * 2.5) {
+          all.push({
+            id: `cron-${job}`, severity: 'critical',
+            title: `Job detenido — ${job}`,
+            detail: `Tendría que correr cada ${mins} min y no da señales hace ${Math.round(elapsed)} min. Probablemente el backend se reinició y el job no volvió a arrancar.`,
+            ago: timeAgo(s.updated_at), icon: 'ti-heartbeat'
+          })
+        }
+      }
+    }
+
+    // 7. Info: Railway trial
     all.push({
       id: 'railway-trial', severity: 'info',
       title: 'Railway: Trial activo',
