@@ -166,7 +166,34 @@ export default function Alerts({ onCount }: AlertsProps) {
       }
     }
 
-    // 7. Info: Railway trial
+    // 7. Falla sistémica: varias conversaciones pausadas en poco tiempo.
+    //
+    // Cada escalación suelta ya genera su propia alerta más arriba. Lo que esto
+    // detecta es otra cosa: el patrón. Cuando algo de fondo se rompe —créditos
+    // agotados, API caída, error en el pipeline— el fallo no le pega a una
+    // conversación, le pega a todas las que entran. Tres escalaciones repartidas
+    // en la semana son operación normal; tres en una hora no lo son.
+    const bizIds = (bizList ?? []).map((b: any) => b.id)
+    if (bizIds.length > 0) {
+      const unaHoraAtras = new Date(now.getTime() - 3600000).toISOString()
+      const { count: pausadasRecientes } = await supabase
+        .from('conversations')
+        .select('id', { count: 'exact', head: true })
+        .in('business_id', bizIds)
+        .eq('ai_enabled', false)
+        .gte('updated_at', unaHoraAtras)
+
+      if ((pausadasRecientes ?? 0) >= 3) {
+        all.push({
+          id: 'cascada-pausas', severity: 'critical',
+          title: `${pausadasRecientes} conversaciones pausadas en la última hora`,
+          detail: 'Varias conversaciones cayeron a atención humana casi al mismo tiempo. Eso no suele ser casualidad: revisá el saldo de las APIs y los errores en Sentry antes de contestarlas una por una.',
+          ago: '1h', icon: 'ti-alert-octagon'
+        })
+      }
+    }
+
+    // 8. Info: Railway trial
     all.push({
       id: 'railway-trial', severity: 'info',
       title: 'Railway: Trial activo',
