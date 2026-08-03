@@ -178,12 +178,14 @@ async function upsertSpend(provider: string, spend: DailySpend[]): Promise<numbe
  *
  * @param dryRun devuelve lo que traería y la respuesta cruda, sin escribir.
  */
-async function syncProviderSpend(dryRun = false): Promise<any> {
-  const out: any = { dryRun, providers: {} };
+async function syncProviderSpend(dryRun = false, days = DAYS_TO_SYNC): Promise<any> {
+  // Ambas APIs topean en 31 buckets diarios.
+  const window = Math.max(1, Math.min(31, days));
+  const out: any = { dryRun, days: window, providers: {} };
 
   const jobs: Array<[string, () => Promise<{ spend: DailySpend[]; raw: any }>]> = [
-    ['anthropic', () => fetchAnthropicSpend(DAYS_TO_SYNC)],
-    ['openai', () => fetchOpenAISpend(DAYS_TO_SYNC)],
+    ['anthropic', () => fetchAnthropicSpend(window)],
+    ['openai', () => fetchOpenAISpend(window)],
   ];
 
   for (const [provider, fetcher] of jobs) {
