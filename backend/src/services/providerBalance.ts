@@ -84,7 +84,9 @@ async function fetchAnthropicSpend(days: number): Promise<{ spend: DailySpend[];
   if (!key) throw new Error('Falta ANTHROPIC_ADMIN_KEY');
 
   const startingAt = startOfUtcDay(days).toISOString();
-  const endingAt = startOfUtcDay(-1).toISOString();
+  // "ahora", nunca el futuro: pedirle a la Cost API un ending_at posterior al
+  // momento actual devuelve HTTP 500 en vez de un error descriptivo.
+  const endingAt = new Date().toISOString();
   const headers = {
     'anthropic-version': '2023-06-01',
     'x-api-key': key,
@@ -118,6 +120,8 @@ async function fetchOpenAISpend(days: number): Promise<{ spend: DailySpend[]; ra
   if (!key) throw new Error('Falta OPENAI_ADMIN_KEY');
 
   const startTime = Math.floor(startOfUtcDay(days).getTime() / 1000);
+  // Sin end_time, OpenAI devuelve buckets hacia adelante e incluye días futuros.
+  const endTime = Math.floor(Date.now() / 1000);
   const headers = {
     Authorization: `Bearer ${key}`,
     'User-Agent': 'Wasso-BillingMonitor/1.0',
@@ -130,6 +134,7 @@ async function fetchOpenAISpend(days: number): Promise<{ spend: DailySpend[]; ra
   for (let i = 0; i < MAX_PAGES; i++) {
     const url = new URL('https://api.openai.com/v1/organization/costs');
     url.searchParams.set('start_time', String(startTime));
+    url.searchParams.set('end_time', String(endTime));
     url.searchParams.set('bucket_width', '1d');
     url.searchParams.set('limit', '31');
     if (page) url.searchParams.set('page', page);
