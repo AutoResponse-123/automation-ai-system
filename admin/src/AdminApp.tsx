@@ -12,7 +12,16 @@ import ProviderCredits from './ProviderCredits'
 
 type Tab = 'overview' | 'clients' | 'conversations' | 'revenue' | 'system' | 'alerts'
 
-const ADMIN_EMAILS = ['zaza42069zaza69@gmail.com']
+// Quién es admin lo decide la tabla `admins` en Supabase, vía la función is_admin().
+// Antes esto era una lista fija acá, que se desincronizó de la base: Franco estaba
+// cargado como admin y aun así no podía entrar.
+// La lista de abajo quedó solo como red de emergencia por si la RPC falla (corte de
+// red, función caída). No es el control de seguridad real: eso lo hace RLS en la base,
+// que ignora por completo lo que diga el frontend.
+const ADMIN_EMAILS_FALLBACK = [
+  'zaza42069zaza69@gmail.com',
+  'francocastro2005@gmail.com',
+]
 
 const NAV = [
   {
@@ -56,6 +65,7 @@ export default function AdminApp() {
   const [authLoading, setAuthLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('overview')
   const [alertCount, setAlertCount] = useState(0)
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -66,13 +76,25 @@ export default function AdminApp() {
     return () => subscription.unsubscribe()
   }, [])
 
-  if (authLoading) return (
+  useEffect(() => {
+    if (!session) { setIsAdmin(null); return }
+    let cancelled = false
+    supabase.rpc('is_admin').then(({ data, error }) => {
+      if (cancelled) return
+      setIsAdmin(error
+        ? ADMIN_EMAILS_FALLBACK.includes(session.user.email ?? '')
+        : data === true)
+    })
+    return () => { cancelled = true }
+  }, [session])
+
+  if (authLoading || (session && isAdmin === null)) return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', color: 'var(--text-3)', fontSize: 13 }}>
       <i className="ti ti-loader-2" style={{ marginRight: 8 }} /> Cargando...
     </div>
   )
 
-  if (!session || !ADMIN_EMAILS.includes(session.user.email ?? '')) return <AdminLogin />
+  if (!session || !isAdmin) return <AdminLogin />
 
   const initial = session.user.email?.slice(0, 1).toUpperCase() ?? 'A'
 

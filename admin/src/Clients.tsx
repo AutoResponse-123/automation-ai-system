@@ -7,6 +7,7 @@ interface Business {
   trial_ends_at: string | null; suspended_at: string | null; suspension_reason: string | null
   created_at: string; user_id: string; phone_whatsapp: string; escalation_email: string
   msg_count?: number; contact_count?: number; token_count?: number; conv_count?: number
+  max_tokens?: number | null
 }
 
 function timeAgo(d: string) {
