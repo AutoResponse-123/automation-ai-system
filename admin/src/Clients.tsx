@@ -8,6 +8,7 @@ interface Business {
   created_at: string; user_id: string; phone_whatsapp: string; escalation_email: string
   msg_count?: number; contact_count?: number; token_count?: number; conv_count?: number
   max_tokens?: number | null
+  is_demo?: boolean
 }
 
 function timeAgo(d: string) {
@@ -232,6 +233,10 @@ export default function Clients() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Badge label={selected.plan || DEFAULT_PLAN} color={PLAN_COLORS[selected.plan] || 'var(--text-2)'} />
                 <Badge label={selected.is_active ? 'activo' : 'suspendido'} color={selected.is_active ? 'var(--accent)' : 'var(--danger)'} />
+                {/* Visible a propósito: un negocio marcado como demo no genera
+                    ninguna alerta. Si no se viera, un cliente real marcado por
+                    error quedaría sin monitoreo y sin forma de notarlo. */}
+                {selected.is_demo && <Badge label="demo · sin alertas" color="var(--warn)" />}
                 {selected.type && <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{selected.type}</span>}
               </div>
             </div>

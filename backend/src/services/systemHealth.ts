@@ -21,6 +21,8 @@ const JOB_INTERVALS: Record<string, number> = {
   reminders: 15,
   provider_spend: 1440,
   system_health: 360,
+  summary_daily: 1440,
+  summary_weekly: 10080,
 };
 
 /**

@@ -15,6 +15,14 @@ function getSentry() {
       console.warn('[logger] SENTRY_DSN seteado pero @sentry/node no instalado — corré: npm install @sentry/node');
       sentry = null;
     }
+  } else {
+    // Que se note. Sin DSN, todo error queda solo en el log de Railway, que nadie
+    // mira. El latido de los crons detecta un job muerto, pero no una excepción
+    // suelta en un webhook: ese mensaje se pierde sin dejar rastro visible.
+    console.warn(
+      '[logger] ATENCIÓN: SENTRY_DSN no está seteado — los errores no se reportan a ningún lado. ' +
+      'Creá un proyecto Node en sentry.io y cargá el DSN como variable en Railway.'
+    );
   }
   return sentry;
 }

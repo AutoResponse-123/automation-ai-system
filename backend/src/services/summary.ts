@@ -169,3 +169,38 @@ export async function sendWeeklySummaries() {
 }
 
 export const sendDailySummary = (business: any) => sendSummary(business, 'daily');
+
+/**
+ * Programa el envío de resúmenes.
+ *
+ * Antes esto no existía: las funciones estaban escritas y expuestas en
+ * /api/cron/daily-summary con un comentario que decía "llamar a las 9am", pero
+ * nada las llamaba. La feature estaba prendida del lado del cliente
+ * (daily_summary = true) y no se ejecutaba nunca.
+ *
+ * Va adentro del backend, como los demás jobs, para no depender de un servicio
+ * externo que hay que acordarse de configurar y que también puede caerse callado.
+ */
+export function startSummaryJob(): void {
+  const cron = require('node-cron');
+  const { heartbeat } = require('./systemHealth');
+  const TZ = { timezone: 'America/Argentina/Buenos_Aires' };
+
+  // Todos los días 9:00 ART, para los negocios con summary_frequency = 'daily'.
+  cron.schedule('0 9 * * *', async () => {
+    console.log('[summary] Enviando resúmenes diarios...');
+    try { await sendDailySummaries(); } catch (e: any) { console.error('[summary] diario:', e.message); }
+    await heartbeat('summary_daily');
+  }, TZ);
+
+  // Lunes 9:00 ART, para los de summary_frequency = 'weekly'.
+  cron.schedule('0 9 * * 1', async () => {
+    console.log('[summary] Enviando resúmenes semanales...');
+    try { await sendWeeklySummaries(); } catch (e: any) { console.error('[summary] semanal:', e.message); }
+    await heartbeat('summary_weekly');
+  }, TZ);
+
+  heartbeat('summary_daily');
+  heartbeat('summary_weekly');
+  console.log('[summary] Job iniciado — diario 09:00 ART, semanal lunes 09:00 ART');
+}

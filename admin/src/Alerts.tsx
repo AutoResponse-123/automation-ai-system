@@ -63,7 +63,8 @@ export default function Alerts({ onCount }: AlertsProps) {
 
     // 2. Clientes suspendidos
     const { data: suspended } = await supabase
-      .from('businesses').select('id, name, suspended_at, suspension_reason').eq('is_active', false)
+      .from('businesses').select('id, name, suspended_at, suspension_reason')
+      .eq('is_active', false).eq('is_demo', false)
     for (const b of suspended ?? []) {
       all.push({
         id: `suspended-${b.id}`, severity: 'critical',
@@ -78,7 +79,8 @@ export default function Alerts({ onCount }: AlertsProps) {
     // manual, así que esta alerta es el recordatorio para hacerlo a tiempo.
     const in5 = new Date(now.getTime() + 5 * 86400000).toISOString()
     const { data: expiring } = await supabase
-      .from('businesses').select('id, name, plan, trial_ends_at').eq('is_active', true)
+      .from('businesses').select('id, name, plan, trial_ends_at')
+      .eq('is_active', true).eq('is_demo', false)
       .not('trial_ends_at', 'is', null).lte('trial_ends_at', in5)
     for (const b of expiring ?? []) {
       const daysLeft = Math.ceil((new Date(b.trial_ends_at).getTime() - now.getTime()) / 86400000)
@@ -92,7 +94,10 @@ export default function Alerts({ onCount }: AlertsProps) {
 
     // 4. Clientes sin actividad 7+ días (churn risk)
     const sevenAgo = new Date(now.getTime() - 7 * 86400000).toISOString()
-    const { data: bizList } = await supabase.from('businesses').select('id, name').eq('is_active', true)
+    // Los negocios marcados is_demo quedan afuera de todas las alertas: son de
+    // prueba y dispararían avisos permanentes que terminan tapando los reales.
+    const { data: bizList } = await supabase.from('businesses').select('id, name')
+      .eq('is_active', true).eq('is_demo', false)
     for (const b of bizList ?? []) {
       const { data: convIds } = await supabase.from('conversations').select('id').eq('business_id', b.id)
       const ids = (convIds ?? []).map((c: any) => c.id)
@@ -115,7 +120,7 @@ export default function Alerts({ onCount }: AlertsProps) {
     const { data: sinCal } = await supabase
       .from('businesses')
       .select('id, name, reminders_enabled, google_refresh_token')
-      .eq('is_active', true).eq('reminders_enabled', true)
+      .eq('is_active', true).eq('is_demo', false).eq('reminders_enabled', true)
       .is('google_refresh_token', null)
     for (const b of sinCal ?? []) {
       all.push({

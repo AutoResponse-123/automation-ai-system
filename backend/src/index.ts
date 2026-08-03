@@ -11,6 +11,7 @@ const notificationsRouter = require('./api/notifications');
 const { startRemindersJob } = require('./services/reminders');
 const { startProviderBalanceJob } = require('./services/providerBalance');
 const { startSystemHealthJob } = require('./services/systemHealth');
+const { startSummaryJob } = require('./services/summary');
 const { initLogger, errorHandler } = require('./services/logger');
 
 initLogger();
@@ -92,4 +93,5 @@ app.listen(PORT, () => {
   startRemindersJob();
   startProviderBalanceJob();
   startSystemHealthJob();
+  startSummaryJob();
 });
