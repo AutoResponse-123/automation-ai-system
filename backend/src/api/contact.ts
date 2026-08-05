@@ -15,7 +15,7 @@ function escapeHtml(str: string): string {
 
 // POST /api/contact — formulario de contacto desde la landing
 router.post('/', async (req: Request, res: Response) => {
-  const { name, email, message, business_type } = req.body;
+  const { name, email, message, business_type, phone } = req.body;
 
   if (!name || !email || !message) {
     res.status(400).json({ error: 'Nombre, email y mensaje son requeridos' });
@@ -33,6 +33,9 @@ router.post('/', async (req: Request, res: Response) => {
   const safeEmail = escapeHtml(String(email).slice(0, 200))
   const safeMessage = escapeHtml(String(message).slice(0, 2000)).replace(/\n/g, '<br>')
   const safeBizType = business_type ? escapeHtml(String(business_type).slice(0, 100)) : ''
+  // WhatsApp: guardamos el texto tal cual lo escribió y una versión solo-dígitos para el link wa.me
+  const safePhone = phone ? escapeHtml(String(phone).slice(0, 30)) : ''
+  const phoneDigits = phone ? String(phone).replace(/\D/g, '').slice(0, 15) : ''
 
   try {
     await sendMail({
@@ -41,7 +44,7 @@ router.post('/', async (req: Request, res: Response) => {
       subject: `Consulta de ${safeName} — Wasso`,
       html: shell({
         title: 'Nueva consulta desde la landing',
-        preheader: `${safeName}${safeBizType ? ` · ${safeBizType}` : ''} — ${safeEmail}`,
+        preheader: `${safeName}${safeBizType ? ` · ${safeBizType}` : ''} — ${safePhone || safeEmail}`,
         width: 520,
         body: `
           ${header('Nueva consulta', 'Formulario de contacto de la landing')}
@@ -49,6 +52,9 @@ router.post('/', async (req: Request, res: Response) => {
             ${detailRows([
               ['Nombre', safeName],
               ['Email', `<a href="mailto:${safeEmail}" style="color:${C.accentDark};text-decoration:none;">${safeEmail}</a>`],
+              ...(safePhone ? [['WhatsApp', phoneDigits
+                ? `<a href="https://wa.me/${phoneDigits}" style="color:${C.accentDark};text-decoration:none;">${safePhone}</a>`
+                : safePhone] as [string, string]] : []),
               ...(safeBizType ? [['Tipo de negocio', safeBizType] as [string, string]] : []),
               ['Mensaje', `<span style="font-weight:400;">${safeMessage}</span>`],
             ])}
